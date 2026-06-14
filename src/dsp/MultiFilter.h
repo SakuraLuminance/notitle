@@ -79,7 +79,7 @@ struct FilterSlot
     juce::dsp::IIR::Filter<float> iirFilter;
 
     // Used by Comb
-    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationType::Linear> delayLine;
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delayLine;
 
     // Used by Formant (4 peaking filters)
     std::vector<juce::dsp::IIR::Filter<float>> formantFilters;

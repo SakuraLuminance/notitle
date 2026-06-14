@@ -140,7 +140,7 @@ public:
         g.drawRoundedRectangle(bounds, 2.0f, 1.0f);
     }
 
-    void drawComboBoxTextWhenNothingSelected(juce::Graphics& g, juce::ComboBox& box) override
+    void drawComboBoxTextWhenNothingSelected(juce::Graphics& g, juce::ComboBox& box, juce::Label& label) override
     {
         g.setColour(fg_.withAlpha(0.4f));
         g.setFont(getCyberFont(12.0f, false));
