@@ -106,14 +106,17 @@ private:
     float       attackMs_    = 10.0f;
     float       releaseMs_   = 50.0f;
     float       knee_        = 6.0f;
-    float       makeupGain_  = 0.0f;
-    float       mix_         = 1.0f;
+    float       makeupGain_    = 0.0f;
+    float       makeupLinear_  = 1.0f;
+    float       mix_           = 1.0f;
 
     //==============================================================================
     // Band focus
     bool        bandFocusEnabled_   = false;
     float       bandCenterHz_       = 1000.0f;
     float       bandWidthOctaves_   = 3.0f;
+    float       bandLowerHz_        = 20.0f;
+    float       bandUpperHz_        = 20000.0f;
     bool        bandBypass_         = false;
 
     //==============================================================================

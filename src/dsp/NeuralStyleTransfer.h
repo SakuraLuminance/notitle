@@ -197,6 +197,9 @@ private:
                                   std::vector<std::vector<float>>& envelope,
                                   int numCepstralBins);
 
+    /** Precompute the DCT-II/DCT-III cos table for the current FFT size. */
+    void updateDCTTable();
+
     /** Build a mel-spaced triangular filterbank.
         @param numBins      Number of FFT magnitude bins.
         @param numMelBands  Number of mel bands (e.g. 26).
@@ -241,6 +244,15 @@ private:
     // FFT engine and window
     std::unique_ptr<juce::dsp::FFT> fft_;
     std::vector<float> windowTable_;
+
+    // Precomputed DCT cos table (N×N, for cepstral envelope extraction)
+    std::vector<float> dctCosTab_;
+    int dctCosTabNumBins_ = 0;
+
+    // Precomputed Mel filterbank cache (flat, numMelBands × numBins)
+    std::vector<float> melFilterbank_;
+    int melFilterbankNumBins_ = 0;
+    double melFilterbankSampleRate_ = 0.0;
 
     // Per-frame scratch buffers (reused to avoid repeated allocation)
     std::vector<float> logMag_;

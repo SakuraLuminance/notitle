@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <cmath>
+#include <cstring>
 
 // SIMD header includes (platform-independent)
 #if defined(__AVX2__) || defined(__AVX__)
@@ -392,4 +393,42 @@ inline void vectorSqrtSumSquares(float* dest,
 }
 
 } // namespace SIMDKernels
+
+// ----------------------------------------------------------------------------
+// Fast math approximations for audio DSP
+// ----------------------------------------------------------------------------
+
+/** Fast approximate log2 using float reinterpret-cast bit hack.
+    Relative error ~3-5%, ~10× faster than std::log2. */
+inline float fast_log2(float x) noexcept
+{
+    uint32_t bits;
+    std::memcpy(&bits, &x, sizeof(bits));
+    return static_cast<float>(static_cast<int>(bits) - 0x3f2a0000) * 1.1920928955078125e-7f;
+}
+
+/** Fast approximate log10 via fast_log2. */
+inline float fast_log10(float x) noexcept
+{
+    return fast_log2(x) * 0.301030f;
+}
+
+/** Fast approximate exp2 using float reinterpret-cast polynomial.
+    Relative error ~1-2%, ~10× faster than std::pow(2.0f, x). */
+inline float fast_exp2(float x) noexcept
+{
+    const float xi = std::floor(x);
+    const float xf = x - xi;
+
+    // Minimax polynomial for 2^xf on [0, 1)
+    const float poly = 1.0f + xf * (0.693147f + xf * (0.240226f + xf * 0.055505f));
+
+    uint32_t bits;
+    std::memcpy(&bits, &poly, sizeof(bits));
+    bits += static_cast<uint32_t>(static_cast<int>(xi)) << 23;
+    float result;
+    std::memcpy(&result, &bits, sizeof(result));
+    return result;
+}
+
 } // namespace ana

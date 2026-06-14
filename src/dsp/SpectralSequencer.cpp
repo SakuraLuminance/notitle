@@ -642,10 +642,10 @@ void SpectralSequencer::applyPitchQuantize(const SpectralStep& step,
             if (freq <= 0.0f) continue;
 
             // Convert to log2 space, quantize, convert back
-            const float logFreq = std::log2(freq);
+            const float logFreq = fast_log2(freq);
             const float quantized = std::round(logFreq * divisionsPerOctave)
                                   * invDivisions;
-            partials.frequency[i] = std::pow(2.0f, quantized);
+            partials.frequency[i] = fast_exp2(quantized);
 
             // Clamp
             partials.frequency[i] = std::clamp(partials.frequency[i],
@@ -722,21 +722,26 @@ void SpectralSequencer::applySpectralBlur(const SpectralStep& step,
     // Blur radius proportional to blur amount
     const int radius = std::max(1, static_cast<int>(blur * 8.0f));
 
-    // Gaussian-like weights
-    scratch_weights_.assign(static_cast<size_t>(radius * 2 + 1), 0.0f);
-    auto& weights = scratch_weights_;
-    float weightSum = 0.0f;
-    for (int j = -radius; j <= radius; ++j)
+    // Cache Gaussian-like weights (reuse when blur unchanged)
+    if (blur != lastBlur_ || radius != cachedBlurRadius_)
     {
-        const float w = std::exp(-static_cast<float>(j * j)
-                                 / (2.0f * blur * 4.0f + 0.001f));
-        weights[static_cast<size_t>(j + radius)] = w;
-        weightSum += w;
+        lastBlur_ = blur;
+        cachedBlurRadius_ = radius;
+        cachedBlurWeights_.assign(static_cast<size_t>(radius * 2 + 1), 0.0f);
+        float weightSum = 0.0f;
+        for (int j = -radius; j <= radius; ++j)
+        {
+            const float w = std::exp(-static_cast<float>(j * j)
+                                     / (2.0f * blur * 4.0f + 0.001f));
+            cachedBlurWeights_[static_cast<size_t>(j + radius)] = w;
+            weightSum += w;
+        }
+        // Normalize
+        const float invSum = 1.0f / weightSum;
+        for (auto& w : cachedBlurWeights_)
+            w *= invSum;
     }
-    // Normalize
-    const float invSum = 1.0f / weightSum;
-    for (auto& w : weights)
-        w *= invSum;
+    auto& weights = cachedBlurWeights_;
 
     // Collect active partial indices
     scratch_activeIndices_.clear();
@@ -952,21 +957,17 @@ void SpectralSequencer::applyNoise(const SpectralStep& step,
 
     constexpr int kMax = PartialDataSIMD::kMaxPartials;
 
-    std::uniform_real_distribution<float> ampNoise(-1.0f, 1.0f);
-    std::uniform_real_distribution<float> phaseNoise(-juce::MathConstants<float>::pi,
-                                                      juce::MathConstants<float>::pi);
-
     for (int i = 0; i < kMax; ++i)
     {
         if (!partials.isActive(i))
             continue;
 
         // Add noise to amplitude
-        partials.amplitude[i] += noiseAmt * ampNoise(rng_) * 0.2f;
+        partials.amplitude[i] += noiseAmt * ampNoiseDist_(rng_) * 0.2f;
         partials.amplitude[i]  = std::clamp(partials.amplitude[i], 0.0f, 2.0f);
 
         // Add noise to phase
-        partials.phase[i] += noiseAmt * phaseNoise(rng_) * 0.3f;
+        partials.phase[i] += noiseAmt * phaseNoiseDist_(rng_) * 0.3f;
     }
 
     partials.updateActiveMask();
@@ -994,10 +995,10 @@ void SpectralSequencer::applyBitcrush(const SpectralStep& step,
         if (freq <= 0.0f) continue;
 
         // Quantize in log2 space
-        const float logFreq = std::log2(freq);
+        const float logFreq = fast_log2(freq);
         const float quantized = std::round(logFreq * stepsPerOctave)
                               * invSteps;
-        partials.frequency[i] = std::pow(2.0f, quantized);
+        partials.frequency[i] = fast_exp2(quantized);
 
         partials.frequency[i] = std::clamp(partials.frequency[i],
                                            1.0f, 20000.0f);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <cstdint>
 #include <juce_core/juce_core.h>
 
@@ -179,6 +180,10 @@ private:
     /** Convert a 64-dim latent vector into 512 harmonic partials. */
     void latentToPartials(const LatentVector& latent, PartialDataSIMD& output);
 
+    /** Rebuild all LUTs from the given latent vector.
+        Called automatically before generation when latent changes. */
+    void updateLUTs(const LatentVector& latent);
+
     // ------------------------------------------------------------------------
     // Evolution helpers
     // ------------------------------------------------------------------------
@@ -230,6 +235,20 @@ private:
     bool    evolutionReady_ = false;
 
     double  sampleRate_ = 44100.0;
+
+    // --------------------------------------------------------------------
+    // Lookup-table cache for per-generation transcendental calls
+    // --------------------------------------------------------------------
+    /** Precomputed std::pow(20.0f / (h+1), tiltExponent) for h=0..511. */
+    std::array<float, 512> tiltLUT_ {};
+    /** Precomputed std::sin(h_pos * pi * 0.5f) for brightness boost. */
+    std::array<float, 512> brightnessLUT_ {};
+    /** Precomputed std::exp(-(diff*diff) / (2.0f*bw*bw)) for each formant. */
+    std::array<float, 512> formantLUT_[3] {};
+    /** Precomputed std::pow(static_cast<float>(h+1), inharmAmount). */
+    std::array<float, 512> inharmLUT_ {};
+    /** Flag: LUTs need recomputation before next generation. */
+    bool lutsDirty_ = true;
 
     // --------------------------------------------------------------------
     // Static preset storage (shared across instances)

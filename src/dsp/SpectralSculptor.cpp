@@ -126,10 +126,19 @@ void SpectralSculptor::setFractalSeed(float seed)
 //  Gaussian falloff
 //==============================================================================
 
-float SpectralSculptor::gaussianFalloff(int idx, int center, float sigma) const noexcept
+float SpectralSculptor::gaussianFalloff(int idx, int center, float /*sigma*/) const noexcept
 {
-    const float diff = static_cast<float>(idx - center);
-    return std::exp(-0.5f * diff * diff / (sigma * sigma));
+    const int diff = (idx > center) ? (idx - center) : (center - idx);
+    return (diff < 512) ? falloffLUT_[diff] : 0.0f;
+}
+
+void SpectralSculptor::updateFalloffLUT(float sigma)
+{
+    if (sigma == lastSigma_)
+        return;
+    lastSigma_ = sigma;
+    for (int i = 0; i < 512; ++i)
+        falloffLUT_[i] = std::exp(-0.5f * static_cast<float>(i * i) / (sigma * sigma));
 }
 
 //==============================================================================
@@ -281,6 +290,7 @@ void SpectralSculptor::applyBrush(PartialDataSIMD& partials)
     const int N         = partials.maxPartials;
     const int centerIdx = normToIndex(position_, N);
     const float sigma   = brushSize_ * static_cast<float>(N) * kSigmaScale + kMinSigma;
+    updateFalloffLUT(sigma);
 
     // Brute-force iteration over all 512 slots is fine at audio rates;
     // the active-mask check quickly skips dead slots.
@@ -307,6 +317,7 @@ void SpectralSculptor::applyEraser(PartialDataSIMD& partials)
     const int N         = partials.maxPartials;
     const int centerIdx = normToIndex(position_, N);
     const float sigma   = brushSize_ * static_cast<float>(N) * kSigmaScale + kMinSigma;
+    updateFalloffLUT(sigma);
 
     for (int i = 0; i < N; ++i)
     {
@@ -461,17 +472,22 @@ void SpectralSculptor::applyWarp(PartialDataSIMD& partials)
         float fOut = centerFreq * std::pow(ratio, warpFactor_);
         fOut = juce::jlimit(minFreq, nyquist * 0.999f, fOut);
 
-        // Find the closest active partial by frequency
+        // Find the closest active partial by binary search (O(log n))
         int bestIdx = -1;
         float bestDist = 1e10f;
-        for (int si2 = 0; si2 < numActive; ++si2)
         {
-            const int ti = order[si2];
-            const float d = std::abs(partials.frequency[ti] - fOut);
-            if (d < bestDist)
+            auto cmp = [&](int idx, float freq) noexcept { return partials.frequency[idx] < freq; };
+            auto it = std::lower_bound(order.begin(), order.end(), fOut, cmp);
+            if (it != order.end())
             {
-                bestDist = d;
-                bestIdx  = ti;
+                const float d = std::abs(partials.frequency[*it] - fOut);
+                if (d < bestDist) { bestDist = d; bestIdx = *it; }
+            }
+            if (it != order.begin())
+            {
+                auto prev = it - 1;
+                const float d = std::abs(partials.frequency[*prev] - fOut);
+                if (d < bestDist) { bestDist = d; bestIdx = *prev; }
             }
         }
 
@@ -567,16 +583,22 @@ void SpectralSculptor::applyMirror(PartialDataSIMD& partials)
         const int   srcIdx     = mirrorSrcIdx_[si];
         const float targetFreq = mirrorTargetFreq_[si];
 
-        // Find closest active partial to the target frequency
+        // Find closest active partial by binary search (O(log n))
         int bestIdx = -1;
         float bestDist = 1e10f;
-        for (int ti : order)
         {
-            const float d = std::abs(partials.frequency[ti] - targetFreq);
-            if (d < bestDist)
+            auto cmp = [&](int idx, float freq) noexcept { return partials.frequency[idx] < freq; };
+            auto it = std::lower_bound(order.begin(), order.end(), targetFreq, cmp);
+            if (it != order.end())
             {
-                bestDist = d;
-                bestIdx  = ti;
+                const float d = std::abs(partials.frequency[*it] - targetFreq);
+                if (d < bestDist) { bestDist = d; bestIdx = *it; }
+            }
+            if (it != order.begin())
+            {
+                auto prev = it - 1;
+                const float d = std::abs(partials.frequency[*prev] - targetFreq);
+                if (d < bestDist) { bestDist = d; bestIdx = *prev; }
             }
         }
 
@@ -621,10 +643,10 @@ void SpectralSculptor::applyFractal(PartialDataSIMD& partials)
 
     // Each iteration applies a scaled pattern with decreasing influence.
     // The seed controls the pattern character by offsetting the division phase.
+    float scale     = 3.0f;  // 3^1
+    float influence = 1.0f;  // 0.5^0
     for (int iter = 0; iter < fractalIterations_; ++iter)
     {
-        const float scale     = std::pow(3.0f, static_cast<float>(iter + 1));
-        const float influence = std::pow(0.5f, static_cast<float>(iter));
 
         float minAmp = 1e10f;
         float maxAmp = -1e10f;
@@ -657,6 +679,9 @@ void SpectralSculptor::applyFractal(PartialDataSIMD& partials)
             minAmp = juce::jmin(minAmp, partials.amplitude[idx]);
             maxAmp = juce::jmax(maxAmp, partials.amplitude[idx]);
         }
+
+        scale     *= 3.0f;
+        influence *= 0.5f;
     }
 
     // Apply threshold floor after fractal to keep signal clean

@@ -147,6 +147,11 @@ private:
     std::vector<std::vector<std::complex<float>>> densityMatrix_;
 
     //==============================================================================
+    /// Cached sin/cos for PhaseShift interference optimization
+    struct SinCosPair { float sin; float cos; };
+    std::vector<SinCosPair> sincosCache_;
+
+    //==============================================================================
     // Gate matrix helpers
     void applyGateMatrix(const std::vector<std::complex<float>>& matrix,
                          const std::vector<int>& targetQubits);

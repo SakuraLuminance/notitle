@@ -1,4 +1,5 @@
 #include "DualSignalChain.h"
+#include "SIMDSupport.h"
 #include <cstring>
 
 namespace ana {

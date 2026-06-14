@@ -87,6 +87,9 @@ private:
     /** Compute the number of clones to generate based on width. */
     int calcCloneCount(float width, int originalCount, int maxPartials) const noexcept;
 
+    /** Recompute shift ratio and strength power tables. */
+    void recomputeTables();
+
     float amount_    = 0.5f;
     float width_     = 0.5f;
     float strength_  = 0.5f;
@@ -94,6 +97,10 @@ private:
     float gap_       = 0.0f;
     bool  useOctaves_ = true;
     double sampleRate_ = 44100.0;
+
+    // Precomputed tables for O(1) lookups in hot loop
+    float shiftRatios_[13]  = {0.0f};  // shift ratios for clones 1..12
+    float strengthPow_[13]  = {0.0f};  // strength powers for clones 1..12
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Harmonizer)
 };

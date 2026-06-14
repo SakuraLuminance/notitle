@@ -235,8 +235,17 @@ private:
     mutable std::vector<float> scratch_blurredAmp_;
     mutable std::vector<PartialEntry> scratch_partialEntries_;
 
+    // Cached blur weights (avoid exp() recomputation when blur unchanged)
+    float lastBlur_ = -1.0f;
+    int cachedBlurRadius_ = 0;
+    std::vector<float> cachedBlurWeights_;
+
     // Random number generator for noise / randomize
     std::mt19937 rng_{42};
+
+    // Pre-allocated noise distributions (avoid construction per call)
+    std::uniform_real_distribution<float> ampNoiseDist_{-1.0f, 1.0f};
+    std::uniform_real_distribution<float> phaseNoiseDist_{-3.14159265f, 3.14159265f};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectralSequencer)
 };

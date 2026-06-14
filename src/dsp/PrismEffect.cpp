@@ -1,4 +1,5 @@
 #include "PrismEffect.h"
+#include "SIMDSupport.h"
 #include <juce_core/juce_core.h>
 #include <algorithm>
 #include <cmath>
@@ -104,17 +105,15 @@ void PrismEffect::applyFeedback(PartialDataSIMD& data)
 // --- Mix ---
 void PrismEffect::applyMix(const PartialDataSIMD& original, PartialDataSIMD& processed)
 {
-    const float dryMix = 1.0f - mix;
-
-    for (int p = 0; p < processed.maxPartials; ++p)
-    {
-        if (processed.isActive(p) && original.isActive(p))
-        {
-            processed.frequency[p] = original.frequency[p] * dryMix + processed.frequency[p] * mix;
-            processed.amplitude[p] = original.amplitude[p] * dryMix + processed.amplitude[p] * mix;
-            processed.phase[p]     = original.phase[p]     * dryMix + processed.phase[p]     * mix;
-        }
-    }
+    // Vectorized amplitude/frequency/phase blend
+    // processed[i] = original[i] * (1-mix) + processed[i] * mix
+    // Safe when dest==src since vectorLerp reads before writing each chunk.
+    SIMDKernels::vectorLerp(processed.amplitude, original.amplitude, processed.amplitude,
+                            mix, PartialDataSIMD::kMaxPartials);
+    SIMDKernels::vectorLerp(processed.frequency, original.frequency, processed.frequency,
+                            mix, PartialDataSIMD::kMaxPartials);
+    SIMDKernels::vectorLerp(processed.phase, original.phase, processed.phase,
+                            mix, PartialDataSIMD::kMaxPartials);
 }
 
 //==============================================================================

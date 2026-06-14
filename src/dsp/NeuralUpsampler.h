@@ -218,6 +218,36 @@ private:
     mutable std::vector<float> filterBuf_;
 
     //==============================================================================
+    // Precomputed sinc kernel table (for sincInterpolate)
+    //==============================================================================
+    mutable std::vector<float> sincKernel_;
+    mutable std::vector<float> sincWindow_;
+    mutable int    sincCachedHalfLen_    = -1;
+    mutable double sincCachedKaiserBeta_ = 0.0;
+    mutable double sincCachedCutoff_     = 0.0;
+
+    //==============================================================================
+    // Persistent buffers for spectralUpsample
+    //==============================================================================
+    std::vector<float> specMag_;
+    std::vector<float> specPhase_;
+    std::vector<float> specEnvelope_;
+    std::vector<float> specMagScaled_;
+    std::vector<float> specOutput_;
+
+    //==============================================================================
+    // Persistent buffers for process(PartialDataSIMD&)
+    //==============================================================================
+    std::vector<float> partialPseudoSpec_;
+    std::vector<float> partialEnv_;
+    std::vector<float> partialSmoothed_;
+
+    //==============================================================================
+    // Prefix sum buffer for F0 estimation
+    //==============================================================================
+    mutable std::vector<double> f0PrefixSum_;
+
+    //==============================================================================
     // FFT state
     //==============================================================================
     std::unique_ptr<juce::dsp::FFT> fft_;

@@ -248,11 +248,20 @@ void VocoderMode::processAudio(juce::AudioBuffer<float>& carrier,
                 carrierFilters_[static_cast<size_t>(band * numChannels + ch)];
             filter.coefficients = bandFilterCoeffs_[static_cast<size_t>(band)];
 
-            for (int s = 0; s < numSamples; ++s)
+            // Block-process the entire buffer through the IIR filter
+            // (enables JUCE's internal SIMD-friendly loops for the biquad)
             {
-                const float filtered = filter.processSample(src[s]);
-                scratch_wet_[static_cast<size_t>(s)] += filtered * env;
+                float* filterBuf = scratch_modFrame_.data();
+                float* srcPtrs[] = { const_cast<float*>(src) };
+                float* dstPtrs[] = { filterBuf };
+                auto srcBlock = juce::dsp::AudioBlock<float>(srcPtrs, 1, static_cast<size_t>(numSamples));
+                auto dstBlock = juce::dsp::AudioBlock<float>(dstPtrs, 1, static_cast<size_t>(numSamples));
+                juce::dsp::ProcessContextNonReplacing<float> ctx(srcBlock, dstBlock);
+                filter.process(ctx);
             }
+
+            for (int s = 0; s < numSamples; ++s)
+                scratch_wet_[static_cast<size_t>(s)] += scratch_modFrame_[static_cast<size_t>(s)] * env;
         }
 
         // Wet / dry mix: output = dry * (1 - mix) + wet * mix
@@ -471,8 +480,10 @@ void VocoderMode::analyseFFT(const std::vector<float>& modulator,
 
     // Use the most recent fftSize samples
     const size_t offset = modulator.size() - copyLen;
-    for (size_t i = 0; i < copyLen; ++i)
-        scratch_fftIn_[i] = modulator[offset + i] * fftWindow_[i];
+    SIMDKernels::vectorMul(scratch_fftIn_.data(),
+                           modulator.data() + offset,
+                           fftWindow_.data(),
+                           static_cast<int>(copyLen));
 
     // Perform FFT
     fft_->performRealOnlyForwardTransform(scratch_fftIn_.data());

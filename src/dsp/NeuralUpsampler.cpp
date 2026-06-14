@@ -100,6 +100,24 @@ void NeuralUpsampler::reset()
     olaBuffer_.clear();
     olaWritePos_ = 0;
 
+    sincKernel_.clear();
+    sincWindow_.clear();
+    sincCachedHalfLen_    = -1;
+    sincCachedKaiserBeta_ = 0.0;
+    sincCachedCutoff_     = 0.0;
+
+    specMag_.clear();
+    specPhase_.clear();
+    specEnvelope_.clear();
+    specMagScaled_.clear();
+    specOutput_.clear();
+
+    partialPseudoSpec_.clear();
+    partialEnv_.clear();
+    partialSmoothed_.clear();
+
+    f0PrefixSum_.clear();
+
     fft_.reset();
     fftSize_ = 2048;
 
@@ -234,13 +252,62 @@ std::vector<float> NeuralUpsampler::sincInterpolate(
     // Ensure the buffer is large enough
     scratch_.resize(static_cast<size_t>(outputLen), 0.0f);
 
-    // For each output sample, convolve with the windowed sinc kernel
+    // --- Precompute sinc kernel lookup table indexed by quantised fractional position ---
+    static constexpr int kKernelSteps = 256;
+    const int kernelSize = halfLen * 2 + 1;
+
+    if (sincCachedHalfLen_ != halfLen
+        || std::abs(sincCachedKaiserBeta_ - kaiserBeta) > 1e-10
+        || std::abs(sincCachedCutoff_ - cutoffRatio) > 1e-10)
+    {
+        sincCachedHalfLen_    = halfLen;
+        sincCachedKaiserBeta_ = kaiserBeta;
+        sincCachedCutoff_     = cutoffRatio;
+
+        sincKernel_.resize(static_cast<size_t>(kKernelSteps) * static_cast<size_t>(kernelSize));
+        sincWindow_.resize(static_cast<size_t>(kKernelSteps) * static_cast<size_t>(kernelSize));
+
+        for (int s = 0; s < kKernelSteps; ++s)
+        {
+            const double fracStep = static_cast<double>(s) / static_cast<double>(kKernelSteps);
+            const size_t stepBase = static_cast<size_t>(s) * static_cast<size_t>(kernelSize);
+
+            for (int k = -halfLen; k <= halfLen; ++k)
+            {
+                const double t = fracStep - static_cast<double>(k);
+                const size_t idx = stepBase + static_cast<size_t>(k + halfLen);
+
+                // Sinc
+                const double arg = juce::MathConstants<double>::pi * cutoffRatio * t;
+                const double sincVal = (std::abs(t) < 1e-8)
+                    ? (2.0 * cutoffRatio)
+                    : (std::sin(arg) / arg);
+
+                // Kaiser window at continuous position, normalised to [-halfLen, halfLen]
+                const double tNorm = t * static_cast<double>(halfLen);
+                const int tInt = static_cast<int>(std::floor(tNorm + 0.5));
+                const double windowVal = kaiserWindow(tInt, halfLen, kaiserBeta);
+
+                sincKernel_[idx] = static_cast<float>(sincVal * windowVal);
+                sincWindow_[idx] = static_cast<float>(windowVal);
+            }
+        }
+    }
+
+    // For each output sample, convolve using the precomputed kernel
     for (int n = 0; n < outputLen; ++n)
     {
         // Continuous input position
         const double inPos = static_cast<double>(n) / ratio;
         const int centreIdx = static_cast<int>(std::floor(inPos));
         const double frac = inPos - static_cast<double>(centreIdx);
+
+        // Quantise fractional position to nearest table entry
+        const int stepIdx = static_cast<int>(frac * static_cast<double>(kKernelSteps))
+                          % kKernelSteps;
+        const size_t stepBase = static_cast<size_t>(stepIdx) * static_cast<size_t>(kernelSize);
+        const float* kernelPtr = sincKernel_.data() + stepBase;
+        const float* windowPtr = sincWindow_.data() + stepBase;
 
         double sum = 0.0;
         double wsum = 0.0;
@@ -251,27 +318,10 @@ std::vector<float> NeuralUpsampler::sincInterpolate(
             if (sampleIdx < 0 || sampleIdx >= inputLen)
                 continue;
 
-            // Evaluate sinc at (frac - k)
-            const double t = frac - static_cast<double>(k);
-            const double arg = juce::MathConstants<double>::pi * cutoffRatio * t;
-            double sincVal;
-            if (std::abs(t) < 1e-8)
-                sincVal = 2.0 * cutoffRatio;  // limit as t→0
-            else
-                sincVal = std::sin(arg) / arg;
-
-            // Kaiser window
-            const double win = kaiserWindow(static_cast<int>(std::floor(t * halfLen + 0.5)),
-                                             halfLen, kaiserBeta);
-            // Actually evaluate window at continuous position:
-            // normalised to [-halfLen, halfLen]
-            const double tNorm = t * static_cast<double>(halfLen);
-            const int tInt = static_cast<int>(std::floor(tNorm + 0.5));
-            const double windowVal = kaiserWindow(tInt, halfLen, kaiserBeta);
-
+            const size_t tapIdx = static_cast<size_t>(k + halfLen);
             sum += static_cast<double>(input[static_cast<size_t>(sampleIdx)])
-                 * sincVal * windowVal;
-            wsum += windowVal;
+                 * static_cast<double>(kernelPtr[tapIdx]);
+            wsum += static_cast<double>(windowPtr[tapIdx]);
         }
 
         if (wsum > 0.0)
@@ -345,7 +395,7 @@ void NeuralUpsampler::computeSpectralEnvelope(
 //==============================================================================
 
 float NeuralUpsampler::estimateF0(const std::vector<float>& audio,
-                                   double sampleRate) const
+                                    double sampleRate) const
 {
     const int len = static_cast<int>(audio.size());
     if (len < 100)
@@ -368,26 +418,79 @@ float NeuralUpsampler::estimateF0(const std::vector<float>& audio,
     if (rms < 1e-6)
         return 0.0f;
 
-    // Normalised autocorrelation
+    //==============================================================================
+    // FFT-based autocorrelation via Wiener-Khinchin theorem (O(N log N)).
+    // 1. Zero-pad signal to 2x length (linear, not circular, autocorrelation)
+    // 2. Forward FFT
+    // 3. Compute power spectrum |FFT|²
+    // 4. Inverse FFT → autocorrelation
+    // 5. Normalise using prefix sums for numerical equivalence with O(N²) version
+    //==============================================================================
+
+    const int fftLen = juce::nextPowerOfTwo (len * 2);
+    const int fftOrder = static_cast<int> (std::log2 (static_cast<double> (fftLen)));
+
+    // Buffer must be 2 * getSize() for JUCE real-only transforms
+    scratch_.resize (static_cast<size_t> (fftLen) * 2, 0.0f);
+    std::memcpy (scratch_.data(), audio.data(), static_cast<size_t> (len) * sizeof (float));
+
+    // 2. Forward FFT
+    {
+        juce::dsp::FFT fft (fftOrder);
+        fft.performRealOnlyForwardTransform (scratch_.data());
+
+        // 3. Compute power spectrum |FFT|² in packed format
+        //    JUCE packs as: [DC_re, Nyquist_re, bin1_re, bin1_im, bin2_re, bin2_im, ...]
+        const int halfLen = fftLen / 2;
+
+        // DC bin (index 0)
+        const float dcRe = scratch_[0];
+        scratch_[0] = dcRe * dcRe;
+        // Nyquist bin (index 1)
+        const float nyqRe = scratch_[1];
+        scratch_[1] = nyqRe * nyqRe;
+        // Bins 1 .. halfLen-1
+        for (int i = 1; i < halfLen; ++i)
+        {
+            const float re = scratch_[static_cast<size_t> (2 * i)];
+            const float im = scratch_[static_cast<size_t> (2 * i + 1)];
+            const float pwr = re * re + im * im;
+            scratch_[static_cast<size_t> (2 * i)]     = pwr;
+            scratch_[static_cast<size_t> (2 * i + 1)] = 0.0f;
+        }
+
+        // 4. Inverse FFT → scratch contains autocorrelation (not yet ÷ by N)
+        fft.performRealOnlyInverseTransform (scratch_.data());
+    }
+
+    // 5. Normalised autocorrelation on the search range
+    //    Prefix sums of squares for O(1) per-lag normalisation
+    f0PrefixSum_.resize (static_cast<size_t> (len) + 1);
+    f0PrefixSum_[0] = 0.0;
+    for (int i = 0; i < len; ++i)
+    {
+        const double s = static_cast<double> (audio[static_cast<size_t> (i)]);
+        f0PrefixSum_[static_cast<size_t> (i + 1)]
+            = f0PrefixSum_[static_cast<size_t> (i)] + s * s;
+    }
+    const double totalEnergy = f0PrefixSum_[static_cast<size_t> (len)];
+    const double invFftLen   = 1.0 / static_cast<double> (fftLen);
+
     double bestCorr = 0.0;
     int bestLag = 0;
 
     for (int lag = minLag; lag < searchLen; ++lag)
     {
-        double corr = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
+        // Autocorrelation from inverse IFFT (linear, same as brute-force sum)
+        const double corr = static_cast<double> (scratch_[static_cast<size_t> (lag)])
+                          * invFftLen;
 
-        for (int i = 0; i < len - lag; ++i)
-        {
-            const double a = static_cast<double>(audio[static_cast<size_t>(i)]);
-            const double b = static_cast<double>(audio[static_cast<size_t>(i + lag)]);
-            corr += a * b;
-            normA += a * a;
-            normB += b * b;
-        }
+        // Norms from prefix sums (exact equivalence with O(N²) version)
+        const double normA = f0PrefixSum_[static_cast<size_t> (len - lag)];
+        const double normB = totalEnergy
+                           - f0PrefixSum_[static_cast<size_t> (lag)];
 
-        const double denom = std::sqrt(std::max(normA * normB, 1e-10));
+        const double denom = std::sqrt (std::max (normA * normB, 1e-10));
         const double r = corr / denom;
 
         if (r > bestCorr)
@@ -398,7 +501,7 @@ float NeuralUpsampler::estimateF0(const std::vector<float>& audio,
     }
 
     if (bestLag > 0 && bestCorr > 0.3)
-        return static_cast<float>(sampleRate / static_cast<double>(bestLag));
+        return static_cast<float> (sampleRate / static_cast<double> (bestLag));
 
     return 0.0f;
 }

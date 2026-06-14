@@ -126,8 +126,12 @@ private:
         /** Initialises the delay line for a given frequency and sample rate. */
         void init(float freq, double sampleRate);
 
-        /** Processes one sample through the waveguide delay line. */
-        float process(float input, float damping, float stiffness, float decay);
+        /** Processes one sample through the waveguide delay line.
+            @param input    Input sample
+            @param lpCoeff  Pre-computed one-pole lowpass coefficient
+            @param feedback Pre-computed feedback gain
+        */
+        float process(float input, float lpCoeff, float feedback);
     };
 
     //==============================================================================

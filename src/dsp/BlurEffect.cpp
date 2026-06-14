@@ -1,4 +1,5 @@
 #include "BlurEffect.h"
+#include "SIMDSupport.h"
 #include <cstring>
 
 namespace ana {
@@ -34,43 +35,48 @@ void BlurEffect::applyTemporalBlur(PartialDataSIMD& data)
 {
     if (decayBlurMs_ <= 0.0f) return;
 
-    // Convert decay time to IIR alpha
-    // Time constant tau = decayMs / 1000
-    // alpha = exp(-hopSize / (sampleRate * tau))
-    const double tau = decayBlurMs_ / 1000.0;
-    const double dt = data.hopSize / sampleRate_;
-    const float alpha = static_cast<float>(std::exp(-dt / tau));
+    // Cache alpha — only recompute when decayBlurMs_ changes
+    if (decayBlurMs_ != lastDecayBlurMs_)
+    {
+        const double tau = decayBlurMs_ / 1000.0;
+        const double dt = data.hopSize / sampleRate_;
+        cachedAlpha_ = static_cast<float>(std::exp(-dt / tau));
+        lastDecayBlurMs_ = decayBlurMs_;
+    }
+    const float alpha = cachedAlpha_;
 
+    // Save old prevAmplitudes_ for rising-edge detection
+    // (need old values since vectorLerp overwrites in-place)
+    float oldPrev[PartialDataSIMD::kMaxPartials];
+    std::memcpy(oldPrev, prevAmplitudes_, sizeof(oldPrev));
+
+    // Vectorized exponential smoothing for ALL 512 partials.
+    // For active:  prev = current*(1-alpha) + prev*alpha  (trailing decay)
+    // For inactive: prev = 0*(1-alpha) + prev*alpha = prev*alpha (same as *= alpha)
+    SIMDKernels::vectorLerp(prevAmplitudes_, scratch_workingAmps_, prevAmplitudes_,
+                            alpha, PartialDataSIMD::kMaxPartials);
+
+    // Handle rising amplitudes (revert lerp) and re-activation of decaying partials
     for (int p = 0; p < data.maxPartials; ++p)
     {
         if (data.isActive(p))
         {
-            // Simple exponential smoothing
-            float current = scratch_workingAmps_[p];
-            float blurred = current * (1.0f - alpha) + prevAmplitudes_[p] * alpha;
-            
             // Ensure we don't blur up (only trailing decay)
-            if (current > prevAmplitudes_[p]) {
-                blurred = current;
-            }
+            if (scratch_workingAmps_[p] > oldPrev[p])
+                prevAmplitudes_[p] = scratch_workingAmps_[p];
 
-            scratch_workingAmps_[p] = blurred;
-            prevAmplitudes_[p] = blurred;
+            scratch_workingAmps_[p] = prevAmplitudes_[p];
         }
-        else
+        else if (oldPrev[p] > 1e-5f)
         {
-            // Decay active previous partials that are now dead
-            if (prevAmplitudes_[p] > 1e-5f)
+            // prevAmplitudes_[p] was already decayed by the vectorLerp above.
+            // If still audible, re-activate this partial.
+            if (prevAmplitudes_[p] > 1e-4f)
             {
-                prevAmplitudes_[p] *= alpha;
-                
-                if (prevAmplitudes_[p] > 1e-4f)
-                {
-                    data.activeMask[p >> 5] |= (1u << (p & 31));
-                    data.activeCount++;
-                    scratch_workingAmps_[p] = prevAmplitudes_[p];
-                    data.amplitude[p] = prevAmplitudes_[p];
-                }
+                data.activeMask[p >> 5] |= (1u << (p & 31));
+                data.activeCount++;
+                scratch_workingAmps_[p] = prevAmplitudes_[p];
+                data.amplitude[p] = prevAmplitudes_[p];
             }
         }
     }
@@ -97,6 +103,13 @@ void BlurEffect::applyHarmonicBlur(PartialDataSIMD& data)
     // Temporary buffer to store blurred results to avoid cascading effects
     float tempAmps[PartialDataSIMD::kMaxPartials] = {0.0f};
 
+    // Build prefix sum over the compacted active amplitude list
+    // scratch_prefixSum_[0] = 0; scratch_prefixSum_[i+1] = scratch_prefixSum_[i] + amps[i]
+    scratch_prefixSum_[0] = 0.0f;
+    for (int i = 0; i < n; ++i)
+        scratch_prefixSum_[i + 1] = scratch_prefixSum_[i] + scratch_workingAmps_[activeIndices[i]];
+
+    // Apply box blur via running sum (O(n) regardless of radius)
     for (int i = 0; i < n; ++i)
     {
         const int p = activeIndices[i];
@@ -111,23 +124,12 @@ void BlurEffect::applyHarmonicBlur(PartialDataSIMD& data)
             continue;
         }
 
-        double weightedSum = 0.0;
-        double totalWeight = 0.0;
-
-        for (int k = -effectiveRadius; k <= effectiveRadius; ++k)
-        {
-            const int idx = i + k;
-            if (idx >= 0 && idx < n)
-            {
-                // Simple triangle window
-                const double weight = 1.0 - static_cast<double>(std::abs(k)) / (effectiveRadius + 1);
-                weightedSum += weight * scratch_workingAmps_[activeIndices[idx]];
-                totalWeight += weight;
-            }
-        }
-
-        if (totalWeight > 0.0)
-            tempAmps[p] = static_cast<float>(weightedSum / totalWeight);
+        // Running-sum box blur over the compacted active list
+        const int lo = std::max(0, i - effectiveRadius);
+        const int hi = std::min(n - 1, i + effectiveRadius);
+        const float sum = scratch_prefixSum_[hi + 1] - scratch_prefixSum_[lo];
+        const int count = hi - lo + 1;
+        tempAmps[p] = sum / static_cast<float>(count);
     }
 
     // Write back

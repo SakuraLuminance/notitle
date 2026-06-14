@@ -78,7 +78,7 @@ void PhysicalModel::Waveguide::init(float freq, double sampleRate)
     lowpassState = 0.0f;
 }
 
-float PhysicalModel::Waveguide::process(float input, float damping, float stiffness, float decay)
+float PhysicalModel::Waveguide::process(float input, float lpCoeff, float feedback)
 {
     if (delayLine.empty())
         return 0.0f;
@@ -88,16 +88,8 @@ float PhysicalModel::Waveguide::process(float input, float damping, float stiffn
     // Read current sample from delay line
     const float out = delayLine[writePos];
 
-    // One-pole lowpass coefficient: stiffness makes it brighter (lower coefficient),
-    // damping makes it duller (higher coefficient)
-    const float lpCoeff = juce::jlimit(0.05f, 0.95f,
-                                       0.5f + damping * 0.35f - stiffness * 0.25f);
-
-    // Apply one-pole lowpass to the output
+    // Apply one-pole lowpass using pre-computed coefficient
     lowpassState = out * (1.0f - lpCoeff) + lowpassState * lpCoeff;
-
-    // Feedback gain from decay parameter: 0.85 (short) to 0.999 (long sustain)
-    const float feedback = 0.85f + (1.0f - decay) * 0.149f;
 
     // Write feedback signal back into delay line (Karplus-Strong recursion)
     delayLine[writePos] = input + lowpassState * feedback;
@@ -363,6 +355,11 @@ void PhysicalModel::processAudio(juce::AudioBuffer<float>& buffer)
     {
         auto* channelData = buffer.getWritePointer(ch);
 
+        // Pre-compute waveguide coefficients (constant across the block)
+        const float lpCoeff = juce::jlimit(0.05f, 0.95f,
+                                           0.5f + damping_ * 0.35f - stiffness_ * 0.25f);
+        const float feedback = 0.85f + (1.0f - decay_) * 0.149f;
+
         for (int s = 0; s < numSamples; ++s)
         {
             ++sampleCount_;
@@ -372,7 +369,7 @@ void PhysicalModel::processAudio(juce::AudioBuffer<float>& buffer)
             for (auto& wg : waveguides_)
             {
                 // No external input during normal oscillation (input = 0)
-                wgOutput += wg.process(0.0f, damping_, stiffness_, decay_);
+                wgOutput += wg.process(0.0f, lpCoeff, feedback);
             }
             wgOutput /= static_cast<float>(waveguides_.size());
 

@@ -22,6 +22,9 @@ NeuralStyleTransfer::NeuralStyleTransfer()
             juce::MathConstants<float>::twoPi * static_cast<float>(i)
             / static_cast<float>(fftSize_ - 1)));
     }
+
+    // Pre-compute DCT cos table for cepstral envelope extraction
+    updateDCTTable();
 }
 
 //==============================================================================
@@ -81,6 +84,12 @@ void NeuralStyleTransfer::setFftSize(int size)
             juce::MathConstants<float>::twoPi * static_cast<float>(i)
             / static_cast<float>(fftSize_ - 1)));
     }
+
+    // Pre-compute DCT cos table for the new FFT size
+    updateDCTTable();
+
+    // Invalidate cached mel filterbank (depends on numBins)
+    melFilterbankNumBins_ = 0;
 }
 
 //==============================================================================
@@ -113,6 +122,30 @@ float NeuralStyleTransfer::hzToMel(float hz)
 float NeuralStyleTransfer::melToHz(float mel)
 {
     return 700.0f * (std::pow(10.0f, mel / 2595.0f) - 1.0f);
+}
+
+//==============================================================================
+// DCT cos table precomputation
+//==============================================================================
+
+void NeuralStyleTransfer::updateDCTTable()
+{
+    const int N = fftSize_ / 2 + 1;
+    dctCosTab_.resize(static_cast<size_t>(N) * static_cast<size_t>(N));
+    dctCosTabNumBins_ = N;
+
+    for (int q = 0; q < N; ++q)
+    {
+        const float qf = static_cast<float>(q);
+        for (int n = 0; n < N; ++n)
+        {
+            dctCosTab_[static_cast<size_t>(q) * static_cast<size_t>(N)
+                       + static_cast<size_t>(n)]
+                = std::cos(juce::MathConstants<float>::pi * qf
+                           * (static_cast<float>(n) + 0.5f)
+                           / static_cast<float>(N));
+        }
+    }
 }
 
 //==============================================================================
@@ -424,18 +457,17 @@ void NeuralStyleTransfer::extractSpectralEnvelope(
 
         // --- 2. Forward DCT-II (real cepstrum) ---
         // X_q = Σ_n x_n * cos(π * q * (n + 0.5) / N)
-        for (int q = 0; q < numBins; ++q)
         {
-            float sum = 0.0f;
-            for (int n = 0; n < numBins; ++n)
+            const float* cosTab = dctCosTab_.data();
+            for (int q = 0; q < numBins; ++q)
             {
-                sum += logMag[static_cast<size_t>(n)]
-                     * std::cos(juce::MathConstants<float>::pi
-                         * static_cast<float>(q)
-                         * (static_cast<float>(n) + 0.5f)
-                         / static_cast<float>(numBins));
+                float sum = 0.0f;
+                const float* row = cosTab
+                    + static_cast<size_t>(q) * static_cast<size_t>(numBins);
+                for (int n = 0; n < numBins; ++n)
+                    sum += logMag[static_cast<size_t>(n)] * row[static_cast<size_t>(n)];
+                cepstrum[static_cast<size_t>(q)] = sum;
             }
-            cepstrum[static_cast<size_t>(q)] = sum;
         }
 
         // --- 3. Lifter: zero out high quefrencies ---
@@ -444,24 +476,26 @@ void NeuralStyleTransfer::extractSpectralEnvelope(
 
         // --- 4. Inverse DCT-III ---
         // x_n = (1/N) * X_0 + (2/N) * Σ_q X_q * cos(π * q * (n + 0.5) / N)
-        const float invN = 1.0f / static_cast<float>(numBins);
-        for (int n = 0; n < numBins; ++n)
         {
-            float sum = cepstrum[0] * 0.5f;  // DC term scaled by 1/2
-            for (int q = 1; q < numBins; ++q)
+            const float* cosTab = dctCosTab_.data();
+            const float invN = 1.0f / static_cast<float>(numBins);
+            for (int n = 0; n < numBins; ++n)
             {
-                sum += cepstrum[static_cast<size_t>(q)]
-                     * std::cos(juce::MathConstants<float>::pi
-                         * static_cast<float>(q)
-                         * (static_cast<float>(n) + 0.5f)
-                         / static_cast<float>(numBins));
-            }
+                float sum = cepstrum[0] * 0.5f;  // DC term scaled by 1/2
+                for (int q = 1; q < numBins; ++q)
+                {
+                    const size_t qz = static_cast<size_t>(q);
+                    sum += cepstrum[qz]
+                         * cosTab[qz * static_cast<size_t>(numBins)
+                                  + static_cast<size_t>(n)];
+                }
 
-            // Exponentiate to get magnitude envelope
-            // Apply offset correction: the DCT pair above yields a
-            // reconstruction of the *log* spectrum multiplied by N/2,
-            // so we divide by (N/2) to recover the log spectrum.
-            envFrame[static_cast<size_t>(n)] = std::exp(sum * invN * 2.0f);
+                // Exponentiate to get magnitude envelope
+                // Apply offset correction: the DCT pair above yields a
+                // reconstruction of the *log* spectrum multiplied by N/2,
+                // so we divide by (N/2) to recover the log spectrum.
+                envFrame[static_cast<size_t>(n)] = std::exp(sum * invN * 2.0f);
+            }
         }
     }
 }
@@ -496,8 +530,25 @@ void NeuralStyleTransfer::extractFeatures(
     constexpr int numMelBands    = 26;
     constexpr int numMfccCoeffs  = 13;
 
-    std::vector<std::vector<float>> melFilterbank;
-    buildMelFilterbank(numBins, numMelBands, melFilterbank);
+    // Build or retrieve cached flat Mel filterbank
+    if (melFilterbankNumBins_ != numBins
+        || melFilterbankSampleRate_ != sampleRate)
+    {
+        std::vector<std::vector<float>> temp;
+        buildMelFilterbank(numBins, numMelBands, temp);
+        melFilterbank_.resize(static_cast<size_t>(numMelBands)
+                               * static_cast<size_t>(numBins));
+        for (int m = 0; m < numMelBands; ++m)
+        {
+            std::copy(temp[static_cast<size_t>(m)].begin(),
+                      temp[static_cast<size_t>(m)].end(),
+                      melFilterbank_.begin()
+                          + static_cast<size_t>(m) * static_cast<size_t>(numBins));
+        }
+        melFilterbankNumBins_ = numBins;
+        melFilterbankSampleRate_ = sampleRate;
+    }
+    const float* melFB = melFilterbank_.data();
 
     // ------------------------------------------------------------------
     // Allocate per-frame feature vectors
@@ -574,13 +625,12 @@ void NeuralStyleTransfer::extractFeatures(
         auto& melEnergies = melEnergies_;
         for (int m = 0; m < numMelBands; ++m)
         {
+            const float* fbRow = melFB
+                + static_cast<size_t>(m) * static_cast<size_t>(numBins);
             double energy = 0.0;
             for (int k = 0; k < numBins; ++k)
-            {
-                energy += static_cast<double>(
-                    magFrame[static_cast<size_t>(k)])
-                    * melFilterbank[static_cast<size_t>(m)][static_cast<size_t>(k)];
-            }
+                energy += static_cast<double>(magFrame[static_cast<size_t>(k)])
+                        * fbRow[static_cast<size_t>(k)];
             melEnergies[static_cast<size_t>(m)] = (energy > 1e-10)
                 ? static_cast<float>(std::log(energy)) : 0.0f;
         }
@@ -1103,6 +1153,13 @@ void NeuralStyleTransfer::reset()
             juce::MathConstants<float>::twoPi * static_cast<float>(i)
             / static_cast<float>(fftSize_ - 1)));
     }
+
+    // Pre-compute DCT cos table
+    updateDCTTable();
+
+    // Invalidate cached mel filterbank
+    melFilterbankNumBins_ = 0;
+    melFilterbankSampleRate_ = 0.0;
 }
 
 } // namespace ana

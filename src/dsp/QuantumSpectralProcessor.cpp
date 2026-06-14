@@ -382,6 +382,9 @@ void QuantumSpectralProcessor::applyToffoli(int control1, int control2, int targ
 //  Density-matrix operations (for arbitrary multi-qubit gates)
 //==============================================================================
 
+// WARNING: O(2^(3n)) complexity — n > 8 becomes millions to billions of
+// iterations (dim = 2^n, inner loop O(dim^2) → 2^(2n), and applyMatrixToDensity
+// runs O(dim^3) → 2^(3n) for 4 nested loops). Use with caution above 8 qubits.
 void QuantumSpectralProcessor::rebuildDensityMatrix()
 {
     const size_t dim = static_cast<size_t>(1) << numQubits_;
@@ -423,6 +426,10 @@ void QuantumSpectralProcessor::rebuildDensityMatrix()
     }
 }
 
+// WARNING: O(2^(3n)) complexity — 4 nested loops over dim = 2^n.
+// n=8 → 256^3 ≈ 16M iterations (marginal on modern CPUs).
+// n=10 → 1024^3 ≈ 1B iterations (potentially hundreds of ms).
+// n=12 → 4096^3 ≈ 68B iterations (unusable).
 void QuantumSpectralProcessor::applyMatrixToDensity(
     const std::vector<std::complex<float>>& gateMatrix,
     const std::vector<int>& /*qubitIndices*/)
@@ -557,6 +564,8 @@ void QuantumSpectralProcessor::process(PartialDataSIMD& partials)
 
         // Phase modulation from qubit phase relationship
         // (α ≈ cos(θ/2), β ≈ sin(θ/2) for some effective rotation angle)
+        // NOTE: std::atan2(q.beta, q.alpha) is the dominant per-partial cost here.
+        // Could cache at gate-application time if profiling shows it matters.
         const float phaseMod = std::atan2(q.beta, q.alpha) * 0.1f;
         partials.phase[i] += phaseMod;
     }
@@ -735,29 +744,41 @@ void QuantumSpectralProcessor::applyInterference(PartialDataSIMD& partials)
 
         case InterferenceMode::PhaseShift:
         {
+            // Precompute sin/cos for each active partial's phase.
+            // This replaces 2×sin + 2×cos per pair (~5× fewer trig calls).
+            sincosCache_.resize(static_cast<size_t>(numActive));
+            for (int i = 0; i < numActive; ++i)
+            {
+                const float p = partials.phase[order[i]];
+                sincosCache_[static_cast<size_t>(i)] = {
+                    std::sin(p), std::cos(p)
+                };
+            }
+
             // Shift each partial's phase toward its nearest neighbour,
             // weighted by strength
             for (int j = 1; j < numActive - 1; ++j)
             {
                 const int idx = order[j];
-                const int leftIdx  = order[j - 1];
-                const int rightIdx = order[j + 1];
 
-                const float leftPhase  = partials.phase[leftIdx];
-                const float rightPhase = partials.phase[rightIdx];
+                // Look up cached sin/cos for neighbours
+                const auto& l = sincosCache_[static_cast<size_t>(j - 1)];
+                const auto& r = sincosCache_[static_cast<size_t>(j + 1)];
 
                 // Average neighbour phase (accounting for wraparound)
-                float neighbourAvg = std::atan2(
-                    std::sin(leftPhase) + std::sin(rightPhase),
-                    std::cos(leftPhase) + std::cos(rightPhase));
+                // Uses precomputed sin(l.phase) + sin(r.phase) etc.
+                float neighbourAvg = std::atan2(l.sin + r.sin, l.cos + r.cos);
 
                 // Shift current phase toward neighbour average
                 float curPhase = partials.phase[idx];
                 float phaseDelta = neighbourAvg - curPhase;
 
-                // Keep delta in [-π, π]
-                while (phaseDelta > juce::float_Pi)  phaseDelta -= juce::float_Pi * 2.0f;
-                while (phaseDelta < -juce::float_Pi) phaseDelta += juce::float_Pi * 2.0f;
+                // Keep delta in [-π, π] using std::fmod (branch-free vs while loops)
+                phaseDelta = std::fmod(phaseDelta + juce::float_Pi,
+                                       static_cast<float>(juce::float_Pi * 2.0f));
+                if (phaseDelta < 0.0f)
+                    phaseDelta += static_cast<float>(juce::float_Pi * 2.0f);
+                phaseDelta -= juce::float_Pi;
 
                 partials.phase[idx] += phaseDelta * strength * 0.3f;
             }

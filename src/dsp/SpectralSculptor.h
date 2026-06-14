@@ -92,6 +92,9 @@ private:
     // Helpers
     float gaussianFalloff(int idx, int center, float sigma) const noexcept;
 
+    /** Precomputes Gaussian falloff LUT for current sigma. */
+    void updateFalloffLUT(float sigma);
+
     /** Builds a list of active partial indices sorted by frequency. */
     void sortPartialsByFrequency(const PartialDataSIMD& partials,
                                  std::vector<int>& order) const;
@@ -131,6 +134,10 @@ private:
     int   mirrorSrcIdx_[PartialDataSIMD::kMaxPartials];
     float mirrorTargetFreq_[PartialDataSIMD::kMaxPartials];
     int   mirrorSrcCount_ = 0;
+
+    // Gaussian falloff LUT (precomputed for current sigma)
+    float falloffLUT_[512];
+    float lastSigma_ = -1.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectralSculptor)
 };

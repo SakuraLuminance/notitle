@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <array>
 #include <cstring>
 
 namespace ana {
@@ -18,7 +19,13 @@ namespace {
 static void latentToPartialsCore(
     const GenerativeTimbreDesigner::LatentVector& latent,
     PartialDataSIMD& output,
-    double sampleRate)
+    double sampleRate,
+    const float* tiltLUT,
+    const float* brightnessLUT,
+    const float* formantLUT0,
+    const float* formantLUT1,
+    const float* formantLUT2,
+    const float* inharmLUT)
 {
     output = PartialDataSIMD{};
     output.sampleRate = sampleRate;
@@ -55,26 +62,24 @@ static void latentToPartialsCore(
     constexpr float kFundamental = 100.0f;
 
     for (int h = 1; h <= PartialDataSIMD::kMaxPartials; ++h) {
+        const int hIdx = h - 1;  // 0-based LUT index
         float amp;
 
         // ----- 1. Harmonic envelope (values[0-19] → harmonics 1-20) --------
         if (h <= 20) {
-            float norm = map01(latent.values[h - 1]);
+            float norm = map01(latent.values[hIdx]);
             amp = norm * norm;   // square-law for natural curve
         }
         // ----- 2. Extension beyond 20th harmonic ----------------------------
         else {
-            const float ratio20 = 20.0f / static_cast<float>(h);
-            // Roll-off ∝ (20/h)^tiltExponent
-            float rolloff = std::pow(ratio20, tiltExponent);
+            // Roll-off ∝ (20/h)^tiltExponent  (from precomputed LUT)
+            float rolloff = tiltLUT[hIdx];
 
-            // Brightness boost for upper harmonics
+            // Brightness boost for upper harmonics (sin from LUT)
             float brightBoost = 0.0f;
             if (brightness > 0.5f) {
-                const float pos = static_cast<float>(h - 20)
-                    / static_cast<float>(PartialDataSIMD::kMaxPartials - 20);
                 brightBoost = (brightness - 0.5f) * 2.0f * 0.3f
-                    * std::sin(pos * juce::MathConstants<float>::pi * 0.5f);
+                    * brightnessLUT[hIdx];
             }
 
             // Tail amplitude from last envelope point
@@ -90,30 +95,31 @@ static void latentToPartialsCore(
             amp *= 1.0f + (warmth - 0.5f) * 2.0f * factor * 0.6f;
         }
 
-        // ----- 4. Formant filtering (Gaussian peaks) ------------------------
+        // ----- 4. Formant filtering (Gaussian peaks from LUT) ---------------
         float formantGain = 1.0f;
         const float hz = static_cast<float>(h) * kFundamental;
         for (int f = 0; f < 3; ++f) {
             const float diff = std::abs(hz - formants[f].freqHz);
             if (diff < formants[f].bwHz * 4.0f) {
-                const float gauss = std::exp(
-                    -(diff * diff) / (2.0f * formants[f].bwHz * formants[f].bwHz));
+                const float gauss = (f == 0) ? formantLUT0[hIdx]
+                                   : (f == 1) ? formantLUT1[hIdx]
+                                              : formantLUT2[hIdx];
                 formantGain += formants[f].amp * gauss * 0.15f;
             }
         }
         amp *= formantGain;
 
-        // ----- 5. Inharmonic frequency stretching ---------------------------
+        // ----- 5. Inharmonic frequency stretching (from LUT) ----------------
         float freq = static_cast<float>(h) * kFundamental;
         if (inharmAmount != 0.0f)
-            freq *= std::pow(static_cast<float>(h), inharmAmount);
+            freq *= inharmLUT[hIdx];
 
         // Clamp and store
         amp = clamp01(amp) * volume;
 
-        output.amplitude[h - 1] = amp;
-        output.frequency[h - 1] = freq;
-        output.phase[h - 1]     = 0.0f;
+        output.amplitude[hIdx] = amp;
+        output.frequency[hIdx] = freq;
+        output.phase[hIdx]     = 0.0f;
     }
 
     output.updateActiveMask();
@@ -160,6 +166,65 @@ static float heuristicFitness(const PartialDataSIMD& timbre)
     const float evenness = 1.0f - std::abs(spread - 0.5f) * 2.0f;
 
     return energy * 0.30f + richness * 0.35f + evenness * 0.20f + oddSum * 0.15f;
+}
+
+// ----------------------------------------------------------------------------
+// Precompute lookup tables for latentToPartialsCore from a latent vector.
+// This moves ~2000 transcendental function calls from per-generation to
+// per-parameter-change (which is rare by comparison).
+// ----------------------------------------------------------------------------
+static void computeLatentLUTs(
+    const GenerativeTimbreDesigner::LatentVector& latent,
+    std::array<float, 512>& tiltLUT,
+    std::array<float, 512>& brightnessLUT,
+    std::array<float, 512> (&formantLUT)[3],
+    std::array<float, 512>& inharmLUT) noexcept
+{
+    constexpr int kMax = PartialDataSIMD::kMaxPartials;
+    constexpr float kFundamental = 100.0f;
+    constexpr float kPi = juce::MathConstants<float>::pi;
+
+    // ---- Spectral tilt ----------------------------------------------------
+    const float tiltAvg = latent.values[30] * 0.7f + latent.values[39] * 0.3f;
+    const float tiltExponent = 2.0f - tiltAvg * 0.8f;
+    for (int h = 0; h < kMax; ++h)
+        tiltLUT[static_cast<size_t>(h)] = std::pow(
+            20.0f / static_cast<float>(h + 1), tiltExponent);
+
+    // ---- Brightness sin LUT -----------------------------------------------
+    for (int h = 0; h < kMax; ++h)
+    {
+        const float pos = static_cast<float>(h + 1 - 20)
+                        / static_cast<float>(kMax - 20);
+        brightnessLUT[static_cast<size_t>(h)] = (pos > 0.0f
+            ? std::sin(pos * kPi * 0.5f)
+            : 0.0f);
+    }
+
+    // ---- Formant Gaussian LUTs (one per formant) --------------------------
+    for (int f = 0; f < 3; ++f)
+    {
+        const int base = 20 + f * 3;
+        const float freqHz = juce::jmap(
+            latent.values[base + 0], -1.0f, 1.0f, 100.0f, 8000.0f);
+        const float bwHz = juce::jmap(
+            latent.values[base + 2], -1.0f, 1.0f, 60.0f, 1200.0f);
+        const float invDenom = 1.0f / (2.0f * bwHz * bwHz);
+
+        for (int h = 0; h < kMax; ++h)
+        {
+            const float hz = static_cast<float>(h + 1) * kFundamental;
+            const float diff = std::abs(hz - freqHz);
+            formantLUT[f][static_cast<size_t>(h)] =
+                std::exp(-(diff * diff) * invDenom);
+        }
+    }
+
+    // ---- Inharmonicity LUT ------------------------------------------------
+    const float inharmAmount = latent.values[40] * 0.06f;
+    for (int h = 0; h < kMax; ++h)
+        inharmLUT[static_cast<size_t>(h)] = std::pow(
+            static_cast<float>(h + 1), inharmAmount);
 }
 
 } // anonymous namespace
@@ -625,7 +690,20 @@ void GenerativeTimbreDesigner::reset()
 void GenerativeTimbreDesigner::latentToPartials(const LatentVector& latent,
                                                  PartialDataSIMD& output)
 {
-    latentToPartialsCore(latent, output, sampleRate_);
+    // Rebuild LUTs if latent changed since last generation
+    if (lutsDirty_)
+    {
+        updateLUTs(latent);
+        lutsDirty_ = false;
+    }
+
+    latentToPartialsCore(latent, output, sampleRate_,
+                         tiltLUT_.data(),
+                         brightnessLUT_.data(),
+                         formantLUT_[0].data(),
+                         formantLUT_[1].data(),
+                         formantLUT_[2].data(),
+                         inharmLUT_.data());
 }
 
 void GenerativeTimbreDesigner::applyPcaWhitening(LatentVector& v)

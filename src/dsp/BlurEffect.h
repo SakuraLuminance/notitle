@@ -52,9 +52,14 @@ private:
     // Temporal state (simple 1-pole IIR for decay)
     float prevAmplitudes_[PartialDataSIMD::kMaxPartials] = {0.0f};
 
+    // Cached temporal-blur coefficient (recomputed when decayBlurMs_ changes)
+    float cachedAlpha_       = 0.0f;
+    float lastDecayBlurMs_   = -1.0f;
+
     // Pre-allocated scratch buffers
     float scratch_originalAmps_[PartialDataSIMD::kMaxPartials];
     float scratch_workingAmps_[PartialDataSIMD::kMaxPartials];
+    float scratch_prefixSum_[PartialDataSIMD::kMaxPartials + 1];  // for O(n) running-sum blur
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BlurEffect)
 };

@@ -1,6 +1,12 @@
 #include "Harmonizer.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward)
+#endif
 
 namespace ana {
 
@@ -23,11 +29,19 @@ void Harmonizer::setWidth(float width)
 void Harmonizer::setStrength(float strength)
 {
     strength_ = std::clamp(strength, 0.0f, 1.0f);
+    recomputeTables();
 }
 
 void Harmonizer::setShift(float shift)
 {
     shift_ = shift; // can be negative for downward shifts
+    recomputeTables();
+}
+
+void Harmonizer::setShiftMode(bool useOctaves)
+{
+    useOctaves_ = useOctaves;
+    recomputeTables();
 }
 
 void Harmonizer::setGap(float gap)
@@ -35,14 +49,23 @@ void Harmonizer::setGap(float gap)
     gap_ = gap;
 }
 
-void Harmonizer::setShiftMode(bool useOctaves)
-{
-    useOctaves_ = useOctaves;
-}
-
 void Harmonizer::setSampleRate(double sr)
 {
     sampleRate_ = sr > 0.0 ? sr : 44100.0;
+}
+
+//==============================================================================
+void Harmonizer::recomputeTables()
+{
+    for (int ci = 1; ci <= 12; ++ci)
+    {
+        const float fCi = static_cast<float>(ci);
+        if (useOctaves_)
+            shiftRatios_[ci] = std::pow(2.0f, shift_ * fCi / 12.0f);
+        else
+            shiftRatios_[ci] = 1.0f + shift_ * fCi;
+        strengthPow_[ci] = std::pow(strength_, fCi);
+    }
 }
 
 //==============================================================================
@@ -112,12 +135,8 @@ void Harmonizer::applyHarmonization(PartialDataSIMD& data)
 
         for (int ci = 1; ci <= numClones; ++ci)
         {
-            // --- Compute frequency multiplier ---
-            float multiplier;
-            if (useOctaves_)
-                multiplier = std::pow(2.0f, shift_ * static_cast<float>(ci) / 12.0f);
-            else
-                multiplier = 1.0f + shift_ * static_cast<float>(ci);
+            // --- Look up precomputed frequency multiplier ---
+            const float multiplier = shiftRatios_[ci];
 
             // --- Add inharmonic gap offset (in Hz) ---
             const float gapOffset = gap_ * static_cast<float>(ci) * 20.0f;
@@ -127,23 +146,28 @@ void Harmonizer::applyHarmonization(PartialDataSIMD& data)
             if (newFreq <= 20.0f || newFreq >= static_cast<float>(nyquist))
                 continue;
 
-            // --- Compute clone amplitude ---
-            const float newAmp = baseAmp
-                               * std::pow(strength_, static_cast<float>(ci))
-                               * amount_;
+            // --- Look up precomputed clone amplitude ---
+            const float newAmp = baseAmp * strengthPow_[ci] * amount_;
 
             if (newAmp <= ampThreshold)
                 continue;
 
-            // Find an empty slot
+            // --- Find an empty slot via bitmap + CTZ (O(1)) ---
+            uint32_t fullMask = 0;
+            for (int w = 0; w < 16; ++w)
+                fullMask |= data.activeMask[w];
+            const uint32_t freeMask = ~fullMask;
+
             int freeSlot = -1;
-            for (int i = 0; i < data.maxPartials; ++i)
+            if (freeMask != 0)
             {
-                if (!data.isActive(i))
-                {
-                    freeSlot = i;
-                    break;
-                }
+#if defined(_MSC_VER)
+                unsigned long idx = 0;
+                _BitScanForward(&idx, freeMask);
+                freeSlot = static_cast<int>(idx);
+#else
+                freeSlot = static_cast<int>(__builtin_ctz(freeMask));
+#endif
             }
 
             if (freeSlot == -1)

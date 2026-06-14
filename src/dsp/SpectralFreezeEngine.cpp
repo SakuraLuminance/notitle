@@ -751,39 +751,49 @@ void SpectralFreezeEngine::applyPitchShift(PartialDataSIMD& data, float semitone
 
 void SpectralFreezeEngine::applySpectralBlur(PartialDataSIMD& data,
                                               float amount,
-                                              std::vector<float>& kernel,
+                                              std::vector<float>& /*kernel*/,
                                               int& kernelRadius,
                                               bool& kernelDirty)
 {
     if (amount < 0.001f)
         return;
 
-    // Build or rebuild the Gaussian kernel
+    // Compute radius (Gaussian kernel build is superseded by O(n) box blur)
     if (kernelDirty)
     {
-        const int radius = std::max(1, static_cast<int>(amount * 20.0f));
-        const float sigma = std::max(0.5f, amount * 10.0f);
-        buildGaussianKernel(kernel, kernelRadius, radius, sigma);
+        kernelRadius = std::max(1, static_cast<int>(amount * 20.0f));
         kernelDirty = false;
     }
 
-    if (kernelRadius <= 0 || kernel.empty())
+    if (kernelRadius <= 0)
         return;
 
-    // Convolve amplitudes with the Gaussian kernel
-    if constexpr (kMaxPartials > 0)
-        std::memset(blurred_, 0, sizeof(blurred_));
+    // Running-sum box blur — O(n) regardless of radius
+    // Initialize: sum over first window [0, kernelRadius]
+    float sum = 0.0f;
+    const int limit = std::min(kernelRadius, kMaxPartials - 1);
+    for (int j = 0; j <= limit; ++j)
+        sum += data.amplitude[j];
+    int count = limit + 1;
 
-    for (int i = 0; i < kMaxPartials; ++i)
+    blurred_[0] = sum / static_cast<float>(count);
+
+    for (int i = 1; i < kMaxPartials; ++i)
     {
-        float sum = 0.0f;
-        for (int j = -kernelRadius; j <= kernelRadius; ++j)
+        // Remove element leaving the window on the left
+        if (i - kernelRadius - 1 >= 0)
         {
-            const int idx = std::max(0, std::min(kMaxPartials - 1, i + j));
-            sum += data.amplitude[idx]
-                 * kernel[static_cast<size_t>(j + kernelRadius)];
+            sum -= data.amplitude[i - kernelRadius - 1];
+            --count;
         }
-        blurred_[i] = sum;
+        // Add element entering the window on the right
+        if (i + kernelRadius < kMaxPartials)
+        {
+            sum += data.amplitude[i + kernelRadius];
+            ++count;
+        }
+
+        blurred_[i] = (count > 1) ? (sum / static_cast<float>(count)) : sum;
     }
 
     // Write back

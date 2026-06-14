@@ -49,11 +49,14 @@ void SpectralDynamics::reset()
     releaseMs_          = 50.0f;
     knee_               = 6.0f;
     makeupGain_         = 0.0f;
+    makeupLinear_       = 1.0f;
     mix_                = 1.0f;
 
     bandFocusEnabled_   = false;
     bandCenterHz_       = 1000.0f;
     bandWidthOctaves_   = 3.0f;
+    bandLowerHz_        = 20.0f;
+    bandUpperHz_        = 20000.0f;
     bandBypass_         = false;
 
     sidechainActive_    = false;
@@ -123,6 +126,7 @@ void SpectralDynamics::setKnee(float dB)
 void SpectralDynamics::setMakeupGain(float dB)
 {
     makeupGain_ = juce::jlimit(0.0f, 24.0f, dB);
+    makeupLinear_ = fast_exp2(makeupGain_ * 0.166096f);
 }
 
 void SpectralDynamics::setMix(float mix)
@@ -135,6 +139,11 @@ void SpectralDynamics::setBandFocus(float centerHz, float widthOctaves)
     bandCenterHz_     = juce::jlimit(20.0f, 20000.0f, centerHz);
     bandWidthOctaves_ = juce::jmax(0.25f, widthOctaves);
     bandFocusEnabled_ = true;
+
+    // Cache band bounds for fast isInBand queries
+    const float halfOct = bandWidthOctaves_ * 0.5f;
+    bandLowerHz_ = bandCenterHz_ * std::pow(2.0f, -halfOct);
+    bandUpperHz_ = bandCenterHz_ * std::pow(2.0f,  halfOct);
 }
 
 void SpectralDynamics::setBandBypass(bool bypass) noexcept
@@ -175,12 +184,7 @@ bool SpectralDynamics::isInBand(float freqHz) const noexcept
     if (!bandFocusEnabled_)
         return true;
 
-    // Band = [center / 2^(width/2), center * 2^(width/2)]
-    const float halfOct = bandWidthOctaves_ * 0.5f;
-    const float lower   = bandCenterHz_ * std::pow(2.0f, -halfOct);
-    const float upper   = bandCenterHz_ * std::pow(2.0f,  halfOct);
-
-    return freqHz >= lower && freqHz <= upper;
+    return freqHz >= bandLowerHz_ && freqHz <= bandUpperHz_;
 }
 
 //==============================================================================
@@ -228,7 +232,7 @@ float SpectralDynamics::computeGain(float levelLinear) const noexcept
     if (levelLinear <= kMinLevel)
         return 1.0f;
 
-    const float levelDB = 20.0f * std::log10(levelLinear);
+    const float levelDB = 20.0f * fast_log10(levelLinear);
     const float T       = threshold_;
     const float R       = ratio_;
     const float W       = knee_;
@@ -315,7 +319,7 @@ float SpectralDynamics::computeGain(float levelLinear) const noexcept
         }
     }
 
-    return std::pow(10.0f, gainDB / 20.0f);
+    return fast_exp2(gainDB * 0.166096f);
 }
 
 //==============================================================================
@@ -358,7 +362,7 @@ void SpectralDynamics::process(PartialDataSIMD& partials)
     // -----------------------------------------------------------------------
     //  Pre-compute makeup gain (linear)
     // -----------------------------------------------------------------------
-    const float makeupLinear = std::pow(10.0f, makeupGain_ / 20.0f);
+    const float makeupLinear = makeupLinear_;
 
     // -----------------------------------------------------------------------
     //  Per-partial dynamics processing
