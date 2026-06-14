@@ -1,6 +1,7 @@
 #include "NeuralStyleTransfer.h"
 #include <algorithm>
 #include <cstring>
+#include <complex>
 
 namespace ana {
 
@@ -205,8 +206,8 @@ void NeuralStyleTransfer::stftAnalysis(
     phase.resize(static_cast<size_t>(numFrames));
 
     // Scratch buffers (pre-allocated)
-    std::vector<float> real(static_cast<size_t>(fftSize_), 0.0f);
-    std::vector<float> imag(static_cast<size_t>(fftSize_), 0.0f);
+    std::vector<std::complex<float>> spectrum(static_cast<size_t>(fftSize_), {0.0f, 0.0f});
+    std::vector<float> scratch(static_cast<size_t>(fftSize_), 0.0f);
 
     for (int i = 0; i < numFrames; ++i)
     {
@@ -214,7 +215,7 @@ void NeuralStyleTransfer::stftAnalysis(
         const int startPos = i * hopSize_;
 
         // Windowed frame copy via SIMD
-        SIMDKernels::vectorMul(real.data(),
+        SIMDKernels::vectorMul(scratch.data(),
                                 audio.data() + startPos,
                                 windowTable_.data(),
                                 fftSize_);
@@ -223,13 +224,16 @@ void NeuralStyleTransfer::stftAnalysis(
         const int remaining = fftSize_ - (numSamples - startPos);
         if (remaining > 0)
         {
-            std::memset(real.data() + fftSize_ - remaining, 0,
+            std::memset(scratch.data() + fftSize_ - remaining, 0,
                         static_cast<size_t>(remaining) * sizeof(float));
         }
 
+        // Copy windowed data to spectrum (real part)
+        for (int j = 0; j < fftSize_; ++j)
+            spectrum[static_cast<size_t>(j)] = {scratch[static_cast<size_t>(j)], 0.0f};
+
         // Forward FFT
-        std::fill(imag.begin(), imag.end(), 0.0f);
-        fft_->perform(real.data(), imag.data(), false);
+        fft_->perform(spectrum.data(), spectrum.data(), false);
 
         // Extract magnitude and phase (bins 0 .. fftSize/2)
         std::vector<float> magFrame(static_cast<size_t>(numBins));
@@ -238,8 +242,8 @@ void NeuralStyleTransfer::stftAnalysis(
         for (int k = 0; k < numBins; ++k)
         {
             const size_t kz = static_cast<size_t>(k);
-            const float r = real[kz];
-            const float j = imag[kz];
+            const float r = spectrum[kz].real();
+            const float j = spectrum[kz].imag();
             magFrame[kz]   = std::sqrt(r * r + j * j);
             phaseFrame[kz] = std::atan2(j, r);
         }
@@ -272,8 +276,8 @@ std::vector<float> NeuralStyleTransfer::stftSynthesis(
     std::vector<float> overlap(static_cast<size_t>(outputLength), 0.0f);
 
     // Scratch buffers
-    std::vector<float> frameReal(static_cast<size_t>(fftSize_), 0.0f);
-    std::vector<float> frameImag(static_cast<size_t>(fftSize_), 0.0f);
+    std::vector<std::complex<float>> spectrum(static_cast<size_t>(fftSize_), {0.0f, 0.0f});
+    std::vector<float> scratch(static_cast<size_t>(fftSize_), 0.0f);
     std::vector<float> windowedOut(static_cast<size_t>(fftSize_), 0.0f);
 
     for (int i = 0; i < numFrames; ++i)
@@ -287,28 +291,29 @@ std::vector<float> NeuralStyleTransfer::stftSynthesis(
             const size_t kz = static_cast<size_t>(k);
             const float m = mag[iz][kz];
             const float p = phase[iz][kz];
-            frameReal[kz] = m * std::cos(p);
-            frameImag[kz] = m * std::sin(p);
+            spectrum[kz] = std::complex<float>(m * std::cos(p), m * std::sin(p));
         }
 
         // Enforce conjugate symmetry for IFFT
-        frameImag[0] = 0.0f;
-        frameImag[static_cast<size_t>(fftSize_ / 2)] = 0.0f;
+        spectrum[0].imag(0.0f);
+        spectrum[static_cast<size_t>(fftSize_ / 2)].imag(0.0f);
 
         for (int k = fftSize_ / 2 + 1; k < fftSize_; ++k)
         {
             const size_t kz        = static_cast<size_t>(k);
             const size_t mirrorK   = static_cast<size_t>(fftSize_ - k);
-            frameReal[kz] =  frameReal[mirrorK];
-            frameImag[kz] = -frameImag[mirrorK];
+            spectrum[kz] = std::conj(spectrum[mirrorK]);
         }
 
         // Inverse FFT
-        fft_->perform(frameReal.data(), frameImag.data(), true);
+        fft_->perform(spectrum.data(), spectrum.data(), true);
 
-        // Apply synthesis window and overlap-add
+        // Extract real part from IFFT output and apply synthesis window
+        for (int j = 0; j < fftSize_; ++j)
+            scratch[static_cast<size_t>(j)] = spectrum[static_cast<size_t>(j)].real();
+
         SIMDKernels::vectorMul(windowedOut.data(),
-                                frameReal.data(),
+                                scratch.data(),
                                 windowTable_.data(),
                                 fftSize_);
 

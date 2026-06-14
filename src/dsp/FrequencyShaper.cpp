@@ -396,11 +396,9 @@ void FrequencyShaper::processFrequencyShiftAudio(juce::AudioBuffer<float>& buffe
 
     // Ensure scratch buffers are sized for current FFT size
     if (fftSize > scratch_maxFftSize_) {
-        scratch_real_.resize(fftSize);
-        scratch_imag_.resize(fftSize);
+        scratch_fftIn_.resize(fftSize);
         scratch_windowVec_.resize(fftSize);
-        scratch_realOut_.resize(fftSize);
-        scratch_imagOut_.resize(fftSize);
+        scratch_fftOut_.resize(fftSize);
         scratch_maxFftSize_ = fftSize;
     }
 
@@ -416,53 +414,49 @@ void FrequencyShaper::processFrequencyShiftAudio(juce::AudioBuffer<float>& buffe
         const float* src = buffer.getReadPointer(ch);
         float* dst       = buffer.getWritePointer(ch);
 
-        // Clear FFT buffers
-        std::fill(scratch_real_.begin(), scratch_real_.end(), 0.0f);
-        std::fill(scratch_imag_.begin(), scratch_imag_.end(), 0.0f);
+        // Clear FFT input buffer
+        scratch_fftIn_.assign(fftSize, std::complex<float>(0.0f, 0.0f));
 
-        // Window input signal using SIMD-accelerated multiply
-        SIMDKernels::vectorMul(scratch_real_.data(), src, scratch_windowVec_.data(), numSamples);
+        // Window input signal and write into complex buffer
+        for (int i = 0; i < numSamples; ++i)
+            scratch_fftIn_[static_cast<size_t>(i)] = std::complex<float>(src[i] * scratch_windowVec_[static_cast<size_t>(i)], 0.0f);
 
         // Forward complex FFT
-        fft.perform(scratch_real_.data(), scratch_imag_.data(), false);
+        fft.perform(scratch_fftIn_.data(), scratch_fftIn_.data(), false);
 
         // --- Create analytic signal: zero out negative frequencies ---
         // Bin indices: 0 .. N-1 where 0 = DC, 1..N/2-1 = positive, N/2 = Nyquist, N/2+1..N-1 = negative
         for (int i = numBins / 2 + 1; i < numBins; ++i)
         {
-            scratch_real_[static_cast<size_t>(i)] = 0.0f;
-            scratch_imag_[static_cast<size_t>(i)] = 0.0f;
+            scratch_fftIn_[static_cast<size_t>(i)] = std::complex<float>(0.0f, 0.0f);
         }
         // Double positive frequencies (excluding DC and Nyquist)
         for (int i = 1; i < numBins / 2; ++i)
         {
-            scratch_real_[static_cast<size_t>(i)] *= 2.0f;
-            scratch_imag_[static_cast<size_t>(i)] *= 2.0f;
+            scratch_fftIn_[static_cast<size_t>(i)] *= 2.0f;
         }
 
         // --- Frequency shift: rotate spectrum ---
 
-        // Zero-fill output buffers before frequency shift
-        std::fill(scratch_realOut_.begin(), scratch_realOut_.end(), 0.0f);
-        std::fill(scratch_imagOut_.begin(), scratch_imagOut_.end(), 0.0f);
+        // Zero-fill output buffer before frequency shift
+        scratch_fftOut_.assign(fftSize, std::complex<float>(0.0f, 0.0f));
 
         for (int i = 0; i < numBins; ++i)
         {
             const int newIdx = i + binShift;
             if (newIdx >= 0 && newIdx < numBins)
             {
-                scratch_realOut_[static_cast<size_t>(newIdx)] = scratch_real_[static_cast<size_t>(i)];
-                scratch_imagOut_[static_cast<size_t>(newIdx)] = scratch_imag_[static_cast<size_t>(i)];
+                scratch_fftOut_[static_cast<size_t>(newIdx)] = scratch_fftIn_[static_cast<size_t>(i)];
             }
         }
 
         // Inverse FFT (complex)
-        fft.perform(scratch_realOut_.data(), scratch_imagOut_.data(), true);
+        fft.perform(scratch_fftOut_.data(), scratch_fftOut_.data(), true);
 
         // Real part of the IFFT is the frequency-shifted output
         const float invScale = 1.0f / static_cast<float>(fftSize);
         for (int i = 0; i < numSamples; ++i)
-            dst[i] = scratch_realOut_[static_cast<size_t>(i)] * invScale;
+            dst[i] = scratch_fftOut_[static_cast<size_t>(i)].real() * invScale;
     }
 }
 

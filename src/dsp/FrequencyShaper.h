@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <complex>
 #include <cstdint>
 #include <vector>
 
@@ -111,11 +112,9 @@ private:
     double phaseModPhase_ = 0.0;
 
     // Pre-allocated scratch buffers (max FFT size = 16384)
-    mutable std::vector<float> scratch_real_;
-    mutable std::vector<float> scratch_imag_;
+    mutable std::vector<std::complex<float>> scratch_fftIn_;
     mutable std::vector<float> scratch_windowVec_;
-    mutable std::vector<float> scratch_realOut_;
-    mutable std::vector<float> scratch_imagOut_;
+    mutable std::vector<std::complex<float>> scratch_fftOut_;
     mutable int scratch_maxFftSize_ = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FrequencyShaper)

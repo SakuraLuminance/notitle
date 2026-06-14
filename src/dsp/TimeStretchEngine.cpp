@@ -296,29 +296,33 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
     analysisData_.clear();
     analysisData_.reserve(static_cast<size_t>(numAnalysisFrames));
 
-    std::vector<float> real(static_cast<size_t>(fftSize_), 0.0f);
-    std::vector<float> imag(static_cast<size_t>(fftSize_), 0.0f);
+    // Temporary buffer for windowed time-domain input (SIMD-friendly float*)
+    std::vector<float> analysisWindowed(static_cast<size_t>(fftSize_));
+    // FFT spectrum buffer (JUCE 8 complex API)
+    std::vector<std::complex<float>> spectrum(static_cast<size_t>(fftSize_));
 
     for (int i = 0; i < numAnalysisFrames; ++i)
     {
         const int startPos = i * hopSize_;
 
         // Windowed frame copy via SIMD
-        SIMDKernels::vectorMul(real.data(),
+        SIMDKernels::vectorMul(analysisWindowed.data(),
                                 input.data() + startPos,
                                 windowTable_.data(),
                                 fftSize_);
 
         // Zero-pad remaining analysis buffer positions
-        // (already zeroed from vector ctor, but ensure frames near end are safe)
         const int remaining = fftSize_ - (numInputSamples - startPos);
         if (remaining > 0)
-            std::memset(real.data() + fftSize_ - remaining, 0,
+            std::memset(analysisWindowed.data() + fftSize_ - remaining, 0,
                         static_cast<size_t>(remaining) * sizeof(float));
 
+        // Populate complex spectrum with real input (imag = 0)
+        for (int j = 0; j < fftSize_; ++j)
+            spectrum[static_cast<size_t>(j)] = { analysisWindowed[static_cast<size_t>(j)], 0.0f };
+
         // Forward FFT
-        std::fill(imag.begin(), imag.end(), 0.0f);
-        fft_->perform(real.data(), imag.data(), false);
+        fft_->perform(spectrum.data(), spectrum.data(), false);
 
         // Extract magnitude and phase (bins 0 .. fftSize/2)
         AnalysisFrame frame;
@@ -327,8 +331,9 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
 
         for (int k = 0; k < numBins; ++k)
         {
-            const float r = real[static_cast<size_t>(k)];
-            const float j = imag[static_cast<size_t>(k)];
+            const auto& c = spectrum[static_cast<size_t>(k)];
+            const float r = c.real();
+            const float j = c.imag();
             frame.magnitude[static_cast<size_t>(k)] = std::sqrt(r * r + j * j);
             frame.phase[static_cast<size_t>(k)]     = std::atan2(j, r);
         }
@@ -356,8 +361,7 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
     synPhase_.resize(static_cast<size_t>(numBins));
     std::fill(synPhase_.begin(), synPhase_.end(), 0.0f);
 
-    std::vector<float> frameReal(fftSize_, 0.0f);
-    std::vector<float> frameImag(fftSize_, 0.0f);
+    std::vector<std::complex<float>> spectrum(fftSize_, {0.0f, 0.0f});
     std::vector<float> windowedOut(fftSize_, 0.0f);
 
     double prevSrcPos = 0.0;
@@ -465,29 +469,30 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
             synPhase_[kz] = phase;
 
             // Build complex spectrum
-            frameReal[kz] = mag * std::cos(phase);
-            frameImag[kz] = mag * std::sin(phase);
+            spectrum[kz] = std::complex<float>(mag * std::cos(phase), mag * std::sin(phase));
         }
 
         // Mirror spectrum to maintain conjugate symmetry for the IFFT
         // Bin 0 (DC) and bin fftSize/2 (Nyquist) must be purely real
-        frameImag[0] = 0.0f;
-        frameImag[static_cast<size_t>(fftSize_ / 2)] = 0.0f;
+        spectrum[0].imag(0.0f);
+        spectrum[static_cast<size_t>(fftSize_ / 2)].imag(0.0f);
 
         for (int k = fftSize_ / 2 + 1; k < fftSize_; ++k)
         {
             const size_t kz = static_cast<size_t>(k);
             const size_t mirrorK = static_cast<size_t>(fftSize_ - k);
-            frameReal[kz] =  frameReal[mirrorK];
-            frameImag[kz] = -frameImag[mirrorK];
+            spectrum[kz] = std::complex<float>(spectrum[mirrorK].real(), -spectrum[mirrorK].imag());
         }
 
         // Inverse FFT
-        fft_->perform(frameReal.data(), frameImag.data(), true);
+        fft_->perform(spectrum.data(), spectrum.data(), true);
 
-        // Apply synthesis window and overlap-add
+        // Extract time-domain IFFT output from spectrum real parts into windowedOut
+        // then apply synthesis window
+        for (int i = 0; i < fftSize_; ++i)
+            windowedOut[static_cast<size_t>(i)] = spectrum[static_cast<size_t>(i)].real();
         SIMDKernels::vectorMul(windowedOut.data(),
-                                frameReal.data(),
+                                windowedOut.data(),
                                 windowTable_.data(),
                                 fftSize_);
 
