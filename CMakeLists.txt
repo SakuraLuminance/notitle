@@ -190,9 +190,11 @@ endif()
 
 # ---- Linux Compatibility ----
 if(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+    find_package(ALSA REQUIRED)
     target_link_libraries(AnaPlug PRIVATE
         X11::X11
-        alsa
+        ALSA::ALSA
         jack
     )
     target_compile_options(AnaPlug PRIVATE
