@@ -5,6 +5,9 @@
 #include "dsp/VoiceManager.h"
 #include "dsp/SubHarmonicGenerator.h"
 #include "dsp/PresetManager.h"
+#include "dsp/DualSignalChain.h"
+#include "dsp/EffectsChain.h"
+#include "dsp/PartialDataSIMD.h"
 
 class AnaPlugAudioProcessor : public juce::AudioProcessor
 {
@@ -90,6 +93,16 @@ public:
     float getSubHarmonicLevel() const;
     ana::SubHarmonicGenerator& getSubHarmonicGenerator() { return subHarmonicGen_; }
 
+    // Dual signal chain access
+    ana::DualSignalChain& getDualChain() { return dualChain_; }
+    bool isChainEnabled() const { return chainEnabled_.load(); }
+    void setChainEnabled(bool enabled) { chainEnabled_.store(enabled); }
+
+    // Effects chain access
+    ana::EffectsChain& getEffectsChain() { return effectsChain_; }
+    bool isEffectsEnabled() const { return effectsEnabled_.load(); }
+    void setEffectsEnabled(bool enabled) { effectsEnabled_.store(enabled); }
+
     // Preset Manager
     ana::PresetManager& getPresetManager() { return presetManager; }
 
@@ -121,6 +134,20 @@ private:
     // --- Sub-harmonic generator ---
     ana::SubHarmonicGenerator subHarmonicGen_;
     std::atomic<float> subHarmonicLevel_{0.0f};
+
+    // --- Dual signal chain (partial-domain spectral shaping) ---
+    ana::DualSignalChain dualChain_;
+    std::atomic<bool> chainEnabled_{false};
+
+    // --- Effects chain (post-synth audio processing) ---
+    ana::EffectsChain effectsChain_;
+    std::atomic<bool> effectsEnabled_{false};
+
+    // --- VoiceManager partial data bridge (for SubHarmonic/DualChain) ---
+    ana::PartialDataSIMD synthPartials_;
+
+    // Per-voice sub-oscillator phase tracking (32 voices × 3 sub-harmonics)
+    float subOscPhase_[96] = {};
 
     // Reusable voice buffer (allocated in prepareToPlay to avoid heap in audio callback)
     juce::AudioBuffer<float> voiceBuffer;

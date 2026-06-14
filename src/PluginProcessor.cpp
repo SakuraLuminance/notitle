@@ -1,11 +1,74 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include <cmath>
+#include "dsp/effects/DelayEffect.h"
+#include "dsp/effects/ReverbEffect.h"
+#include "dsp/effects/EQEffect.h"
+#include "dsp/effects/ChorusEffect.h"
+#include "dsp/effects/DistortionEffect.h"
+#include "dsp/effects/AutoTuneEffect.h"
 
 // SSE intrinsics for FTZ/DAZ denormal handling
 #if JUCE_INTEL
 #include <xmmintrin.h>
 #endif
+
+//==============================================================================
+// Effect adapters — wrap concrete effect classes into the EffectBase interface
+//==============================================================================
+namespace {
+
+class DelayEffectAdapter : public ana::EffectBase {
+    ana::DelayEffect effect;
+public:
+    void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
+    void process(juce::AudioBuffer<float>& buffer) override   { effect.process(buffer); }
+    void reset() override                                      { effect.reset(); }
+};
+
+class ReverbEffectAdapter : public ana::EffectBase {
+    ana::ReverbEffect effect;
+public:
+    void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
+    void process(juce::AudioBuffer<float>& buffer) override   { effect.process(buffer); }
+    void reset() override                                      { effect.reset(); }
+};
+
+class EQEffectAdapter : public ana::EffectBase {
+    ana::EQEffect effect;
+public:
+    void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
+    void process(juce::AudioBuffer<float>& buffer) override   { effect.process(buffer); }
+    void reset() override                                      { effect.reset(); }
+};
+
+class ChorusEffectAdapter : public ana::EffectBase {
+    ana::ChorusEffect effect;
+public:
+    void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
+    void process(juce::AudioBuffer<float>& buffer) override   { effect.process(buffer); }
+    void reset() override                                      { effect.reset(); }
+};
+
+class DistortionEffectAdapter : public ana::EffectBase {
+    ana::DistortionEffect effect;
+public:
+    void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
+    void process(juce::AudioBuffer<float>& buffer) override   { effect.process(buffer); }
+    void reset() override                                      { effect.reset(); }
+};
+
+class AutoTuneEffectAdapter : public ana::EffectBase {
+    ana::AutoTuneEffect effect;
+public:
+    void prepare(const juce::dsp::ProcessSpec& spec) override {
+        effect.setSampleRate(spec.sampleRate);
+    }
+    void process(juce::AudioBuffer<float>& buffer) override { effect.processBlock(buffer); }
+    void reset() override                                    { effect.reset(); }
+};
+
+} // namespace
 
 AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     : AudioProcessor(BusesProperties()
@@ -94,6 +157,22 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
 
         // Pre-allocate voiceBuffer to avoid heap allocations in the audio callback
         voiceBuffer.setSize(juce::jmax(getTotalNumOutputChannels(), 1), samplesPerBlock, false, false, true);
+
+        // Prepare the effects chain with default effects
+        juce::dsp::ProcessSpec spec;
+        spec.sampleRate = sampleRate;
+        spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+        spec.numChannels = static_cast<juce::uint32>(juce::jmax(getTotalNumOutputChannels(), 1));
+
+        effectsChain_.clear();
+        // Effects order: Delay → Reverb → EQ → Chorus → Distortion → AutoTune
+        effectsChain_.addEffect(std::make_unique<DelayEffectAdapter>(), "Delay");
+        effectsChain_.addEffect(std::make_unique<ReverbEffectAdapter>(), "Reverb");
+        effectsChain_.addEffect(std::make_unique<EQEffectAdapter>(), "EQ");
+        effectsChain_.addEffect(std::make_unique<ChorusEffectAdapter>(), "Chorus");
+        effectsChain_.addEffect(std::make_unique<DistortionEffectAdapter>(), "Distortion");
+        effectsChain_.addEffect(std::make_unique<AutoTuneEffectAdapter>(), "AutoTune");
+        effectsChain_.prepare(spec);
     }
 }
 
@@ -250,6 +329,82 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // Use a temporary buffer for VoiceManager output, then mix into the main buffer
     voiceBuffer.setSize(numChannels, numSamples, false, false, true);
     voiceManager.process(voiceBuffer);
+
+    // --- Sub-harmonic generator ---
+    // Generates sub-harmonic sine waves for each active voice and mixes them
+    // into voiceBuffer. Works in the frequency domain using per-voice pitch.
+    {
+        const float subLevel = subHarmonicLevel_.load();
+        if (subLevel > 0.0f && sr > 0.0)
+        {
+            const float dT = 1.0f / static_cast<float>(sr);
+            constexpr float twoPi = 6.283185307179586f;
+
+            for (int v = 0; v < ana::VoiceManager::maxVoices; ++v)
+            {
+                if (!voiceManager.isVoiceActive(v))
+                    continue;
+
+                const auto& voice = voiceManager.getVoice(v);
+                const float fundFreq = voice.pitchHz.load()
+                                     * voice.pitchBend.load();
+                if (fundFreq <= 0.0f)
+                    continue;
+
+                float subFreqs[3] = {}, subAmps[3] = {};
+                const int nSubs = subHarmonicGen_.generate(fundFreq, subFreqs, subAmps, 3);
+
+                const float envLevel = voice.envelopeLevel.load();
+                const float voiceAmp = voice.amplitude.load();
+
+                for (int s = 0; s < nSubs; ++s)
+                {
+                    if (subAmps[s] <= 1e-6f)
+                        continue;
+
+                    const int phaseIdx = v * 3 + s;
+                    const float totalAmp = subAmps[s] * subLevel * envLevel * voiceAmp;
+                    float phase = subOscPhase_[phaseIdx];
+
+                    for (int i = 0; i < numSamples; ++i)
+                    {
+                        const float sample = std::sin(phase) * totalAmp;
+                        for (int ch = 0; ch < numChannels; ++ch)
+                            voiceBuffer.addSample(ch, i, sample);
+
+                        phase += twoPi * subFreqs[s] * dT;
+                        if (phase >= twoPi)
+                            phase -= twoPi;
+                        if (phase < 0.0f)
+                            phase += twoPi;
+                    }
+
+                    subOscPhase_[phaseIdx] = phase;
+                }
+            }
+        }
+    }
+
+    // --- Dual signal chain (partial-domain spectral shaping) ---
+    // Currently operates on PartialDataSIMD/TimbrePart data.  Once the synth is
+    // refactored to produce partials (via synthPartials_), this will apply the
+    // A/B spectral filter chains and blend modes.  For now it is a placeholder.
+    // 
+    // When chainEnabled_ is true and synthPartials_ contains voice partials:
+    //   dualChain_.setInputA(partialsFromFilterA);
+    //   dualChain_.setInputB(partialsFromFilterB);
+    //   TimbrePart blended;
+    //   dualChain_.process(blended);
+    //   // synthesise 'blended' back into voiceBuffer
+    if (chainEnabled_.load())
+    {
+        // Placeholder: chain requires partial-domain synth output.
+        // Wire when synth is refactored to populate synthPartials_.
+    }
+
+    // --- Effects chain ---
+    if (effectsEnabled_.load())
+        effectsChain_.process(voiceBuffer);
 
     const int rootNote = rootNoteParam_.load();
     const int midiNote = lastMidiNote_.load();
