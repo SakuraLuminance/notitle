@@ -94,6 +94,7 @@ target_sources(AnaPlug
         src/dsp/FrequencyShaper.cpp
         src/dsp/SpectralFreezeEngine.cpp
         src/dsp/SpectralSequencer.cpp
+        src/dsp/SpectralDNA.cpp
         src/dsp/GenerativeTimbreDesigner.cpp
         src/dsp/SpectralParticleSystem.cpp
         src/dsp/QuantumSpectralProcessor.cpp

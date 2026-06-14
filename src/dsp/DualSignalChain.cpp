@@ -35,47 +35,64 @@ void DualSignalChain::setInputB(const TimbrePart& timbreB)
 
 void DualSignalChain::process(TimbrePart& output)
 {
-    // Use reinterpret_cast to view TimbrePart inputs as PartialDataSIMD.
-    // The first 3 arrays (frequency, amplitude, phase) have identical offsets
-    // and sizes in both structs, so we process them in-place without any memcpy.
-    // 
-    // SpectralFilter::process() only touches these 3 arrays + calls updateActiveMask(),
-    // which writes to activeMask/activeCount at PartialDataSIMD's offsets.
-    // Since activeCount has different offsets in the two structs, we fix it up
-    // after processing. The activeMask overlap into adjacent members is harmless
-    // because we always process B first (so A's trailing overlap into B doesn't matter)
-    // and B's trailing overlap goes into processedA_/filter state which get overwritten.
+    // We use a stack-local PartialDataSIMD to safely process through
+    // SpectralFilter (which expects PartialDataSIMD layout with activeMask
+    // and activeCount at SIMD-specific offsets). The frequency/amplitude/phase
+    // data is copied in/out via memcpy; activeMask is built via SIMD kernel.
 
-    // --- Process B first (A's updateActiveMask overflow into B is irrelevant) ---
+    constexpr size_t kArrayBytes = sizeof(PartialDataSIMD::frequency);
+
+    // --- Process B ---
     {
-        auto& pB = reinterpret_cast<PartialDataSIMD&>(inputB_);
+        PartialDataSIMD pB;
+
+        // Copy SoA arrays (safe memcpy — shared layout verified by static_asserts above)
+        std::memcpy(pB.frequency, inputB_.frequency, kArrayBytes);
+        std::memcpy(pB.amplitude, inputB_.amplitude, kArrayBytes);
+        std::memcpy(pB.phase,     inputB_.phase,     kArrayBytes);
+        pB.activeCount = inputB_.activeCount;
+
         // Build activeMask from amplitude array using SIMD compare
         for (int w = 0; w < 16; ++w)
         {
             const int base = w * 32;
             const int remaining = PartialDataSIMD::kMaxPartials - base;
             pB.activeMask[w] = SIMDKernels::vectorCompareMask(
-                &inputB_.amplitude[base], 1e-6f, std::min(32, remaining));
+                &pB.amplitude[base], 1e-6f, std::min(32, remaining));
         }
-        pB.activeCount = inputB_.activeCount;
+
         filterB_.process(pB);
-        // Copy result: inputB_ is now filtered, copy to processedB_
-        processedB_ = inputB_;
+
+        // Copy results back
+        std::memcpy(processedB_.frequency, pB.frequency, kArrayBytes);
+        std::memcpy(processedB_.amplitude, pB.amplitude, kArrayBytes);
+        std::memcpy(processedB_.phase,     pB.phase,     kArrayBytes);
+        processedB_.activeCount = pB.activeCount;
     }
 
     // --- Process A ---
     {
-        auto& pA = reinterpret_cast<PartialDataSIMD&>(inputA_);
+        PartialDataSIMD pA;
+
+        std::memcpy(pA.frequency, inputA_.frequency, kArrayBytes);
+        std::memcpy(pA.amplitude, inputA_.amplitude, kArrayBytes);
+        std::memcpy(pA.phase,     inputA_.phase,     kArrayBytes);
+        pA.activeCount = inputA_.activeCount;
+
         for (int w = 0; w < 16; ++w)
         {
             const int base = w * 32;
             const int remaining = PartialDataSIMD::kMaxPartials - base;
             pA.activeMask[w] = SIMDKernels::vectorCompareMask(
-                &inputA_.amplitude[base], 1e-6f, std::min(32, remaining));
+                &pA.amplitude[base], 1e-6f, std::min(32, remaining));
         }
-        pA.activeCount = inputA_.activeCount;
+
         filterA_.process(pA);
-        processedA_ = inputA_;
+
+        std::memcpy(processedA_.frequency, pA.frequency, kArrayBytes);
+        std::memcpy(processedA_.amplitude, pA.amplitude, kArrayBytes);
+        std::memcpy(processedA_.phase,     pA.phase,     kArrayBytes);
+        processedA_.activeCount = pA.activeCount;
     }
 
     // 4. Blend
