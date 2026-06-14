@@ -1,4 +1,5 @@
 #include "SpectralDNA.h"
+#include "SIMDSupport.h"
 
 #include <algorithm>
 #include <cmath>
@@ -382,6 +383,11 @@ SpectralDNA SpectralDNA::mutate(const SpectralDNA& dna, juce::Random& rng)
 
     result.clamp();
     result.updateActiveMask();
+
+    // Edge case: NaN/Inf detection - fallback to original DNA
+    if (!result.isValid())
+        return dna;
+
     return result;
 }
 
@@ -569,8 +575,17 @@ void SpectralDNAEvolver::replaceWorst(const SpectralDNA& dna)
 
 void SpectralDNAEvolver::evolveGeneration()
 {
-    if (population_.empty())
+    // Edge case: population of 1 — mutate to create a second individual
+    if (population_.size() < 2)
+    {
+        if (population_.size() == 1)
+        {
+            auto mutated = SpectralDNA::mutate(population_[0], rng_);
+            mutated.fitness = mutated.evaluateFitness();
+            population_.push_back(std::move(mutated));
+        }
         return;
+    }
 
     nextGeneration_.clear();
     nextGeneration_.reserve(population_.size());

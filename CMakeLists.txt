@@ -79,6 +79,7 @@ target_sources(AnaPlug
         src/gui/VisualFeedbackPanel.cpp
         src/gui/SpectrumEditorCanvas.cpp
         src/gui/PresetBrowserPanel.cpp
+        src/gui/EvolutionPanel.cpp
         src/gui/ModulationMatrixPanel.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp

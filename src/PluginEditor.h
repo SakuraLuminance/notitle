@@ -8,6 +8,7 @@
 #include "gui/VisualFeedbackPanel.h"
 #include "gui/SpectrumEditorCanvas.h"
 #include "gui/PresetBrowserPanel.h"
+#include "gui/EvolutionPanel.h"
 #include "gui/CyberpunkTheme.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -163,6 +164,10 @@ private:
 
     // Status
     juce::Label statusLabel_;
+    juce::TextButton dnaButton_{"DNA EVOLVE"};
+
+    // Evolution panel (lazy-created in callout)
+    std::unique_ptr<ana::EvolutionPanel> evolutionPanel;
 
     //==============================================================================
     // Helpers
@@ -171,6 +176,7 @@ private:
     void stopButtonClicked();
     void flattenButtonClicked();
     void presetButtonClicked();
+    void dnaButtonClicked();
     void updateStatus();
     void stftParamChanged();
     void updatePitchDisplay(const juce::String& text);

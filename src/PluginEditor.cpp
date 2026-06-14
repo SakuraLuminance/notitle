@@ -255,6 +255,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     statusLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::fg_.withAlpha(0.7f));
     addAndMakeVisible(statusLabel_);
 
+    // DNA Evolve button (launches EvolutionPanel in callout)
+    addCyberButton(dnaButton_);
+    dnaButton_.setButtonText("DNA EVOLVE");
+    dnaButton_.onClick = [this] { dnaButtonClicked(); };
+
     updateStatus();
     startTimerHz(30);
 }
@@ -508,7 +513,9 @@ void AnaPlugAudioProcessorEditor::resized()
     masterPanSlider_.setBounds(mstArea.removeFromTop(50).reduced(8, 0));
 
     // -- Status bar --
-    statusLabel_.setBounds(r.statusBar.reduced(10, 2));
+    auto sb = r.statusBar.reduced(4, 2);
+    dnaButton_.setBounds(sb.removeFromRight(110).reduced(2));
+    statusLabel_.setBounds(sb.reduced(6, 0));
 }
 
 //==============================================================================
@@ -613,6 +620,17 @@ void AnaPlugAudioProcessorEditor::presetButtonClicked()
     juce::CallOutBox::launchAsynchronously(std::unique_ptr<juce::Component>(browser),
                                            presetButton_.getScreenBounds(),
                                            this);
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::dnaButtonClicked()
+{
+    evolutionPanel = std::make_unique<ana::EvolutionPanel>(audioProcessor);
+    evolutionPanel->setSize(500, 440);
+    juce::CallOutBox::launchAsynchronously(
+        std::move(evolutionPanel),
+        dnaButton_.getScreenBounds(),
+        this);
 }
 
 void AnaPlugAudioProcessorEditor::updateStatus()

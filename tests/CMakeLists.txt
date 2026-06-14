@@ -34,6 +34,7 @@ add_executable(AnaPlugTests
     test_resynthesis.cpp
     test_sample_processor.cpp
     test_sanity.cpp
+    test_spectral_dna.cpp
     test_spectral_dynamics.cpp
     test_spectral_freeze.cpp
     test_spectral_particle.cpp
