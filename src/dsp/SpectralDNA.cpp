@@ -184,6 +184,44 @@ SpectralDNA SpectralDNA::uniformCrossover(const SpectralDNA& a,
     return child;
 }
 
+SpectralDNA SpectralDNA::spectralCrossover(const SpectralDNA& a,
+                                            const SpectralDNA& b,
+                                            juce::Random& rng)
+{
+    SpectralDNA child;
+
+    // 随机选择分界点 (0-512 之间)
+    const int splitPoint = rng.nextInt(kMaxPartials + 1);
+
+    // 低频 partial (0..splitPoint) 来自父本 A
+    for (int i = 0; i < splitPoint; ++i)
+    {
+        child.frequency[i] = a.frequency[i];
+        child.amplitude[i] = a.amplitude[i];
+        child.phase[i]     = a.phase[i];
+    }
+
+    // 高频 partial (splitPoint..512) 来自父本 B
+    for (int i = splitPoint; i < kMaxPartials; ++i)
+    {
+        child.frequency[i] = b.frequency[i];
+        child.amplitude[i] = b.amplitude[i];
+        child.phase[i]     = b.phase[i];
+    }
+
+    // 族谱
+    child.parentA_id = a.parentA_id;
+    child.parentB_id = b.parentB_id;
+    child.generation = std::max(a.generation, b.generation) + 1;
+    child.mutationRate = (a.mutationRate + b.mutationRate) * 0.5f;
+    child.fitness = 0.0f;
+
+    child.updateActiveMask();
+    child.clamp();
+
+    return child;
+}
+
 // ============================================================================
 // Static spectral helpers
 // ============================================================================
@@ -433,6 +471,408 @@ void SpectralDNA::geneGainMutation(SpectralDNA& dna, juce::Random& rng)
         dna.frequency[idx] = 20.0f + rng.nextFloat() * 8000.0f;
         dna.amplitude[idx] = 0.1f + rng.nextFloat() * 0.5f;
         dna.phase[idx]     = rng.nextFloat() * juce::MathConstants<float>::twoPi;
+    }
+}
+
+// =============================================================================
+// SpectralDNAEvolver implementation
+// =============================================================================
+
+void SpectralDNAEvolver::init(int populationSize)
+{
+    population_.clear();
+    hallOfFame_.clear();
+    nextGeneration_.clear();
+    genealogy_.clear();
+
+    population_.reserve(populationSize);
+    for (int i = 0; i < populationSize; ++i)
+    {
+        SpectralDNA dna;
+        dna.initialize();
+        dna.fitness = dna.evaluateFitness();
+        population_.push_back(std::move(dna));
+    }
+
+    generation_ = 0;
+    nextId_ = 0;
+}
+
+void SpectralDNAEvolver::seedRandom()
+{
+    init(getPopulationSize());
+}
+
+void SpectralDNAEvolver::evolveN(int n)
+{
+    for (int i = 0; i < n; ++i)
+        evolveGeneration();
+}
+
+const SpectralDNA& SpectralDNAEvolver::getFittest() const
+{
+    // Find fittest in current population
+    int bestIdx = 0;
+    float bestFitness = population_[0].fitness;
+
+    for (int i = 1; i < static_cast<int>(population_.size()); ++i)
+    {
+        if (population_[i].fitness > bestFitness)
+        {
+            bestFitness = population_[i].fitness;
+            bestIdx = i;
+        }
+    }
+
+    // Check if hall-of-fame has a better individual
+    if (!hallOfFame_.empty() && hallOfFame_[0].fitness > bestFitness)
+        return hallOfFame_[0];
+
+    return population_[bestIdx];
+}
+
+void SpectralDNAEvolver::setPopulationSize(int newSize)
+{
+    if (newSize != getPopulationSize())
+        init(newSize);
+}
+
+const SpectralDNA& SpectralDNAEvolver::getDNA(int index) const
+{
+    return population_[index];
+}
+
+void SpectralDNAEvolver::replaceWorst(const SpectralDNA& dna)
+{
+    if (population_.empty())
+    {
+        population_.push_back(dna);
+        return;
+    }
+
+    int worstIdx = 0;
+    float worstFit = population_[0].fitness;
+    for (size_t i = 1; i < population_.size(); ++i)
+    {
+        if (population_[i].fitness < worstFit)
+        {
+            worstFit = population_[i].fitness;
+            worstIdx = static_cast<int>(i);
+        }
+    }
+    population_[worstIdx] = dna;
+}
+
+// =============================================================================
+// Evolution core
+// =============================================================================
+
+void SpectralDNAEvolver::evolveGeneration()
+{
+    if (population_.empty())
+        return;
+
+    nextGeneration_.clear();
+    nextGeneration_.reserve(population_.size());
+
+    // Step 1: Elitism — sort population, preserve top 10 %, update hall of fame
+    elitism();
+
+    // Step 2: Selection — tournament select + uniform crossover for remaining slots
+    selection();
+
+    // Step 3: Crossover — re-cross non-elite individuals
+    crossover();
+
+    // Step 4: Mutation — mutate non-elite individuals
+    mutation();
+
+    // Evaluate fitness for all new individuals
+    for (auto& dna : nextGeneration_)
+        dna.fitness = dna.evaluateFitness();
+
+    // Swap generations
+    population_ = std::move(nextGeneration_);
+    nextGeneration_.clear();
+
+    generation_++;
+}
+
+// =============================================================================
+// Elitism — preserve the top 10 % fittest individuals
+// =============================================================================
+
+void SpectralDNAEvolver::elitism()
+{
+    // Sort population by fitness descending
+    std::sort(population_.begin(), population_.end(),
+        [](const SpectralDNA& a, const SpectralDNA& b) {
+            return a.fitness > b.fitness;
+        });
+
+    const int eliteCount = std::max(1, static_cast<int>(population_.size()) / 10);
+
+    // Elites advance directly to next generation
+    for (int i = 0; i < eliteCount; ++i)
+        nextGeneration_.push_back(population_[i]);
+
+    // Update hall of fame
+    const auto& best = population_[0];
+    if (hallOfFame_.empty() || best.fitness > hallOfFame_[0].fitness)
+    {
+        if (hallOfFame_.empty())
+            hallOfFame_.push_back(best);
+        else
+            hallOfFame_[0] = best;
+    }
+}
+
+// =============================================================================
+// Selection — tournament selection + uniform crossover
+// =============================================================================
+
+void SpectralDNAEvolver::selection()
+{
+    // nextGeneration_ already has elites from elitism(); fill remaining slots
+    while (static_cast<int>(nextGeneration_.size()) < static_cast<int>(population_.size()))
+    {
+        const int parentA = tournamentSelect();
+        const int parentB = tournamentSelect();
+
+        auto child = SpectralDNA::uniformCrossover(
+            population_[parentA], population_[parentB], rng_);
+
+        child.parentA_id = parentA;
+        child.parentB_id = parentB;
+
+        // Record genealogy
+        genealogy_.push_back({nextId_++, parentA, parentB, generation_, 0.0f});
+
+        nextGeneration_.push_back(std::move(child));
+    }
+}
+
+// =============================================================================
+// Tournament select — pick the fitter of two random individuals
+// =============================================================================
+
+int SpectralDNAEvolver::tournamentSelect()
+{
+    const int a = rng_.nextInt(static_cast<int>(population_.size()));
+    const int b = rng_.nextInt(static_cast<int>(population_.size()));
+    return (population_[a].fitness > population_[b].fitness) ? a : b;
+}
+
+// =============================================================================
+// Crossover — re-cross non-elite individuals
+// =============================================================================
+
+void SpectralDNAEvolver::crossover()
+{
+    const int eliteCount = std::max(1, static_cast<int>(population_.size()) / 10);
+
+    for (int i = eliteCount; i < static_cast<int>(nextGeneration_.size()); ++i)
+    {
+        const int parentA = tournamentSelect();
+        const int parentB = tournamentSelect();
+
+        auto child = SpectralDNA::uniformCrossover(
+            population_[parentA], population_[parentB], rng_);
+
+        child.parentA_id = parentA;
+        child.parentB_id = parentB;
+
+        nextGeneration_[i] = std::move(child);
+    }
+}
+
+// =============================================================================
+// Mutation — mutate non-elite individuals
+// =============================================================================
+
+void SpectralDNAEvolver::mutation()
+{
+    const int eliteCount = std::max(1, static_cast<int>(population_.size()) / 10);
+
+    for (int i = eliteCount; i < static_cast<int>(nextGeneration_.size()); ++i)
+        nextGeneration_[i] = SpectralDNA::mutate(nextGeneration_[i], rng_);
+}
+
+// ============================================================================
+// SpectralDNAEvolver - serialization
+// ============================================================================
+
+juce::ValueTree SpectralDNAEvolver::saveState() const
+{
+    juce::ValueTree state("SPECTRALDNA");
+    state.setProperty("generation", generation_, nullptr);
+    state.setProperty("nextId", nextId_, nullptr);
+    state.setProperty("populationSize", static_cast<int>(population_.size()), nullptr);
+
+    // 保存种群
+    juce::ValueTree popTree("POPULATION");
+    for (size_t i = 0; i < population_.size(); ++i)
+    {
+        juce::ValueTree dnaTree("DNA");
+        const auto& dna = population_[i];
+
+        // 数组数据
+        juce::MemoryBlock freqBlock(dna.frequency, sizeof(dna.frequency));
+        juce::MemoryBlock ampBlock(dna.amplitude, sizeof(dna.amplitude));
+        juce::MemoryBlock phaseBlock(dna.phase, sizeof(dna.phase));
+
+        dnaTree.setProperty("frequency", freqBlock.toBase64Encoding(), nullptr);
+        dnaTree.setProperty("amplitude", ampBlock.toBase64Encoding(), nullptr);
+        dnaTree.setProperty("phase", phaseBlock.toBase64Encoding(), nullptr);
+
+        // 元数据
+        dnaTree.setProperty("parentA", dna.parentA_id, nullptr);
+        dnaTree.setProperty("parentB", dna.parentB_id, nullptr);
+        dnaTree.setProperty("generation", dna.generation, nullptr);
+        dnaTree.setProperty("fitness", static_cast<double>(dna.fitness), nullptr);
+        dnaTree.setProperty("mutationRate", static_cast<double>(dna.mutationRate), nullptr);
+
+        popTree.addChild(dnaTree, -1, nullptr);
+    }
+    state.addChild(popTree, -1, nullptr);
+
+    // 保存名人堂
+    if (!hallOfFame_.empty())
+    {
+        juce::ValueTree hofTree("HALLOFFAME");
+        for (size_t i = 0; i < hallOfFame_.size(); ++i)
+        {
+            juce::ValueTree dnaTree("DNA");
+            const auto& dna = hallOfFame_[i];
+
+            juce::MemoryBlock freqBlock(dna.frequency, sizeof(dna.frequency));
+            juce::MemoryBlock ampBlock(dna.amplitude, sizeof(dna.amplitude));
+            juce::MemoryBlock phaseBlock(dna.phase, sizeof(dna.phase));
+
+            dnaTree.setProperty("frequency", freqBlock.toBase64Encoding(), nullptr);
+            dnaTree.setProperty("amplitude", ampBlock.toBase64Encoding(), nullptr);
+            dnaTree.setProperty("phase", phaseBlock.toBase64Encoding(), nullptr);
+
+            dnaTree.setProperty("parentA", dna.parentA_id, nullptr);
+            dnaTree.setProperty("parentB", dna.parentB_id, nullptr);
+            dnaTree.setProperty("generation", dna.generation, nullptr);
+            dnaTree.setProperty("fitness", static_cast<double>(dna.fitness), nullptr);
+            dnaTree.setProperty("mutationRate", static_cast<double>(dna.mutationRate), nullptr);
+
+            hofTree.addChild(dnaTree, -1, nullptr);
+        }
+        state.addChild(hofTree, -1, nullptr);
+    }
+
+    return state;
+}
+
+void SpectralDNAEvolver::loadState(const juce::ValueTree& state)
+{
+    if (!state.hasType("SPECTRALDNA"))
+        return;
+
+    generation_ = state.getProperty("generation", 0);
+    nextId_ = state.getProperty("nextId", 0);
+
+    population_.clear();
+    hallOfFame_.clear();
+
+    if (auto popTree = state.getChildWithName("POPULATION"))
+    {
+        for (int i = 0; i < popTree.getNumChildren(); ++i)
+        {
+            auto dnaTree = popTree.getChild(i);
+            if (!dnaTree.hasType("DNA")) continue;
+
+            SpectralDNA dna;
+
+            juce::MemoryBlock freqBlock;
+            freqBlock.fromBase64Encoding(dnaTree.getProperty("frequency").toString());
+            if (freqBlock.getSize() == sizeof(dna.frequency))
+                std::memcpy(dna.frequency, freqBlock.getData(), sizeof(dna.frequency));
+
+            juce::MemoryBlock ampBlock;
+            ampBlock.fromBase64Encoding(dnaTree.getProperty("amplitude").toString());
+            if (ampBlock.getSize() == sizeof(dna.amplitude))
+                std::memcpy(dna.amplitude, ampBlock.getData(), sizeof(dna.amplitude));
+
+            juce::MemoryBlock phaseBlock;
+            phaseBlock.fromBase64Encoding(dnaTree.getProperty("phase").toString());
+            if (phaseBlock.getSize() == sizeof(dna.phase))
+                std::memcpy(dna.phase, phaseBlock.getData(), sizeof(dna.phase));
+
+            dna.parentA_id = dnaTree.getProperty("parentA", -1);
+            dna.parentB_id = dnaTree.getProperty("parentB", -1);
+            dna.generation = dnaTree.getProperty("generation", 0);
+            dna.fitness = static_cast<float>(static_cast<double>(dnaTree.getProperty("fitness", 0.0)));
+            dna.mutationRate = static_cast<float>(static_cast<double>(dnaTree.getProperty("mutationRate", 0.1)));
+
+            dna.clamp();
+            dna.updateActiveMask();
+
+            population_.push_back(std::move(dna));
+        }
+    }
+
+    // 加载名人堂
+    if (auto hofTree = state.getChildWithName("HALLOFFAME"))
+    {
+        for (int i = 0; i < hofTree.getNumChildren(); ++i)
+        {
+            auto dnaTree = hofTree.getChild(i);
+            if (!dnaTree.hasType("DNA")) continue;
+
+            SpectralDNA dna;
+
+            juce::MemoryBlock freqBlock;
+            freqBlock.fromBase64Encoding(dnaTree.getProperty("frequency").toString());
+            if (freqBlock.getSize() == sizeof(dna.frequency))
+                std::memcpy(dna.frequency, freqBlock.getData(), sizeof(dna.frequency));
+
+            juce::MemoryBlock ampBlock;
+            ampBlock.fromBase64Encoding(dnaTree.getProperty("amplitude").toString());
+            if (ampBlock.getSize() == sizeof(dna.amplitude))
+                std::memcpy(dna.amplitude, ampBlock.getData(), sizeof(dna.amplitude));
+
+            juce::MemoryBlock phaseBlock;
+            phaseBlock.fromBase64Encoding(dnaTree.getProperty("phase").toString());
+            if (phaseBlock.getSize() == sizeof(dna.phase))
+                std::memcpy(dna.phase, phaseBlock.getData(), sizeof(dna.phase));
+
+            dna.parentA_id = dnaTree.getProperty("parentA", -1);
+            dna.parentB_id = dnaTree.getProperty("parentB", -1);
+            dna.generation = dnaTree.getProperty("generation", 0);
+            dna.fitness = static_cast<float>(static_cast<double>(dnaTree.getProperty("fitness", 0.0)));
+            dna.mutationRate = static_cast<float>(static_cast<double>(dnaTree.getProperty("mutationRate", 0.1)));
+
+            dna.clamp();
+            dna.updateActiveMask();
+
+            hallOfFame_.push_back(std::move(dna));
+        }
+    }
+}
+
+void SpectralDNAEvolver::saveToFile(const juce::File& file)
+{
+    auto state = saveState();
+    juce::FileOutputStream stream(file);
+    if (stream.openedOk())
+    {
+        juce::XmlElement* xml = state.createXml();
+        xml->writeToStream(stream, {});
+        delete xml;
+    }
+}
+
+void SpectralDNAEvolver::loadFromFile(const juce::File& file)
+{
+    auto xml = juce::XmlDocument::parse(file);
+    if (xml != nullptr)
+    {
+        auto state = juce::ValueTree::fromXml(*xml);
+        loadState(state);
     }
 }
 

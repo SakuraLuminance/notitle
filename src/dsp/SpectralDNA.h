@@ -2,6 +2,7 @@
 #include <juce_core/juce_core.h>
 #include <cmath>
 #include <cstring>
+#include <vector>
 #include "PartialDataSIMD.h"
 #include "STFTConfig.h"
 
@@ -111,6 +112,14 @@ struct SpectralDNA {
                                          const SpectralDNA& b,
                                          juce::Random& rng);
 
+    /** Spectral crossover: split spectrum at a random frequency point.
+        Low partials (0..splitPoint) are inherited from Parent A,
+        high partials (splitPoint..kMaxPartials) from Parent B.
+    */
+    static SpectralDNA spectralCrossover(const SpectralDNA& a,
+                                          const SpectralDNA& b,
+                                          juce::Random& rng);
+
     // ========================================================================
     // Mutation (GA)
     // ========================================================================
@@ -125,5 +134,71 @@ private:
 };
 
 
+
+// ============================================================================
+/** Manages a population of SpectralDNA individuals and runs the evolution loop.
+    Uses tournament selection, elitism, uniform crossover, and multi-strategy mutation.
+*/
+class SpectralDNAEvolver {
+public:
+    SpectralDNAEvolver() = default;
+
+    // 初始化
+    void init(int populationSize = 16);
+    void seedRandom();
+
+    // 进化
+    void evolveGeneration();
+    void evolveN(int n);
+
+    // 查询
+    const SpectralDNA& getDNA(int index) const;
+    const std::vector<SpectralDNA>& getPopulation() const { return population_; }
+    int getGeneration() const { return generation_; }
+    int getPopulationSize() const { return static_cast<int>(population_.size()); }
+    const SpectralDNA& getFittest() const;
+
+    // 种群规模变化
+    void setPopulationSize(int newSize);
+
+    /** Replace the lowest-fitness individual with a new specimen.
+        If the population is empty, it is first initialised to size 1. */
+    void replaceWorst(const SpectralDNA& dna);
+
+    // 族谱
+    struct GenealogyEntry {
+        int individualId;
+        int parentAId;
+        int parentBId;
+        int generation;
+        float fitness;
+    };
+    const std::vector<GenealogyEntry>& getGenealogy() const { return genealogy_; }
+
+    // ========================================================================
+    // 序列化
+    juce::ValueTree saveState() const;
+    void loadState(const juce::ValueTree& state);
+
+    // 文件 I/O
+    void saveToFile(const juce::File& file);
+    void loadFromFile(const juce::File& file);
+
+private:
+    std::vector<SpectralDNA> population_;
+    std::vector<SpectralDNA> hallOfFame_;
+    std::vector<SpectralDNA> nextGeneration_;
+    std::vector<GenealogyEntry> genealogy_;
+    int generation_ = 0;
+    int nextId_ = 0;
+    juce::Random rng_;
+
+    void selection();    // 锦标赛选择
+    void elitism();      // 精英保留
+    void crossover();    // 种群繁殖
+    void mutation();     // 种群变异
+
+    int tournamentSelect();  // 锦标赛选择个体
+};
 
 } // namespace ana

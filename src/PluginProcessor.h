@@ -8,6 +8,8 @@
 #include "dsp/DualSignalChain.h"
 #include "dsp/EffectsChain.h"
 #include "dsp/PartialDataSIMD.h"
+#include "dsp/SpectralDNA.h"
+#include <array>
 
 class AnaPlugAudioProcessor : public juce::AudioProcessor
 {
@@ -106,6 +108,13 @@ public:
     // Preset Manager
     ana::PresetManager& getPresetManager() { return presetManager; }
 
+    // --- Spectral DNA evolver ---
+    ana::SpectralDNAEvolver& getDNAEvolver() { return dnaEvolver_; }
+    bool loadSampleAsParent(const juce::File& audioFile);
+    bool isDNAEnabled() const { return dnaEnabled_.load(); }
+    void setDNAEnabled(bool enabled) { dnaEnabled_.store(enabled); }
+    const juce::File& getLastSampleFile() const { return lastSampleFile_; }
+
 private:
     ana::PresetManager presetManager;
     ana::AnaPlugEngine engine;
@@ -151,6 +160,16 @@ private:
 
     // Reusable voice buffer (allocated in prepareToPlay to avoid heap in audio callback)
     juce::AudioBuffer<float> voiceBuffer;
+
+    // --- Spectral DNA evolver (genetic algorithm timbre engine) ---
+    ana::SpectralDNAEvolver dnaEvolver_;
+    std::atomic<bool> dnaEnabled_{false};
+    std::atomic<bool> dnaSampleLoaded_{false};
+    juce::File lastSampleFile_;
+
+    // Atomic double-buffer — audio-thread safe read of the current best DNA
+    std::array<float, 512 * 3> dnaAudioBuffer_{};  // freq, amp, phase interleaved
+    std::atomic<bool> dnaBufferValid_{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnaPlugAudioProcessor)
 };

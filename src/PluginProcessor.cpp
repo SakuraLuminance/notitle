@@ -7,6 +7,9 @@
 #include "dsp/effects/ChorusEffect.h"
 #include "dsp/effects/DistortionEffect.h"
 #include "dsp/effects/AutoTuneEffect.h"
+#include "dsp/WavLoader.h"
+#include "dsp/STFTAnalyzer.h"
+#include "dsp/PeakDetector.h"
 
 // SSE intrinsics for FTZ/DAZ denormal handling
 #if JUCE_INTEL
@@ -174,6 +177,10 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
         effectsChain_.addEffect(std::make_unique<AutoTuneEffectAdapter>(), "AutoTune");
         effectsChain_.prepare(spec);
     }
+
+    // Initialise Spectral DNA evolver population if not already done
+    if (!dnaEvolver_.getPopulationSize())
+        dnaEvolver_.init(16);
 }
 
 void AnaPlugAudioProcessor::releaseResources()
@@ -406,6 +413,14 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     if (effectsEnabled_.load())
         effectsChain_.process(voiceBuffer);
 
+    // --- Spectral DNA evolution audio path ---
+    if (dnaEnabled_.load() && dnaBufferValid_.load())
+    {
+        // Atomic double-buffer contains the current best DNA's partial data
+        // (freq, amp, phase interleaved per-partial, 512 partials max).
+        // Full audio synthesis from partials will be implemented in Phase 2.
+    }
+
     const int rootNote = rootNoteParam_.load();
     const int midiNote = lastMidiNote_.load();
     const float fineTune = rootFineTuneParam_.load();
@@ -527,6 +542,71 @@ bool AnaPlugAudioProcessor::loadFile(const juce::File& file)
         playbackPosition.store(0);
     }
     return success;
+}
+
+bool AnaPlugAudioProcessor::loadSampleAsParent(const juce::File& audioFile)
+{
+    using namespace ana;
+
+    if (!audioFile.existsAsFile()) return false;
+
+    // 1. Load audio file via WavLoader
+    WavLoader loader;
+    auto audioDataOpt = loader.loadWav(audioFile);
+    if (!audioDataOpt.has_value()) return false;
+
+    const auto& audioData = audioDataOpt.value();
+    const double sampleRate = audioData.sampleRate;
+
+    // 2. STFT analysis
+    STFTConfig config;
+    config.fftSize = 2048;
+    config.hopSize = 512;
+
+    STFTAnalyzer analyzer;
+    auto spectrumFrames = analyzer.analyze(audioData, config);
+    if (spectrumFrames.empty()) return false;
+
+    // 3. Detect spectral peaks from the last analysis frame
+    PeakDetector peakDetector;
+    const auto& lastSpectrum = spectrumFrames.back();
+    auto peaks = peakDetector.detectPeaks(lastSpectrum, config, sampleRate);
+    if (peaks.empty()) return false;
+
+    // 4. Build a SpectralDNA from the detected peaks
+    SpectralDNA parent;
+    const size_t peakCount = std::min(peaks.size(), static_cast<size_t>(SpectralDNA::kMaxPartials));
+    for (size_t i = 0; i < peakCount; ++i)
+    {
+        parent.frequency[i] = peaks[i].frequency;
+        parent.amplitude[i] = peaks[i].amplitude;
+        parent.phase[i]     = peaks[i].phase;
+    }
+    parent.clamp();
+    parent.updateActiveMask();
+
+    // 5. Ensure evolver has a population
+    if (!dnaEvolver_.getPopulationSize())
+        dnaEvolver_.init(16);
+
+    // 6. Insert the analysed parent (replaces the worst individual)
+    dnaEvolver_.replaceWorst(parent);
+
+    // 7. Refresh the atomic audio buffer with the current fittest DNA
+    //    Interleave freq, amp, phase for audio-thread safe reading.
+    const auto& best = dnaEvolver_.getFittest();
+    for (int i = 0; i < SpectralDNA::kMaxPartials; ++i)
+    {
+        dnaAudioBuffer_[static_cast<size_t>(i) * 3 + 0] = best.frequency[i];
+        dnaAudioBuffer_[static_cast<size_t>(i) * 3 + 1] = best.amplitude[i];
+        dnaAudioBuffer_[static_cast<size_t>(i) * 3 + 2] = best.phase[i];
+    }
+    dnaBufferValid_.store(true);
+
+    lastSampleFile_ = audioFile;
+    dnaSampleLoaded_.store(true);
+
+    return true;
 }
 
 void AnaPlugAudioProcessor::startPlayback()
