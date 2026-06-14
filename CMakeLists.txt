@@ -80,6 +80,7 @@ target_sources(AnaPlug
         src/gui/SpectrumEditorCanvas.cpp
         src/gui/PresetBrowserPanel.cpp
         src/gui/EvolutionPanel.cpp
+        src/gui/XYPad.cpp
         src/gui/ModulationMatrixPanel.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
@@ -96,6 +97,7 @@ target_sources(AnaPlug
         src/dsp/SpectralFreezeEngine.cpp
         src/dsp/SpectralSequencer.cpp
         src/dsp/SpectralDNA.cpp
+        src/dsp/SpectralMorpher.cpp
         src/dsp/GenerativeTimbreDesigner.cpp
         src/dsp/SpectralParticleSystem.cpp
         src/dsp/QuantumSpectralProcessor.cpp
@@ -115,6 +117,7 @@ target_sources(AnaPlug
         src/dsp/HPSSEngine.cpp
         src/dsp/BpmDetector.cpp
         src/dsp/ModulationMatrix.cpp
+        src/dsp/MidiLearn.cpp
 )
 
 target_link_libraries(AnaPlug

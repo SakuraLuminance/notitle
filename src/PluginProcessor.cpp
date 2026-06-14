@@ -85,6 +85,11 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
 #endif
 
     presetManager.setStateReferences(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &voiceManager, nullptr);
+
+    // Initialise the engine partials ref so morphPresets can read
+    // partial data from the engine after loading each preset.
+    enginePartials_ = ana::PartialDataSIMD::fromPartialData(engine.getPartialData());
+    presetManager.setEnginePartialsRef(&enginePartials_);
 }
 
 AnaPlugAudioProcessor::~AnaPlugAudioProcessor()
@@ -329,6 +334,10 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
                     }
                 }
             }
+
+            // Route ALL controller messages through the MIDI Learn system
+            // so that learned CC mappings are applied regardless of channel
+            midiLearn_.processMidi(m);
         }
     }
 
@@ -389,6 +398,26 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
                     subOscPhase_[phaseIdx] = phase;
                 }
             }
+        }
+    }
+
+    // --- Preset morphing ---
+    // If morph is enabled and both caches have data, blend the cached
+    // partial data in real-time and write the result to synthPartials_
+    // for the downstream synth / dual-chain to consume.
+    if (morphEnabled_.load())
+    {
+        const float t = morphAmount_.load();
+        if (morphCacheA_.activeCount > 0 && morphCacheB_.activeCount > 0)
+        {
+            ana::PartialDataSIMD morphed;
+            ana::SpectralMorpher::morphLinear(morphed,
+                                               morphCacheA_,
+                                               morphCacheB_,
+                                               t);
+            // Store into synthPartials_ so it can be picked up by the
+            // dual signal chain or synthesis engine when wired.
+            synthPartials_ = std::move(morphed);
         }
     }
 
@@ -499,6 +528,11 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
 
+    // MIDI Learn mappings
+    auto midiLearnState = midiLearn_.saveState();
+    if (midiLearnState.isValid())
+        state.addChild(midiLearnState, -1, nullptr);
+
     juce::MemoryOutputStream stream(destData, true);
     state.writeToStream(stream);
 }
@@ -523,6 +557,11 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     auto presetState = state.getChildWithName("Parameters");
     if (presetState.isValid())
         presetManager.deserialiseState(presetState);
+
+    // MIDI Learn mappings
+    auto midiLearnState = state.getChildWithName("MidiLearn");
+    if (midiLearnState.isValid())
+        midiLearn_.loadState(midiLearnState);
 }
 
 bool AnaPlugAudioProcessor::loadFile(const juce::File& file)
@@ -532,6 +571,8 @@ bool AnaPlugAudioProcessor::loadFile(const juce::File& file)
     {
         // Auto-analyze after loading
         engine.analyze();
+        // Sync the engine partials SIMD cache for morphing
+        enginePartials_ = ana::PartialDataSIMD::fromPartialData(engine.getPartialData());
         // Auto-resynthesize
         auto result = engine.resynthesize();
         const int writeIdx = 1 - currentResynthBuffer_.load();
@@ -722,6 +763,43 @@ void AnaPlugAudioProcessor::setSubHarmonicLevel(float level)
 float AnaPlugAudioProcessor::getSubHarmonicLevel() const
 {
     return subHarmonicLevel_.load();
+}
+
+//==============================================================================
+// Preset morphing
+//==============================================================================
+
+bool AnaPlugAudioProcessor::morphPresets(const juce::String& presetA,
+                                          const juce::String& presetB,
+                                          float t)
+{
+    // Update the engine partials snapshot before morphing
+    enginePartials_ = ana::PartialDataSIMD::fromPartialData(engine.getPartialData());
+
+    // Cache the current preset name so we can restore it after morph
+    const juce::String restorePreset = presetManager.getCurrentPresetName();
+
+    // Let PresetManager load both presets and morph their partial data
+    ana::PartialDataSIMD morphedOutput;
+    if (!presetManager.morphPresets(presetA, presetB, t, morphedOutput))
+        return false;
+
+    // Cache the pre-loaded partials for audio-thread-safe access
+    morphCacheA_ = presetManager.getMorphCacheA();
+    morphCacheB_ = presetManager.getMorphCacheB();
+
+    // Store the morph configuration
+    morphPresetA_ = presetA;
+    morphPresetB_ = presetB;
+    morphAmount_.store(t);
+    morphEnabled_.store(true);
+
+    // Restore the original preset so the engine continues with the user's
+    // current sound.  The cached partials are used for morphing instead.
+    if (restorePreset.isNotEmpty())
+        presetManager.loadPreset(restorePreset);
+
+    return true;
 }
 
 //==============================================================================

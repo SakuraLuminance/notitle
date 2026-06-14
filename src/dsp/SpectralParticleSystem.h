@@ -116,6 +116,50 @@ public:
     //@}
 
     //==============================================================================
+    /** @name Noise oscillator */
+    //@{
+    enum class NoiseType
+    {
+        White,  /**< Equal energy per Hz — flat spectral density.            */
+        Pink,   /**< Equal energy per octave — -3dB/oct rolloff.            */
+        Brown   /**< Random walk / brownian — -6dB/oct rolloff (darker).    */
+    };
+
+    /** Set the noise colour / spectrum type. */
+    void setNoiseType(NoiseType type);
+    /** Return the current noise type. */
+    NoiseType getNoiseType() const;
+    /** Set noise spectral brightness (0 = dark, 0.5 = flat, 1 = bright). */
+    void setNoiseColor(float brightness);
+    /** Return the noise brightness parameter. */
+    float getNoiseColor() const;
+    /** Set overall noise amplitude 0–1 (0 = silent). */
+    void setNoiseAmplitude(float amp);
+    /** Return the noise amplitude. */
+    float getNoiseAmplitude() const;
+
+    /** Attack time in milliseconds for the per-burst noise envelope. */
+    void setNoiseEnvAttack(float ms);
+    /** Decay time in milliseconds for the per-burst noise envelope. */
+    void setNoiseEnvDecay(float ms);
+    /** Sustain level 0–1 for the per-burst noise envelope. */
+    void setNoiseEnvSustain(float level);
+    /** Release time in milliseconds for the per-burst noise envelope. */
+    void setNoiseEnvRelease(float ms);
+
+    /** Generate noise partials into the given PartialDataSIMD structure.
+        The noise oscillator writes into the last numActivePartials slots
+        so it can coexist with spectral particles written by process().
+
+        @param partials           The partial data to write into.
+        @param numActivePartials  How many partial slots to fill with noise.
+        @param envelopeLevel      External gate/amplitude (0 = silent, >0 = on).
+    */
+    void generateNoisePartials(PartialDataSIMD& partials,
+                               int numActivePartials, float envelopeLevel);
+    //@}
+
+    //==============================================================================
     /** @name Reset */
     //@{
     void reset();
@@ -151,6 +195,30 @@ private:
     int    fftSize_          = 2048;
 
     juce::Random random_;
+
+    //==============================================================================
+    // --- Noise oscillator state ---
+
+    static constexpr int kNoisePartialsMax = 64;   /**< Max noise partials per frame. */
+
+    NoiseType noiseType_           = NoiseType::White;
+    float     noiseColor_          = 0.5f;          /**< Spectral tilt (0=dark, 1=bright). */
+    float     noiseAmplitude_      = 0.0f;          /**< Overall noise gain.             */
+
+    float     noiseEnvAttack_      = 10.0f;         /**< Attack time in ms.              */
+    float     noiseEnvDecay_       = 100.0f;        /**< Decay time in ms.               */
+    float     noiseEnvSustain_     = 0.5f;           /**< Sustain level 0–1.              */
+    float     noiseEnvRelease_     = 200.0f;         /**< Release time in ms.             */
+
+    // --- Internal ADSR envelope state ---
+    enum class EnvStage : uint8_t { Idle, Attack, Decay, Sustain, Release };
+
+    EnvStage noiseEnvStage_       = EnvStage::Idle;
+    float    noiseEnvValue_       = 0.0f;
+    bool     noiseEnvTriggered_   = false;  /**< Previous gate state for edge detection. */
+
+    /** Advance the noise ADSR envelope by dt seconds. */
+    void advanceNoiseEnvelope(float dt);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectralParticleSystem)
 };

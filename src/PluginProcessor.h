@@ -9,6 +9,8 @@
 #include "dsp/EffectsChain.h"
 #include "dsp/PartialDataSIMD.h"
 #include "dsp/SpectralDNA.h"
+#include "dsp/SpectralMorpher.h"
+#include "dsp/MidiLearn.h"
 #include <array>
 
 class AnaPlugAudioProcessor : public juce::AudioProcessor
@@ -115,6 +117,37 @@ public:
     void setDNAEnabled(bool enabled) { dnaEnabled_.store(enabled); }
     const juce::File& getLastSampleFile() const { return lastSampleFile_; }
 
+    //==============================================================================
+    // --- Preset morphing ---
+    /** Loads two presets, caches their partial data, and stores the morph
+        configuration.  The actual per-block morph is applied in processBlock
+        using the cached data + current morphAmount_.
+
+        @param presetA  First morph source (t=0)
+        @param presetB  Second morph source (t=1)
+        @param t        Initial morph amount [0, 1]
+        @return true if both presets were loaded and cached successfully
+    */
+    bool morphPresets(const juce::String& presetA,
+                      const juce::String& presetB,
+                      float t);
+
+    bool isMorphEnabled() const             { return morphEnabled_.load(); }
+    void setMorphEnabled(bool enabled)      { morphEnabled_.store(enabled); }
+    float getMorphAmount() const            { return morphAmount_.load(); }
+    void setMorphAmount(float amount)       { morphAmount_.store(amount); }
+    juce::String getMorphPresetA() const    { return morphPresetA_; }
+    juce::String getMorphPresetB() const    { return morphPresetB_; }
+
+    // --- MIDI Learn ---
+    ana::MidiLearn& getMidiLearn() { return midiLearn_; }
+    const ana::MidiLearn& getMidiLearn() const { return midiLearn_; }
+
+    // Atomic references for MIDI Learn targets
+    std::atomic<float>& getSubHarmonicLevelRef() { return subHarmonicLevel_; }
+    std::atomic<int>& getRootNoteRef() { return rootNoteParam_; }
+    std::atomic<float>& getRootFineTuneRef() { return rootFineTuneParam_; }
+
 private:
     ana::PresetManager presetManager;
     ana::AnaPlugEngine engine;
@@ -170,6 +203,22 @@ private:
     // Atomic double-buffer — audio-thread safe read of the current best DNA
     std::array<float, 512 * 3> dnaAudioBuffer_{};  // freq, amp, phase interleaved
     std::atomic<bool> dnaBufferValid_{false};
+
+    //==============================================================================
+    // --- Preset morphing state ---
+    // Engine partial data in SIMD format (mirrors engine.getPartialData())
+    ana::PartialDataSIMD enginePartials_;
+    // Cached partials for audio-thread-safe morphing
+    ana::PartialDataSIMD morphCacheA_;
+    ana::PartialDataSIMD morphCacheB_;
+
+    std::atomic<bool>   morphEnabled_{false};
+    std::atomic<float>  morphAmount_{0.0f};
+    juce::String        morphPresetA_;   // message-thread only
+    juce::String        morphPresetB_;   // message-thread only
+
+    // --- MIDI Learn ---
+    ana::MidiLearn midiLearn_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnaPlugAudioProcessor)
 };

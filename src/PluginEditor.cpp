@@ -103,6 +103,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     }
 
     //==============================================================================
+    // XY Pad
+    xyPad_ = std::make_unique<ana::XYPad>();
+    addAndMakeVisible(xyPad_.get());
+
+    //==============================================================================
     // Effects buttons
     addCyberButton(prismButton_);
     addCyberButton(blurButton_);
@@ -260,6 +265,45 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     dnaButton_.setButtonText("DNA EVOLVE");
     dnaButton_.onClick = [this] { dnaButtonClicked(); };
 
+    //==============================================================================
+    // MIDI Learn indicator (hidden by default)
+    midiLearnIndicator_.setText("MIDI LEARN", juce::dontSendNotification);
+    midiLearnIndicator_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f, true));
+    midiLearnIndicator_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::yellow_);
+    midiLearnIndicator_.setJustificationType(juce::Justification::centred);
+    midiLearnIndicator_.setVisible(false);
+    addAndMakeVisible(midiLearnIndicator_);
+
+    //==============================================================================
+    // Register sliders for MIDI Learn
+    // Parameters with backing atomics in the processor
+    setupMidiLearnForSlider(aSubSlider_, "sub_a", &audioProcessor.getSubHarmonicLevelRef());
+
+    // Parameters without backing atomics yet — MIDI Learn will record the
+    // mapping and the mappings persist across sessions. When a backing atomic
+    // is added later, reconnect it via MidiLearn::reconnectTarget().
+    setupMidiLearnForSlider(aBrightSlider_, "bright_a");
+    setupMidiLearnForSlider(aBlurSlider_, "blur_a");
+    setupMidiLearnForSlider(aHpfSlider_, "hpf_a");
+    setupMidiLearnForSlider(bSubSlider_, "sub_b");
+    setupMidiLearnForSlider(bBrightSlider_, "bright_b");
+    setupMidiLearnForSlider(bBlurSlider_, "blur_b");
+    setupMidiLearnForSlider(bHpfSlider_, "hpf_b");
+    setupMidiLearnForSlider(timbreBlendSlider_, "timbre_blend");
+    setupMidiLearnForSlider(filterCutoffSlider_, "filter_cutoff");
+    setupMidiLearnForSlider(filterResSlider_, "filter_res");
+    for (int i = 0; i < 4; ++i)
+        setupMidiLearnForSlider(macroSliders_[i], "macro_" + juce::String(i + 1));
+    setupMidiLearnForSlider(unisonCountSlider_, "unison_count");
+    setupMidiLearnForSlider(unisonDetuneSlider_, "unison_detune");
+    setupMidiLearnForSlider(unisonSpreadSlider_, "unison_spread");
+    setupMidiLearnForSlider(arpRateSlider_, "arp_rate");
+    setupMidiLearnForSlider(arpGateSlider_, "arp_gate");
+    setupMidiLearnForSlider(rootNoteKnob_, "root_note");
+    setupMidiLearnForSlider(rootFineTuneKnob_, "root_fine");
+    setupMidiLearnForSlider(masterVolSlider_, "master_vol");
+    setupMidiLearnForSlider(masterPanSlider_, "master_pan");
+
     updateStatus();
     startTimerHz(30);
 }
@@ -386,10 +430,12 @@ void AnaPlugAudioProcessorEditor::resized()
     timbreBlendSlider_.setBounds(blendArea);
     timbreBlendLabel_.setBounds(blendArea.translated(0, -16));
 
-    // -- Center panel: view selector strip + feedback --
+    // -- Center panel: view selector strip + feedback + XY pad --
     auto centerArea = r.centerPanel.reduced(4, 4);
     viewModeCombo_.setBounds(centerArea.removeFromTop(18).reduced(centerArea.getWidth() / 2 - 80, 0));
-    feedbackPanel_.setBounds(centerArea.reduced(2));
+    auto fbArea = centerArea.removeFromTop(static_cast<int>(centerArea.getHeight() * 0.70f));
+    feedbackPanel_.setBounds(fbArea.reduced(2));
+    xyPad_->setBounds(centerArea.reduced(2));
 
     // -- Process panel: FILTER (left) | MACROS (center) | EFFECTS (right) --
     auto pa = r.processArea.reduced(6, pad);
@@ -514,6 +560,7 @@ void AnaPlugAudioProcessorEditor::resized()
 
     // -- Status bar --
     auto sb = r.statusBar.reduced(4, 2);
+    midiLearnIndicator_.setBounds(sb.removeFromRight(80).reduced(2));
     dnaButton_.setBounds(sb.removeFromRight(110).reduced(2));
     statusLabel_.setBounds(sb.reduced(6, 0));
 }
@@ -521,6 +568,9 @@ void AnaPlugAudioProcessorEditor::resized()
 //==============================================================================
 void AnaPlugAudioProcessorEditor::timerCallback()
 {
+    // MIDI Learn: indicator blink, timeout, parameter polling
+    updateMidiLearnState();
+
     if (audioProcessor.isEngineLoaded())
     {
         int pos = audioProcessor.getPlaybackPosition();
@@ -543,6 +593,16 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     }
     if (audioProcessor.flattenPending())
         statusLabel_.setText(">> PITCH FLATTENING <<", juce::dontSendNotification);
+
+    // XY Pad → processor parameter mapping
+    if (xyPad_ != nullptr)
+    {
+        // X = morph/sub-harmonic amount
+        audioProcessor.setSubHarmonicLevel(xyPad_->getX());
+        // Y = filter cutoff (map 0..1 to 20..20000 Hz)
+        float cutoff = 20.0f * std::pow(20000.0f / 20.0f, xyPad_->getY());
+        filterCutoffSlider_.setValue(static_cast<double>(cutoff), juce::dontSendNotification);
+    }
 }
 
 //==============================================================================
@@ -658,6 +718,133 @@ void AnaPlugAudioProcessorEditor::updatePitchDisplay(const juce::String& text)
     float freq = 440.0f * std::pow(2.0f, (audioProcessor.getRootNote() - 69) / 12.0f);
     pitchDetectLabel_.setText(text + " " + juce::String(freq, 1) + "Hz",
                               juce::dontSendNotification);
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::setupMidiLearnForSlider(juce::Slider& slider,
+                                                          const juce::String& paramId,
+                                                          std::atomic<float>* target)
+{
+    slider.addMouseListener(this, false);
+    learnableSliders_[paramId] = &slider;
+    midiLearnSliders_[&slider] = { paramId, target };
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    // Propagate to base class first (handles focus etc.)
+    juce::AudioProcessorEditor::mouseDown(event);
+
+    if (!event.mods.isRightButtonDown())
+        return;
+
+    auto* slider = dynamic_cast<juce::Slider*>(event.eventComponent);
+    if (slider == nullptr)
+        return;
+
+    auto it = midiLearnSliders_.find(slider);
+    if (it == midiLearnSliders_.end())
+        return;
+
+    const auto& info = it->second;
+
+    juce::PopupMenu menu;
+    auto& midiLearn = audioProcessor.getMidiLearn();
+
+    // Check if this parameter already has a mapping
+    bool alreadyMapped = false;
+    for (const auto& mapping : midiLearn.getMappings())
+    {
+        if (mapping.parameterId == info.paramId)
+        {
+            alreadyMapped = true;
+            break;
+        }
+    }
+
+    if (midiLearn.isLearning())
+    {
+        menu.addItem("MIDI Learn (in progress…)", false, false, {});
+    }
+    else
+    {
+        // Copy info by value — the lambda fires asynchronously so the
+        // original iterator may have been invalidated by then.
+        const auto infoCopy = info;
+        menu.addItem("MIDI Learn", [this, slider, infoCopy]()
+        {
+            auto& ml = audioProcessor.getMidiLearn();
+            ml.startLearn(infoCopy.paramId, infoCopy.target,
+                          static_cast<float>(slider->getMinimum()),
+                          static_cast<float>(slider->getMaximum()));
+            midiLearnStartTime_ = juce::Time::getMillisecondCounter();
+        });
+
+        if (alreadyMapped)
+        {
+            // Show which CC is mapped
+            for (const auto& mapping : midiLearn.getMappings())
+            {
+                if (mapping.parameterId == info.paramId)
+                {
+                    menu.addItem("Clear CC " + juce::String(mapping.ccNumber),
+                                 [this, cc = mapping.ccNumber]()
+                    {
+                        audioProcessor.getMidiLearn().removeMapping(cc);
+                    });
+                    break;
+                }
+            }
+        }
+    }
+
+    menu.showMenuAsync(juce::PopupMenu::Options());
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::updateMidiLearnState()
+{
+    auto& midiLearn = audioProcessor.getMidiLearn();
+
+    // --- Timeout: auto-stop learn after 3 seconds ---
+    if (midiLearn.isLearning())
+    {
+        if (juce::Time::getMillisecondCounter() - midiLearnStartTime_ > 3000)
+            midiLearn.stopLearn();
+    }
+
+    // --- Indicator blink ---
+    if (midiLearn.isLearning())
+    {
+        // Blink at ≈5 Hz (toggle every ~100 ms at 30 Hz timer)
+        const bool on = ((juce::Time::getMillisecondCounter() / 100) % 2) == 0;
+        midiLearnIndicator_.setVisible(on);
+    }
+    else
+    {
+        midiLearnIndicator_.setVisible(false);
+    }
+
+    // --- Poll mapping targets and sync matching sliders ---
+    for (const auto& mapping : midiLearn.getMappings())
+    {
+        if (mapping.targetParam != nullptr)
+        {
+            auto sit = learnableSliders_.find(mapping.parameterId);
+            if (sit != learnableSliders_.end())
+            {
+                float currentAtomic = mapping.targetParam->load();
+                double currentSlider = sit->second->getValue();
+                // Use a small epsilon to avoid redundant setValue calls
+                if (std::abs(static_cast<double>(currentAtomic) - currentSlider) > 0.001)
+                {
+                    sit->second->setValue(static_cast<double>(currentAtomic),
+                                          juce::dontSendNotification);
+                }
+            }
+        }
+    }
 }
 
 //==============================================================================

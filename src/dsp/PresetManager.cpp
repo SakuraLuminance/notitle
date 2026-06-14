@@ -981,6 +981,62 @@ void PresetManager::writeFactoryPreset(const juce::String& name, const juce::Str
 
 
 //==============================================================================
+// Preset names
+//==============================================================================
+
+juce::StringArray PresetManager::getPresetNames() const
+{
+    juce::StringArray names;
+    for (int i = 0; i < cachedPresets.size(); ++i)
+        names.add(cachedPresets.getName(i));
+    names.sort(true);
+    return names;
+}
+
+//==============================================================================
+// Preset morphing
+//==============================================================================
+
+bool PresetManager::morphPresets(const juce::String& presetA,
+                                  const juce::String& presetB,
+                                  float t,
+                                  PartialDataSIMD& output)
+{
+    // Validate that we have a partial data source from the engine
+    if (enginePartialsRef_ == nullptr)
+    {
+        jassertfalse;   // Engine partials ref not set — call setEnginePartialsRef()
+        return false;
+    }
+
+    // --- Step 1: Load preset A and capture its partial data ---
+    if (!loadPreset(presetA))
+        return false;
+
+    // Capture the engine's current partial data (after loading preset A)
+    morphCacheA_ = *enginePartialsRef_;
+
+    // --- Step 2: Load preset B and capture its partial data ---
+    if (!loadPreset(presetB))
+        return false;
+
+    morphCacheB_ = *enginePartialsRef_;
+
+    // --- Step 3: Validate that both caches contain data ---
+    if (morphCacheA_.activeCount == 0 || morphCacheB_.activeCount == 0)
+        return false;
+
+    // --- Step 4: Perform the morph ---
+    SpectralMorpher::morphLinear(output, morphCacheA_, morphCacheB_, t);
+    return true;
+}
+
+void PresetManager::setEnginePartialsRef(PartialDataSIMD* ref)
+{
+    enginePartialsRef_ = ref;
+}
+
+//==============================================================================
 // Internal helpers
 //==============================================================================
 

@@ -2,6 +2,7 @@
 
 #include <juce_core/juce_core.h>
 #include "STFTConfig.h"
+#include "SpectralMorpher.h"
 #include "MultiFilter.h"
 #include "MultiPointEnvelope.h"
 #include "LFOSystem.h"
@@ -124,6 +125,52 @@ public:
 
     //==============================================================================
     /**
+        Returns all preset names across all categories, sorted alphabetically.
+    */
+    juce::StringArray getPresetNames() const;
+
+    //==============================================================================
+    /**
+        Loads two presets, captures their partial data from the engine, and
+        linearly morphs between them using SpectralMorpher::morphLinear.
+
+        This function is intended to be called from the message thread when
+        the user selects two presets for morphing.  The result is written to
+        @p output.  As a side effect, the engine state ends at preset B; the
+        caller should restore the current preset if needed.
+
+        @param presetA  Name of the first morph source (t=0)
+        @param presetB  Name of the second morph source (t=1)
+        @param t        Interpolation factor [0, 1]
+        @param output   Receives the morphed partial data
+        @return true if both presets were found and morph succeeded
+    */
+    bool morphPresets(const juce::String& presetA,
+                      const juce::String& presetB,
+                      float t,
+                      PartialDataSIMD& output);
+
+    //==============================================================================
+    /**
+        Sets a pointer to the engine's current partial data in SIMD format.
+        Used internally by morphPresets to capture partial data after loading
+        each preset.  The caller (PluginProcessor) is responsible for keeping
+        this ref synchronised with the engine's analysed partial data.
+    */
+    void setEnginePartialsRef(PartialDataSIMD* ref);
+
+    //==============================================================================
+    /**
+        Returns the cached partial data for the last preset loaded via
+        morphPresets as presetA.  Audio-thread safe (read-only, no alloc).
+    */
+    const PartialDataSIMD& getMorphCacheA() const { return morphCacheA_; }
+
+    /** Returns the cached partial data for morphPresets' presetB. */
+    const PartialDataSIMD& getMorphCacheB() const { return morphCacheB_; }
+
+    //==============================================================================
+    /**
         Sets the current synthesizer state to be saved with the preset.
         These references are read when saving and written when loading.
     */
@@ -242,6 +289,12 @@ private:
     juce::String             currentPresetName;
     juce::StringArray        cachedCategories;
     juce::StringPairArray    cachedPresets;  // name -> category mapping
+
+    //==============================================================================
+    // Morphing state (pre-loaded partial data for audio-thread-safe morph)
+    PartialDataSIMD*         enginePartialsRef_ = nullptr;
+    PartialDataSIMD          morphCacheA_;        // cached partials for preset A
+    PartialDataSIMD          morphCacheB_;        // cached partials for preset B
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PresetManager)

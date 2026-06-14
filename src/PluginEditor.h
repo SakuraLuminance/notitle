@@ -9,8 +9,11 @@
 #include "gui/SpectrumEditorCanvas.h"
 #include "gui/PresetBrowserPanel.h"
 #include "gui/EvolutionPanel.h"
+#include "gui/XYPad.h"
 #include "gui/CyberpunkTheme.h"
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <map>
+#include <unordered_map>
 
 //==============================================================================
 /**
@@ -169,6 +172,9 @@ private:
     // Evolution panel (lazy-created in callout)
     std::unique_ptr<ana::EvolutionPanel> evolutionPanel;
 
+    // XY Pad for 2D parameter control
+    std::unique_ptr<ana::XYPad> xyPad_;
+
     //==============================================================================
     // Helpers
     void loadButtonClicked();
@@ -192,6 +198,34 @@ private:
                       double init, double step,
                       juce::Slider::SliderStyle style = juce::Slider::RotaryVerticalDrag);
     juce::TextButton& addCyberButton(juce::TextButton& btn);
+
+    //==============================================================================
+    // MIDI Learn helpers
+    struct MidiLearnSliderInfo {
+        juce::String paramId;
+        std::atomic<float>* target = nullptr;
+    };
+
+    /** Register a slider so that right-click → "MIDI Learn" works. */
+    void setupMidiLearnForSlider(juce::Slider& slider,
+                                 const juce::String& paramId,
+                                 std::atomic<float>* target = nullptr);
+
+    /** Process MIDI Learn timeout + indicator blink in timer. */
+    void updateMidiLearnState();
+
+    /** Inherited via Component — intercept right-clicks on registered sliders. */
+    void mouseDown(const juce::MouseEvent& event) override;
+
+    //==============================================================================
+    // Members
+    // MIDI Learn indicator (shows/blinks when learning)
+    juce::Label midiLearnIndicator_;
+    juce::uint32 midiLearnStartTime_ = 0;
+
+    // Maps slider → info for right-click / polling
+    std::map<juce::String, juce::Slider*> learnableSliders_;
+    std::unordered_map<const juce::Slider*, MidiLearnSliderInfo> midiLearnSliders_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnaPlugAudioProcessorEditor)
 };

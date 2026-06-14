@@ -27,6 +27,27 @@ constexpr float kAccelScale     = 500.0f;
     avoid singularities when a particle is exactly at the field centre. */
 constexpr float kAttractorEps   = 1.0f;
 
+//==============================================================================
+//  Noise oscillator constants
+//==============================================================================
+
+/** Lowest noise partial frequency (Hz). Avoids DC. */
+constexpr float kNoiseMinFreq        = 30.0f;
+
+/** Noise partials extend up to this proportion of nyquist. */
+constexpr float kNoiseMaxFreqProp    = 0.95f;
+
+/** Small offset for normalised frequency to avoid division by zero
+    in spectral tilt and noise-colour filter equations. */
+constexpr float kNoiseNormEps        = 0.01f;
+
+/** Maximum raw amplitude before gain-scaling, used to clamp extreme
+    low-frequency amplification from pink/brown spectral shapes. */
+constexpr float kNoiseRawAmpMax      = 5.0f;
+
+/** Envelope time minimum (seconds) to avoid zero-divide. */
+constexpr float kEnvTimeMin          = 0.0001f;
+
 } // namespace
 
 //==============================================================================
@@ -178,6 +199,209 @@ void SpectralParticleSystem::emitBurst(int count)
 
         emitParticle(freq, amp, phase);
     }
+}
+
+//==============================================================================
+//  Noise oscillator setters / getters
+//==============================================================================
+
+void SpectralParticleSystem::setNoiseType(NoiseType type)  { noiseType_ = type; }
+SpectralParticleSystem::NoiseType SpectralParticleSystem::getNoiseType() const { return noiseType_; }
+
+void SpectralParticleSystem::setNoiseColor(float brightness)
+{
+    noiseColor_ = juce::jlimit(0.0f, 1.0f, brightness);
+}
+
+float SpectralParticleSystem::getNoiseColor() const { return noiseColor_; }
+
+void SpectralParticleSystem::setNoiseAmplitude(float amp)
+{
+    noiseAmplitude_ = juce::jlimit(0.0f, 1.0f, amp);
+}
+
+float SpectralParticleSystem::getNoiseAmplitude() const { return noiseAmplitude_; }
+
+void SpectralParticleSystem::setNoiseEnvAttack(float ms)
+{
+    noiseEnvAttack_ = juce::jmax(0.0f, ms);
+}
+
+void SpectralParticleSystem::setNoiseEnvDecay(float ms)
+{
+    noiseEnvDecay_ = juce::jmax(0.0f, ms);
+}
+
+void SpectralParticleSystem::setNoiseEnvSustain(float level)
+{
+    noiseEnvSustain_ = juce::jlimit(0.0f, 1.0f, level);
+}
+
+void SpectralParticleSystem::setNoiseEnvRelease(float ms)
+{
+    noiseEnvRelease_ = juce::jmax(0.0f, ms);
+}
+
+//==============================================================================
+//  Internal ADSR envelope
+//==============================================================================
+
+void SpectralParticleSystem::advanceNoiseEnvelope(float dt)
+{
+    if (dt <= 0.0f)
+        return;
+
+    const float attackSec  = juce::jmax(kEnvTimeMin, noiseEnvAttack_  / 1000.0f);
+    const float decaySec   = juce::jmax(kEnvTimeMin, noiseEnvDecay_   / 1000.0f);
+    const float releaseSec = juce::jmax(kEnvTimeMin, noiseEnvRelease_ / 1000.0f);
+
+    switch (noiseEnvStage_)
+    {
+        case EnvStage::Idle:
+            noiseEnvValue_ = 0.0f;
+            break;
+
+        case EnvStage::Attack:
+            noiseEnvValue_ += dt / attackSec;
+            if (noiseEnvValue_ >= 1.0f)
+            {
+                noiseEnvValue_ = 1.0f;
+                noiseEnvStage_ = EnvStage::Decay;
+            }
+            break;
+
+        case EnvStage::Decay:
+            noiseEnvValue_ -= dt / decaySec * (1.0f - noiseEnvSustain_);
+            if (noiseEnvValue_ <= noiseEnvSustain_)
+            {
+                noiseEnvValue_ = noiseEnvSustain_;
+                noiseEnvStage_ = EnvStage::Sustain;
+            }
+            break;
+
+        case EnvStage::Sustain:
+            noiseEnvValue_ = noiseEnvSustain_;
+            break;
+
+        case EnvStage::Release:
+            noiseEnvValue_ -= dt / releaseSec * juce::jmax(kEnvTimeMin,
+                                                             noiseEnvSustain_);
+            if (noiseEnvValue_ <= 0.0f)
+            {
+                noiseEnvValue_ = 0.0f;
+                noiseEnvStage_ = EnvStage::Idle;
+            }
+            break;
+    }
+}
+
+//==============================================================================
+//  Noise partial generation
+//==============================================================================
+
+void SpectralParticleSystem::generateNoisePartials(PartialDataSIMD& partials,
+                                                    int numActivePartials,
+                                                    float envelopeLevel)
+{
+    if (noiseAmplitude_ <= 0.0f || numActivePartials <= 0)
+        return;
+
+    const double sr = (partials.sampleRate > 0.0) ? partials.sampleRate
+                                                   : sampleRate_;
+    const float dt  = static_cast<float>(1.0 / sr);
+    const float nyquist = static_cast<float>(sr) * 0.5f;
+
+    // ---- Gate edge detection ----
+    const bool gateOpen = (envelopeLevel > 0.0f);
+
+    if (gateOpen && !noiseEnvTriggered_)
+    {
+        // Gate just opened → (re)start attack from zero
+        noiseEnvStage_ = EnvStage::Attack;
+        noiseEnvValue_ = 0.0f;
+    }
+    else if (!gateOpen && noiseEnvTriggered_
+             && noiseEnvStage_ != EnvStage::Idle)
+    {
+        // Gate just closed → enter release (unless already idle)
+        noiseEnvStage_ = EnvStage::Release;
+    }
+
+    noiseEnvTriggered_ = gateOpen;
+
+    // ---- Advance envelope ----
+    advanceNoiseEnvelope(dt);
+
+    if (noiseEnvValue_ <= 0.0f)
+        return;
+
+    // ---- Fill partial slots ----
+    const int N = juce::jmin(numActivePartials,
+                             juce::jmin(kNoisePartialsMax, partials.maxPartials));
+
+    // Write into the last N slots so spectral particles and noise coexist
+    const int startSlot = partials.maxPartials - N;
+    const float envAmp  = noiseAmplitude_ * noiseEnvValue_ * envelopeLevel;
+
+    for (int i = 0; i < N; ++i)
+    {
+        const int slot = startSlot + i;
+
+        // Random frequency across the audible spectrum
+        const float freqRange = nyquist * kNoiseMaxFreqProp - kNoiseMinFreq;
+        const float freq = kNoiseMinFreq + random_.nextFloat() * freqRange;
+
+        // Normalised frequency [0, 1] for spectral shape calculations
+        const float normFreq = juce::jmax(kNoiseNormEps,
+                                          (freq - kNoiseMinFreq)
+                                        / (nyquist - kNoiseMinFreq));
+
+        // ---- Base amplitude by noise type ----
+        float rawAmp;
+
+        switch (noiseType_)
+        {
+            case NoiseType::Pink:
+                // -3 dB / octave: amplitude ∝ 1 / sqrt(f)
+                rawAmp = (0.5f + random_.nextFloat() * 0.5f)
+                       * std::sqrt(1.0f / normFreq);
+                break;
+
+            case NoiseType::Brown:
+                // -6 dB / octave: amplitude ∝ 1 / f
+                rawAmp = (0.5f + random_.nextFloat() * 0.5f)
+                       * (1.0f / normFreq);
+                break;
+
+            case NoiseType::White:
+            default:
+                // Flat spectral density
+                rawAmp = 0.5f + random_.nextFloat() * 0.5f;
+                break;
+        }
+
+        // ---- Noise colour (spectral tilt) ----
+        // brightness 0 = dark (−3 dB/oct tilt-down)
+        //           0.5 = flat (no tilt)
+        //           1.0 = bright (+3 dB/oct tilt-up)
+        if (std::abs(noiseColor_ - 0.5f) > 0.001f)
+        {
+            const float tilt = (noiseColor_ - 0.5f) * 2.0f;   // [-1, 1]
+            rawAmp *= std::pow(normFreq, tilt * 0.5f);
+        }
+
+        // ---- Clamp and apply gain ----
+        rawAmp = juce::jmin(rawAmp, kNoiseRawAmpMax);
+        const float amp = rawAmp * envAmp;
+
+        partials.frequency[slot] = freq;
+        partials.amplitude[slot] += amp;
+        partials.phase[slot] = random_.nextFloat()
+                             * juce::MathConstants<float>::twoPi;
+    }
+
+    // Update the active mask to reflect newly added noise content
+    partials.updateActiveMask();
 }
 
 //==============================================================================
@@ -362,6 +586,18 @@ void SpectralParticleSystem::reset()
     sampleRate_    = 44100.0;
     fftSize_       = 2048;
 
+    // Reset noise state
+    noiseType_          = NoiseType::White;
+    noiseColor_         = 0.5f;
+    noiseAmplitude_     = 0.0f;
+    noiseEnvAttack_     = 10.0f;
+    noiseEnvDecay_      = 100.0f;
+    noiseEnvSustain_    = 0.5f;
+    noiseEnvRelease_    = 200.0f;
+    noiseEnvStage_      = EnvStage::Idle;
+    noiseEnvValue_      = 0.0f;
+    noiseEnvTriggered_  = false;
+
     particles_.resize(maxParticles_);
 }
 
@@ -376,6 +612,11 @@ void SpectralParticleSystem::killAll()
         p.acceleration = 0.0f;
         p.brightness = 0.0f;
     }
+
+    // Kill noise envelope
+    noiseEnvStage_     = EnvStage::Idle;
+    noiseEnvValue_     = 0.0f;
+    noiseEnvTriggered_ = false;
 }
 
 //==============================================================================
