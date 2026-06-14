@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <complex>
 #include <cmath>
 #include <juce_dsp/juce_dsp.h>
 #include "SIMDSupport.h"

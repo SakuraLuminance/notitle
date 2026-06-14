@@ -299,7 +299,7 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
     // Temporary buffer for windowed time-domain input (SIMD-friendly float*)
     std::vector<float> analysisWindowed(static_cast<size_t>(fftSize_));
     // FFT spectrum buffer (JUCE 8 complex API)
-    std::vector<std::complex<float>> spectrum(static_cast<size_t>(fftSize_));
+    std::vector<std::complex<float>> analysisSpectrum(static_cast<size_t>(fftSize_));
 
     for (int i = 0; i < numAnalysisFrames; ++i)
     {
@@ -319,10 +319,10 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
 
         // Populate complex spectrum with real input (imag = 0)
         for (int j = 0; j < fftSize_; ++j)
-            spectrum[static_cast<size_t>(j)] = { analysisWindowed[static_cast<size_t>(j)], 0.0f };
+            analysisSpectrum[static_cast<size_t>(j)] = { analysisWindowed[static_cast<size_t>(j)], 0.0f };
 
         // Forward FFT
-        fft_->perform(spectrum.data(), spectrum.data(), false);
+        fft_->perform(analysisSpectrum.data(), analysisSpectrum.data(), false);
 
         // Extract magnitude and phase (bins 0 .. fftSize/2)
         AnalysisFrame frame;
@@ -331,7 +331,7 @@ std::vector<float> TimeStretchEngine::processPhaseVocoder(
 
         for (int k = 0; k < numBins; ++k)
         {
-            const auto& c = spectrum[static_cast<size_t>(k)];
+            const auto& c = analysisSpectrum[static_cast<size_t>(k)];
             const float r = c.real();
             const float j = c.imag();
             frame.magnitude[static_cast<size_t>(k)] = std::sqrt(r * r + j * j);
