@@ -4,6 +4,14 @@
 
 namespace ana {
 
+void SpectralFilter::reset() noexcept
+{
+    type = Type::LowPass;
+    cutoff = 1000.0f;
+    resonance = 0.0f;
+    harmonicProtection = 0;
+}
+
 void SpectralFilter::process(PartialDataSIMD& partials) const noexcept
 {
     // Map resonance (0-1) to Q (0.707 to ~10.0)

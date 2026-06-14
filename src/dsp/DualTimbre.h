@@ -3,6 +3,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstring>
+#include <juce_core/juce_core.h>
 
 #include "SIMDSupport.h"
 

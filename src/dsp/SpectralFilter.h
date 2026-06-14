@@ -27,6 +27,7 @@ public:
     void setHarmonicProtection(int numPartials) noexcept { harmonicProtection = numPartials; }
 
     void process(PartialDataSIMD& partials) const noexcept;
+    void reset() noexcept;
 
 private:
     Type type = Type::LowPass;

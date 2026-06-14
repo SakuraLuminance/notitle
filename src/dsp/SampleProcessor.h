@@ -3,6 +3,7 @@
 #include <complex>
 #include <memory>
 #include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_dsp/juce_dsp.h>
 #include "SIMDSupport.h"
 
 namespace ana {

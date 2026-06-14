@@ -213,11 +213,11 @@ public:
             
             // Background track
             g.setColour(bg_.brighter(0.2f));
-            g.fillRoundedRectangle(x, trackY, w, trackH, 2.0f);
+            g.fillRoundedRectangle(static_cast<float>(x), trackY, static_cast<float>(w), trackH, 2.0f);
 
             // Filled track
             g.setColour(cyan_);
-            g.fillRoundedRectangle(x, trackY, sliderPos - x, trackH, 2.0f);
+            g.fillRoundedRectangle(static_cast<float>(x), trackY, sliderPos - static_cast<float>(x), trackH, 2.0f);
 
             // Thumb
             g.setColour(cyan_.brighter(0.3f));
