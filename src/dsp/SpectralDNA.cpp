@@ -4,6 +4,11 @@
 #include <algorithm>
 #include <cmath>
 
+namespace {
+constexpr float kAmplitudeThreshold = 1e-6f;
+constexpr float kNormalizationFreq  = 10000.0f; // 10 kHz
+}
+
 namespace ana {
 
 SpectralDNA::SpectralDNA()
@@ -397,19 +402,28 @@ SpectralDNA SpectralDNA::mutate(const SpectralDNA& dna, juce::Random& rng)
 // =============================================================================
 void SpectralDNA::gaussianMutation(SpectralDNA& dna, juce::Random& rng)
 {
-    for (int i = 0; i < SpectralDNA::kMaxPartials; ++i)
-    {
-        if (!dna.isActive(i)) continue;
+    // Pre-compute Gaussian noise (Box-Muller) for all partials
+    float noise[kMaxPartials];
+    float freqCoeff[kMaxPartials];
+    float ampDelta[kMaxPartials];
 
+    for (int i = 0; i < kMaxPartials; ++i)
+    {
         // Box-Muller 变换生成 N(0,1)
         const float u1 = rng.nextFloat();
         const float u2 = rng.nextFloat();
-        const float gauss = std::sqrt(-2.0f * std::log(u1 + 1e-10f))
-                          * std::cos(2.0f * juce::MathConstants<float>::pi * u2);
+        noise[i] = std::sqrt(-2.0f * std::log(u1 + 1e-10f))
+                 * std::cos(2.0f * juce::MathConstants<float>::pi * u2);
 
-        dna.frequency[i] *= (1.0f + gauss * 0.05f);  // 5% 频率偏移
-        dna.amplitude[i] += gauss * 0.1f;            // 振幅增量
+        freqCoeff[i] = 1.0f + noise[i] * 0.05f;                // 5% 频率偏移
+        ampDelta[i]  = dna.isActive(i) ? noise[i] * 0.1f : 0.0f; // 振幅增量
     }
+
+    // SIMD-accelerated frequency scaling
+    SIMDKernels::vectorMul(dna.frequency, dna.frequency, freqCoeff, kMaxPartials);
+
+    // SIMD-accelerated amplitude offset (inactive partials remain 0)
+    SIMDKernels::vectorAdd(dna.amplitude, ampDelta, kMaxPartials);
 }
 
 // =============================================================================
@@ -539,8 +553,10 @@ const SpectralDNA& SpectralDNAEvolver::getFittest() const
 
 void SpectralDNAEvolver::setPopulationSize(int newSize)
 {
-    if (newSize != getPopulationSize())
-        init(newSize);
+    newSize = std::clamp(newSize, 1, 128);
+    if (newSize == static_cast<int>(population_.size()))
+        return;
+    init(newSize);
 }
 
 const SpectralDNA& SpectralDNAEvolver::getDNA(int index) const
@@ -609,6 +625,19 @@ void SpectralDNAEvolver::evolveGeneration()
     // Swap generations
     population_ = std::move(nextGeneration_);
     nextGeneration_.clear();
+
+    // Edge case: all-zero population — revive diversity
+    {
+        const float bestFitness = getFittest().fitness;
+        if (bestFitness < 0.01f)
+        {
+            for (int i = 1; i < static_cast<int>(population_.size()); ++i)
+            {
+                population_[i].initialize();
+                population_[i].fitness = population_[i].evaluateFitness();
+            }
+        }
+    }
 
     generation_++;
 }
