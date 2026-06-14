@@ -1,0 +1,70 @@
+add_executable(AnaPlugTests
+    main.cpp
+    bench_performance.cpp
+    test_advanced_granular.cpp
+    test_arpeggiator.cpp
+    test_blur_effect.cpp
+    test_bpm_detector.cpp
+    test_data_structures.cpp
+    test_dual_timbre.cpp
+    test_effects_chain.cpp
+    test_engine_integration.cpp
+    test_filter_modulation.cpp
+    test_frequency_shaper.cpp
+    test_generative_timbre.cpp
+    test_granular_synthesis.cpp
+    test_harmonizer.cpp
+    test_image_synthesizer.cpp
+    test_lfo_system.cpp
+    test_macro_controller.cpp
+    test_multi_filter.cpp
+    test_multi_point_envelope.cpp
+    test_neural_style.cpp
+    test_neural_upsampler.cpp
+    test_parallel_processor.cpp
+    test_partial_data_simd.cpp
+    test_partial_editor_canvas.cpp
+    test_partial_tracker.cpp
+    test_peak_detector.cpp
+    test_phase_propagation.cpp
+    test_physical_model.cpp
+    test_pitch_corrector.cpp
+    test_prism_effect.cpp
+    test_quantum_spectral.cpp
+    test_resynthesis.cpp
+    test_sample_processor.cpp
+    test_sanity.cpp
+    test_spectral_dynamics.cpp
+    test_spectral_freeze.cpp
+    test_spectral_particle.cpp
+    test_spectral_reverb.cpp
+    test_spectral_sculptor.cpp
+    test_spectral_sequencer.cpp
+    test_stft_analyzer.cpp
+    test_sub_harmonic.cpp
+    test_time_stretch.cpp
+    test_unison_engine.cpp
+    test_vocoder_mode.cpp
+    test_voice_manager.cpp
+    test_wav_loader.cpp
+)
+
+target_include_directories(AnaPlugTests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(AnaPlugTests
+    PRIVATE
+        Catch2::Catch2WithMain
+        juce::juce_audio_processors
+        juce::juce_dsp
+        juce::juce_audio_formats
+        juce::juce_audio_basics
+        juce::juce_core
+        juce::juce_gui_basics
+        juce::juce_gui_extra
+)
+
+include(Catch)
+catch_discover_tests(AnaPlugTests)
