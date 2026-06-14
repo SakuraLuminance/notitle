@@ -492,19 +492,9 @@ void SpectralFreezeEngine::accumulateFreeze(const PartialDataSIMD& current)
     for (int i = 0; i < kMaxPartials; ++i)
     {
         const float liveAmp = current.amplitude[i];
-        const float frozenAmp = frozenPartials_.amplitude[i];
 
-        // Take the max of frozen and live (standard spectral freeze behaviour)
-        // with a gradual blend for smooth buildup
-        if (liveAmp > frozenAmp)
-        {
-            frozenPartials_.amplitude[i] += blend * (liveAmp - frozenPartials_.amplitude[i]);
-        }
-        else
-        {
-            // Slowly let the frozen amplitude decay toward the live value
-            frozenPartials_.amplitude[i] += blend * (liveAmp - frozenPartials_.amplitude[i]);
-        }
+        // Blend frozen amplitude toward live value for smooth buildup/decay
+        frozenPartials_.amplitude[i] += blend * (liveAmp - frozenPartials_.amplitude[i]);
 
         // Update frequency and phase from live (keep spectrum tracking)
         frozenPartials_.frequency[i] = current.frequency[i];
@@ -605,8 +595,8 @@ void SpectralFreezeEngine::reverseFreeze(const PartialDataSIMD& /*current*/, int
     for (int i = 0; i < kMaxPartials; ++i)
     {
         const size_t u = static_cast<size_t>(i);
-        frozenPartials_.amplitude[i] = frame.magnitudes[u];
-        frozenPartials_.phase[i]     = frame.phases[u];
+        frozenPartials_.amplitude[i] = frame.amplitude[u];
+        frozenPartials_.phase[i]     = frame.phase[u];
         // Frequencies remain from the snapshot capture in frozenPartials_
         // (set by snapshotFreeze at trigger time).
     }
@@ -632,8 +622,8 @@ void SpectralFreezeEngine::reverseFreeze(const PartialDataSIMD& /*current*/, int
             {
                 const size_t u = static_cast<size_t>(i);
                 frozenPartials_.amplitude[i] = lerp(
-                    frame.magnitudes[u],
-                    nextFrame.magnitudes[u],
+                    frame.amplitude[u],
+                    nextFrame.amplitude[u],
                     cf);
             }
             frozenPartials_.updateActiveMask();
@@ -651,14 +641,11 @@ void SpectralFreezeEngine::recordToHistory(const PartialDataSIMD& partials)
     if (mode_ == FreezeMode::Reverse)
     {
         FrozenFrame ff;
-        ff.magnitudes.resize(static_cast<size_t>(kMaxPartials));
-        ff.phases.resize(static_cast<size_t>(kMaxPartials));
-
         for (int i = 0; i < kMaxPartials; ++i)
         {
             const size_t u = static_cast<size_t>(i);
-            ff.magnitudes[u] = partials.amplitude[i];
-            ff.phases[u]     = partials.phase[i];
+            ff.amplitude[u] = partials.amplitude[i];
+            ff.phase[u]     = partials.phase[i];
         }
 
         frozenHistory_.push_back(std::move(ff));
@@ -784,7 +771,8 @@ void SpectralFreezeEngine::applySpectralBlur(PartialDataSIMD& data,
         return;
 
     // Convolve amplitudes with the Gaussian kernel
-    std::vector<float> blurred(static_cast<size_t>(kMaxPartials), 0.0f);
+    if constexpr (kMaxPartials > 0)
+        std::memset(blurred_, 0, sizeof(blurred_));
 
     for (int i = 0; i < kMaxPartials; ++i)
     {
@@ -795,12 +783,12 @@ void SpectralFreezeEngine::applySpectralBlur(PartialDataSIMD& data,
             sum += data.amplitude[idx]
                  * kernel[static_cast<size_t>(j + kernelRadius)];
         }
-        blurred[static_cast<size_t>(i)] = sum;
+        blurred_[i] = sum;
     }
 
     // Write back
     for (int i = 0; i < kMaxPartials; ++i)
-        data.amplitude[i] = blurred[static_cast<size_t>(i)];
+        data.amplitude[i] = blurred_[i];
 
     data.updateActiveMask();
 }

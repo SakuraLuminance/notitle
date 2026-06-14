@@ -448,8 +448,8 @@ void SpectralSculptor::applyWarp(PartialDataSIMD& partials)
     // ---- Scatter phase ----
     // For each active partial compute its warped frequency, find the closest
     // partial slot (by frequency) and accumulate amplitude there.
-    std::vector<float> newAmp(static_cast<size_t>(N), 0.0f);
-    std::vector<float> weight(static_cast<size_t>(N), 0.0f);
+    std::fill(warpNewAmp_, warpNewAmp_ + N, 0.0f);
+    std::fill(warpWeight_, warpWeight_ + N, 0.0f);
 
     for (int si = 0; si < numActive; ++si)
     {
@@ -477,18 +477,18 @@ void SpectralSculptor::applyWarp(PartialDataSIMD& partials)
 
         if (bestIdx >= 0)
         {
-            newAmp[static_cast<size_t>(bestIdx)]  += partials.amplitude[srcIdx];
-            weight[static_cast<size_t>(bestIdx)]  += 1.0f;
+            warpNewAmp_[bestIdx]  += partials.amplitude[srcIdx];
+            warpWeight_[bestIdx]  += 1.0f;
         }
     }
 
     // Average accumulated amplitudes
     for (int i = 0; i < N; ++i)
     {
-        if (weight[static_cast<size_t>(i)] > 0.5f)
+        if (warpWeight_[i] > 0.5f)
         {
-            partials.amplitude[i] = newAmp[static_cast<size_t>(i)]
-                                  / weight[static_cast<size_t>(i)];
+            partials.amplitude[i] = warpNewAmp_[i]
+                                  / warpWeight_[i];
         }
         else if (partials.isActive(i))
         {
@@ -533,9 +533,7 @@ void SpectralSculptor::applyMirror(PartialDataSIMD& partials)
     const float center  = juce::jlimit(20.0f, nyquist * 0.99f, centerFrequency_);
 
     // Collect active partials with their reflected frequency target
-    struct Partial { int srcIdx; float targetFreq; };
-    std::vector<Partial> src;
-    src.reserve(static_cast<size_t>(N));
+    mirrorSrcCount_ = 0;
 
     for (int i = 0; i < N; ++i)
     {
@@ -549,27 +547,32 @@ void SpectralSculptor::applyMirror(PartialDataSIMD& partials)
         if (fOut > nyquist)    fOut = 2.0f * nyquist - fOut;
         fOut = juce::jlimit(20.0f, nyquist * 0.999f, fOut);
 
-        src.push_back({ i, fOut });
+        mirrorSrcIdx_[mirrorSrcCount_] = i;
+        mirrorTargetFreq_[mirrorSrcCount_] = fOut;
+        ++mirrorSrcCount_;
     }
 
-    if (src.empty()) return;
+    if (mirrorSrcCount_ == 0) return;
 
     // Get frequency-sorted active indices for nearest-neighbour lookup
     std::vector<int> order;
     sortPartialsByFrequency(partials, order);
 
     // Scatter reflected amplitudes
-    std::vector<float> newAmp(static_cast<size_t>(N), 0.0f);
-    std::vector<float> weight(static_cast<size_t>(N), 0.0f);
+    std::fill(mirrorNewAmp_, mirrorNewAmp_ + N, 0.0f);
+    std::fill(mirrorWeight_, mirrorWeight_ + N, 0.0f);
 
-    for (const auto& p : src)
+    for (int si = 0; si < mirrorSrcCount_; ++si)
     {
+        const int   srcIdx     = mirrorSrcIdx_[si];
+        const float targetFreq = mirrorTargetFreq_[si];
+
         // Find closest active partial to the target frequency
         int bestIdx = -1;
         float bestDist = 1e10f;
         for (int ti : order)
         {
-            const float d = std::abs(partials.frequency[ti] - p.targetFreq);
+            const float d = std::abs(partials.frequency[ti] - targetFreq);
             if (d < bestDist)
             {
                 bestDist = d;
@@ -579,18 +582,18 @@ void SpectralSculptor::applyMirror(PartialDataSIMD& partials)
 
         if (bestIdx >= 0)
         {
-            newAmp[static_cast<size_t>(bestIdx)]  += partials.amplitude[p.srcIdx];
-            weight[static_cast<size_t>(bestIdx)]  += 1.0f;
+            mirrorNewAmp_[bestIdx]  += partials.amplitude[srcIdx];
+            mirrorWeight_[bestIdx]  += 1.0f;
         }
     }
 
     // Average and write back
     for (int i = 0; i < N; ++i)
     {
-        if (weight[static_cast<size_t>(i)] > 0.5f)
+        if (mirrorWeight_[i] > 0.5f)
         {
-            partials.amplitude[i] = newAmp[static_cast<size_t>(i)]
-                                  / weight[static_cast<size_t>(i)];
+            partials.amplitude[i] = mirrorNewAmp_[i]
+                                  / mirrorWeight_[i];
         }
     }
 }

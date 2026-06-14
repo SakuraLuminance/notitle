@@ -91,6 +91,9 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     {
         voiceManager.prepare(sampleRate);
         subHarmonicGen_.setSampleRate(sampleRate);
+
+        // Pre-allocate voiceBuffer to avoid heap allocations in the audio callback
+        voiceBuffer.setSize(juce::jmax(getTotalNumOutputChannels(), 1), samplesPerBlock, false, false, true);
     }
 }
 
@@ -245,7 +248,7 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // --- Process VoiceManager audio ---
     // Use a temporary buffer for VoiceManager output, then mix into the main buffer
-    juce::AudioBuffer<float> voiceBuffer(numChannels, numSamples);
+    voiceBuffer.setSize(numChannels, numSamples, false, false, true);
     voiceManager.process(voiceBuffer);
 
     const int rootNote = rootNoteParam_.load();

@@ -122,6 +122,16 @@ private:
     std::vector<float> prevGains_;          /**< Previous-frame amplitudes (smoothing).*/
     float           smoothingFactor_ = 0.1f;/**< 0 = no smoothing, 1 = fully held.     */
 
+    //==============================================================================
+    // Pre-allocated buffers for audio-thread Warp/Mirror (no heap allocations)
+    float warpNewAmp_[PartialDataSIMD::kMaxPartials];
+    float warpWeight_[PartialDataSIMD::kMaxPartials];
+    float mirrorNewAmp_[PartialDataSIMD::kMaxPartials];
+    float mirrorWeight_[PartialDataSIMD::kMaxPartials];
+    int   mirrorSrcIdx_[PartialDataSIMD::kMaxPartials];
+    float mirrorTargetFreq_[PartialDataSIMD::kMaxPartials];
+    int   mirrorSrcCount_ = 0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectralSculptor)
 };
 

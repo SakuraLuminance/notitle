@@ -3,9 +3,12 @@
 #include <cmath>
 #include <complex>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include <juce_audio_basics/juce_audio_basics.h>
+
+namespace juce::dsp { class FFT; }
 
 #include "PartialDataSIMD.h"
 
@@ -35,7 +38,7 @@ public:
     };
 
     FrequencyShaper();
-    ~FrequencyShaper() = default;
+    ~FrequencyShaper();
 
     // Mode selection
     void setType(ShaperType type);
@@ -116,6 +119,9 @@ private:
     mutable std::vector<float> scratch_windowVec_;
     mutable std::vector<std::complex<float>> scratch_fftOut_;
     mutable int scratch_maxFftSize_ = 0;
+
+    std::unique_ptr<juce::dsp::FFT> fft_;
+    int fftOrder_ = -1;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FrequencyShaper)
 };

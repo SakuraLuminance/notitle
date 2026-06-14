@@ -678,10 +678,6 @@ void AdvancedGranularEngine::process(juce::AudioBuffer<float>& buffer)
             [](const GrainState& gs) { return !gs.active; }),
         grainStates_.end());
 
-    activeGrains_.clear();
-    for (const auto& gs : grainStates_)
-        activeGrains_.push_back(gs.config);
-
     // ---------------------------------------------------------------------------
     // 4. Advance global sample counter
     // ---------------------------------------------------------------------------

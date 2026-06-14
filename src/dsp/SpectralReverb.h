@@ -55,6 +55,9 @@ public:
     void setSampleRate(double sr);
     void setFftSize(int size);            // must be power of 2
 
+    // Pre-allocate scratch buffers for the audio thread (call from prepareToPlay)
+    void prepare(int maxBlockSize);
+
     // Process on partial data (spectral reverb — main path)
     void process(PartialDataSIMD& partials);
 
@@ -84,7 +87,12 @@ private:
     // Spectral envelope (frequency-domain representation of IR)
     // Indexed by FFT bin: bin i covers frequency i * sampleRate / fftSize
     std::vector<float> spectralEnvelope_;   // size = fftSize/2 + 1
-    std::vector<float> scratchGains_;       // pre-allocated per-partial gains
+
+    // Scratch buffers (pre-allocated — no heap in audio thread)
+    float scratchGains_[PartialDataSIMD::kMaxPartials]{};   // per-partial gains
+    float blurred_[PartialDataSIMD::kMaxPartials]{};        // diffusion scratch
+    std::vector<float> scratchDry_;     // pre-sized to max block size
+    std::vector<float> scratchWet_;     // pre-sized to maxIRLen + max block size
 
     // Current preset (for FFT size changes)
     Preset currentPreset_ = Preset::Room;

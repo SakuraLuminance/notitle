@@ -7,6 +7,7 @@
 
 #include <type_traits>
 #include <cstdint>
+#include <cmath>
 
 // SIMD header includes (platform-independent)
 #if defined(__AVX2__) || defined(__AVX__)
@@ -212,6 +213,182 @@ inline void vectorFill(float* dest, float value, int len) noexcept
     // Scalar remainder
     for (; i < len; ++i)
         dest[i] = value;
+}
+
+/** Linearly interpolate between a and b: dest[i] = a[i]*(1-t) + b[i]*t.
+    Uses AVX2 (8 floats/iter), SSE2/NEON (4 floats/iter), or scalar fallback.
+    Safe for any len >= 0; handles remainder via scalar tail.
+    All pointers must be readable for len floats. */
+inline void vectorLerp(float* dest,
+                       const float* a,
+                       const float* b,
+                       float t,
+                       int len) noexcept
+{
+    int i = 0;
+
+#if defined(__AVX2__)
+    {
+    auto one_minus_t = _mm256_set1_ps(1.0f - t);
+    auto vt = _mm256_set1_ps(t);
+    for (; i + 8 <= len; i += 8)
+    {
+        _mm256_storeu_ps(dest + i,
+            _mm256_add_ps(
+                _mm256_mul_ps(_mm256_loadu_ps(a + i), one_minus_t),
+                _mm256_mul_ps(_mm256_loadu_ps(b + i), vt)));
+    }
+    }
+#endif
+
+#if defined(__SSE2__)
+    {
+    auto one_minus_t = _mm_set1_ps(1.0f - t);
+    auto vt = _mm_set1_ps(t);
+    for (; i + 4 <= len; i += 4)
+    {
+        _mm_storeu_ps(dest + i,
+            _mm_add_ps(
+                _mm_mul_ps(_mm_loadu_ps(a + i), one_minus_t),
+                _mm_mul_ps(_mm_loadu_ps(b + i), vt)));
+    }
+    }
+#endif
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
+    {
+    auto one_minus_t = vdupq_n_f32(1.0f - t);
+    auto vt = vdupq_n_f32(t);
+    for (; i + 4 <= len; i += 4)
+    {
+        vst1q_f32(dest + i,
+            vmlaq_f32(
+                vmulq_f32(vld1q_f32(a + i), one_minus_t),
+                vld1q_f32(b + i),
+                vt));
+    }
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < len; ++i)
+        dest[i] = a[i] * (1.0f - t) + b[i] * t;
+}
+
+/** Compare elements of src against threshold, return bitmask of elements > threshold.
+    Uses AVX2 (8 comparisons/iter), SSE2 (4 comparisons/iter), NEON (4 comparisons/iter),
+    or scalar fallback.  Returns up to 32 bits (one per element).
+    Safe for any len >= 0; bits beyond len remain 0. */
+inline uint32_t vectorCompareMask(const float* src,
+                                  float threshold,
+                                  int len) noexcept
+{
+    uint32_t result = 0;
+    int i = 0;
+    int bit_offset = 0;
+
+#if defined(__AVX2__)
+    {
+    auto vt = _mm256_set1_ps(threshold);
+    for (; i + 8 <= len; i += 8)
+    {
+        auto cmp = _mm256_cmp_ps(_mm256_loadu_ps(src + i), vt, _CMP_GT_OQ);
+        result |= (uint32_t)_mm256_movemask_ps(cmp) << bit_offset;
+        bit_offset += 8;
+    }
+    }
+#endif
+
+#if defined(__SSE2__)
+    {
+    auto vt = _mm_set1_ps(threshold);
+    for (; i + 4 <= len; i += 4)
+    {
+        auto cmp = _mm_cmpgt_ps(_mm_loadu_ps(src + i), vt);
+        result |= (uint32_t)_mm_movemask_ps(cmp) << bit_offset;
+        bit_offset += 4;
+    }
+    }
+#endif
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
+    {
+    auto vt = vdupq_n_f32(threshold);
+    for (; i + 4 <= len; i += 4)
+    {
+        auto cmp = vcgtq_f32(vld1q_f32(src + i), vt);
+        uint32_t bits = 0;
+        bits |= (vgetq_lane_u32(cmp, 0) >> 31) << 0;
+        bits |= (vgetq_lane_u32(cmp, 1) >> 31) << 1;
+        bits |= (vgetq_lane_u32(cmp, 2) >> 31) << 2;
+        bits |= (vgetq_lane_u32(cmp, 3) >> 31) << 3;
+        result |= bits << bit_offset;
+        bit_offset += 4;
+    }
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < len; ++i, ++bit_offset)
+        if (src[i] > threshold)
+            result |= 1u << bit_offset;
+
+    return result;
+}
+
+/** Compute sqrt(real[i]^2 + imag[i]^2) for each element (complex magnitude).
+    Uses AVX2 (8 floats/iter), SSE2/NEON (4 floats/iter), or scalar fallback.
+    Safe for any len >= 0; handles remainder via scalar tail.
+    All pointers must be readable for len floats. */
+inline void vectorSqrtSumSquares(float* dest,
+                                 const float* real,
+                                 const float* imag,
+                                 int len) noexcept
+{
+    int i = 0;
+
+#if defined(__AVX2__)
+    for (; i + 8 <= len; i += 8)
+    {
+        auto r = _mm256_loadu_ps(real + i);
+        auto im = _mm256_loadu_ps(imag + i);
+        _mm256_storeu_ps(dest + i,
+            _mm256_sqrt_ps(
+                _mm256_add_ps(
+                    _mm256_mul_ps(r, r),
+                    _mm256_mul_ps(im, im))));
+    }
+#endif
+
+#if defined(__SSE2__)
+    for (; i + 4 <= len; i += 4)
+    {
+        auto r = _mm_loadu_ps(real + i);
+        auto im = _mm_loadu_ps(imag + i);
+        _mm_storeu_ps(dest + i,
+            _mm_sqrt_ps(
+                _mm_add_ps(
+                    _mm_mul_ps(r, r),
+                    _mm_mul_ps(im, im))));
+    }
+#endif
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
+    for (; i + 4 <= len; i += 4)
+    {
+        auto r = vld1q_f32(real + i);
+        auto im = vld1q_f32(imag + i);
+        vst1q_f32(dest + i,
+            vsqrtq_f32(
+                vaddq_f32(
+                    vmulq_f32(r, r),
+                    vmulq_f32(im, im))));
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < len; ++i)
+        dest[i] = sqrtf(real[i] * real[i] + imag[i] * imag[i]);
 }
 
 } // namespace SIMDKernels

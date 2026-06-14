@@ -170,9 +170,9 @@ private:
     /** @name Spectral Effects */
     //@{
     static void applyPitchShift(PartialDataSIMD& data, float semitones);
-    static void applySpectralBlur(PartialDataSIMD& data, float amount,
-                                  std::vector<float>& kernel, int& kernelRadius,
-                                  bool& kernelDirty);
+    void applySpectralBlur(PartialDataSIMD& data, float amount,
+                            std::vector<float>& kernel, int& kernelRadius,
+                            bool& kernelDirty);
     static void applySpectralTilt(PartialDataSIMD& data, float tilt);
     static void buildGaussianKernel(std::vector<float>& kernel, int& radius,
                                     int newRadius, float sigma);
@@ -188,8 +188,8 @@ private:
     // Frozen spectrum history (for Reverse and Motion modes)
     struct FrozenFrame
     {
-        std::vector<float> magnitudes;
-        std::vector<float> phases;
+        float amplitude[PartialDataSIMD::kMaxPartials]{};
+        float phase[PartialDataSIMD::kMaxPartials]{};
     };
     std::vector<FrozenFrame> frozenHistory_;
 
@@ -237,6 +237,7 @@ private:
     std::vector<float> gaussianKernel_;
     int                kernelRadius_ = 0;
     bool               kernelDirty_  = true;
+    float              blurred_[PartialDataSIMD::kMaxPartials]{};
 
     // Audio buffer freeze state
     std::vector<float> frozenAudioBuffer_;

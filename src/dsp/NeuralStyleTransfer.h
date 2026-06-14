@@ -242,6 +242,13 @@ private:
     std::unique_ptr<juce::dsp::FFT> fft_;
     std::vector<float> windowTable_;
 
+    // Per-frame scratch buffers (reused to avoid repeated allocation)
+    std::vector<float> logMag_;
+    std::vector<float> melEnergies_;
+    std::vector<float> contentFlat_;
+    std::vector<float> magFrame_;
+    std::vector<float> phaseFrame_;
+
     //@}
 
     //==============================================================================

@@ -165,8 +165,6 @@ void SpectralReverb::generatePresetEnvelope(Preset preset)
         default: break;
     }
 
-    // Pre-allocate scratch buffers
-    scratchGains_.resize(PartialDataSIMD::kMaxPartials);
 }
 
 // ============================================================================
@@ -246,8 +244,6 @@ void SpectralReverb::analyzeIR()
     for (auto& v : spectralEnvelope_)
         v = std::max(kFloor, v);
 
-    // Pre-allocate scratch buffers
-    scratchGains_.resize(PartialDataSIMD::kMaxPartials);
 }
 
 // ============================================================================
@@ -281,6 +277,17 @@ float SpectralReverb::getEnvelopeGain(float freqHz) const noexcept
 }
 
 // ============================================================================
+// Prepare (pre-allocate scratch buffers — call from prepareToPlay)
+// ============================================================================
+
+void SpectralReverb::prepare(int maxBlockSize)
+{
+    constexpr int kMaxIRLen = 8192;
+    scratchDry_.resize(static_cast<size_t>(maxBlockSize));
+    scratchWet_.resize(static_cast<size_t>(maxBlockSize + kMaxIRLen));
+}
+
+// ============================================================================
 // Process partial data (spectral reverb — main path)
 // ============================================================================
 
@@ -289,11 +296,7 @@ void SpectralReverb::process(PartialDataSIMD& partials)
     const int numPartials = PartialDataSIMD::kMaxPartials;
     const float nyquist = static_cast<float>(sampleRate_) * 0.5f;
 
-    // Ensure scratch buffers are sized
-    if (scratchGains_.size() < static_cast<size_t>(numPartials))
-        scratchGains_.resize(static_cast<size_t>(numPartials));
-
-    float* gains = scratchGains_.data();
+    float* gains = scratchGains_;
 
     // ---------------------------------------------------------------
     // Phase 1: compute per-partial reverb gain
@@ -328,15 +331,14 @@ void SpectralReverb::process(PartialDataSIMD& partials)
     // ---------------------------------------------------------------
     if (diffusion_ > 0.005f)
     {
-        // Compute blurred gains into a temporary array
-        std::vector<float> blurred(scratchGains_.size());
+        // Compute blurred gains into the scratch buffer
         const int radius = std::max(1, static_cast<int>(diffusion_ * 3.0f));
 
         for (int i = 0; i < numPartials; ++i)
         {
             if (!partials.isActive(i))
             {
-                blurred[static_cast<size_t>(i)] = 0.0f;
+                blurred_[i] = 0.0f;
                 continue;
             }
 
@@ -363,7 +365,7 @@ void SpectralReverb::process(PartialDataSIMD& partials)
                 }
             }
 
-            blurred[static_cast<size_t>(i)] = sum / weightSum;
+            blurred_[i] = sum / weightSum;
         }
 
         // Blend original and blurred
@@ -372,7 +374,7 @@ void SpectralReverb::process(PartialDataSIMD& partials)
             if (!partials.isActive(i))
                 continue;
             gains[i] = gains[i] * (1.0f - diffusion_)
-                     + blurred[static_cast<size_t>(i)] * diffusion_;
+                     + blurred_[i] * diffusion_;
         }
     }
 
@@ -400,7 +402,7 @@ void SpectralReverb::process(PartialDataSIMD& partials)
         // amplitude is ~0).
         SIMDKernels::vectorMul(partials.amplitude,
                                partials.amplitude,
-                               scratchGains_.data(),
+                               scratchGains_,
                                PartialDataSIMD::kMaxPartials);
     }
 }
@@ -438,21 +440,21 @@ void SpectralReverb::processAudio(juce::AudioBuffer<float>& buffer)
                 channel[n] *= widthScale;
         }
 
-        // Save dry signal
-        std::vector<float> dry(static_cast<size_t>(numSamples));
-        std::copy(channel, channel + numSamples, dry.data());
+        // Save dry signal (scratchDry_ pre-sized in prepare())
+        scratchDry_.resize(static_cast<size_t>(numSamples));
+        std::copy(channel, channel + numSamples, scratchDry_.data());
 
-        // Direct convolution: wet = dry * ir
+        // Direct convolution: wet = dry * ir (scratchWet_ pre-sized in prepare())
         const int convLen = numSamples + effectiveIRLen - 1;
-        std::vector<float> wet(static_cast<size_t>(convLen), 0.0f);
+        std::fill(scratchWet_.begin(), scratchWet_.begin() + convLen, 0.0f);
         for (int n = 0; n < numSamples; ++n)
         {
-            const float input = dry[static_cast<size_t>(n)];
+            const float input = scratchDry_[static_cast<size_t>(n)];
             if (std::abs(input) < 1e-12f)
                 continue;
 
             for (int k = 0; k < effectiveIRLen; ++k)
-                wet[static_cast<size_t>(n + k)] += input * ir_[static_cast<size_t>(k)];
+                scratchWet_[static_cast<size_t>(n + k)] += input * ir_[static_cast<size_t>(k)];
         }
 
         // Mix: dry/wet with predelay
@@ -461,9 +463,9 @@ void SpectralReverb::processAudio(juce::AudioBuffer<float>& buffer)
             const int wetIdx = n - predelaySamples;
             float wetSample = 0.0f;
             if (wetIdx >= 0 && wetIdx < convLen)
-                wetSample = wet[static_cast<size_t>(wetIdx)];
+                wetSample = scratchWet_[static_cast<size_t>(wetIdx)];
 
-            channel[n] = dry[static_cast<size_t>(n)] * (1.0f - mix_)
+            channel[n] = scratchDry_[static_cast<size_t>(n)] * (1.0f - mix_)
                        + wetSample * mix_;
         }
     }
@@ -477,7 +479,7 @@ void SpectralReverb::reset()
 {
     // Spectral envelope remains (deterministic from IR/preset)
     // Clear any accumulated scratch state
-    std::fill(scratchGains_.begin(), scratchGains_.end(), 0.0f);
+    std::fill(scratchGains_, scratchGains_ + PartialDataSIMD::kMaxPartials, 0.0f);
 }
 
 } // namespace ana

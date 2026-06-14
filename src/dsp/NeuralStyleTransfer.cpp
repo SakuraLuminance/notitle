@@ -236,8 +236,13 @@ void NeuralStyleTransfer::stftAnalysis(
         fft_->perform(spectrum.data(), spectrum.data(), false);
 
         // Extract magnitude and phase (bins 0 .. fftSize/2)
-        std::vector<float> magFrame(static_cast<size_t>(numBins));
-        std::vector<float> phaseFrame(static_cast<size_t>(numBins));
+        if (magFrame_.size() < static_cast<size_t>(numBins))
+        {
+            magFrame_.resize(static_cast<size_t>(numBins));
+            phaseFrame_.resize(static_cast<size_t>(numBins));
+        }
+        auto& magFrame   = magFrame_;
+        auto& phaseFrame = phaseFrame_;
 
         for (int k = 0; k < numBins; ++k)
         {
@@ -248,8 +253,8 @@ void NeuralStyleTransfer::stftAnalysis(
             phaseFrame[kz] = std::atan2(j, r);
         }
 
-        mag[iz]   = std::move(magFrame);
-        phase[iz] = std::move(phaseFrame);
+        mag[iz]   = magFrame_;
+        phase[iz] = phaseFrame_;
     }
 }
 
@@ -410,7 +415,9 @@ void NeuralStyleTransfer::extractSpectralEnvelope(
         auto& envFrame = envelope[iz];
 
         // --- 1. Log-magnitude spectrum ---
-        std::vector<float> logMag(static_cast<size_t>(numBins));
+        if (logMag_.size() < static_cast<size_t>(numBins))
+            logMag_.resize(static_cast<size_t>(numBins));
+        auto& logMag = logMag_;
         for (int k = 0; k < numBins; ++k)
             logMag[static_cast<size_t>(k)] = std::log(
                 std::max(1e-10f, magFrame[static_cast<size_t>(k)]));
@@ -562,7 +569,9 @@ void NeuralStyleTransfer::extractFeatures(
         features.spectralRolloff[iz] = static_cast<float>(rolloffBin) * hzPerBin;
 
         // ---- 4. MFCC (mel-filterbank → log → DCT) ------------------
-        std::vector<float> melEnergies(static_cast<size_t>(numMelBands), 0.0f);
+        if (melEnergies_.size() < static_cast<size_t>(numMelBands))
+            melEnergies_.resize(static_cast<size_t>(numMelBands));
+        auto& melEnergies = melEnergies_;
         for (int m = 0; m < numMelBands; ++m)
         {
             double energy = 0.0;
@@ -849,7 +858,10 @@ std::vector<float> NeuralStyleTransfer::process()
             // (b) Histogram matching (last iteration only)
             if (histBlend > 1e-6f)
             {
-                std::vector<float> contentFlat = resultMagFrame;
+                if (contentFlat_.size() < static_cast<size_t>(numBins))
+                    contentFlat_.resize(static_cast<size_t>(numBins));
+                std::copy(resultMagFrame.begin(), resultMagFrame.begin() + numBins, contentFlat_.begin());
+                auto& contentFlat = contentFlat_;
                 const auto& styleFlat = styleMag[siz];
                 applyHistogramMatch(contentFlat, styleFlat);
 

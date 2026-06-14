@@ -122,5 +122,8 @@ private:
     ana::SubHarmonicGenerator subHarmonicGen_;
     std::atomic<float> subHarmonicLevel_{0.0f};
 
+    // Reusable voice buffer (allocated in prepareToPlay to avoid heap in audio callback)
+    juce::AudioBuffer<float> voiceBuffer;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnaPlugAudioProcessor)
 };

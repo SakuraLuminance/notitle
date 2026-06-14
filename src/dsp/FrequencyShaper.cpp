@@ -15,9 +15,9 @@ namespace ana {
 // Construction
 // ============================================================================
 
-FrequencyShaper::FrequencyShaper()
-{
-}
+FrequencyShaper::FrequencyShaper() = default;
+
+FrequencyShaper::~FrequencyShaper() = default;
 
 // ============================================================================
 // Parameter setters
@@ -386,7 +386,11 @@ void FrequencyShaper::processFrequencyShiftAudio(juce::AudioBuffer<float>& buffe
     const int fftSize = 1 << fftOrder;
     const int numBins = fftSize;
 
-    juce::dsp::FFT fft(fftOrder);
+    if (fftOrder != fftOrder_)
+    {
+        fft_ = std::make_unique<juce::dsp::FFT>(fftOrder);
+        fftOrder_ = fftOrder;
+    }
 
     const int binShift = static_cast<int>(std::round(
         shiftAmount_ * static_cast<float>(fftSize) / static_cast<float>(sampleRate)));
@@ -422,7 +426,7 @@ void FrequencyShaper::processFrequencyShiftAudio(juce::AudioBuffer<float>& buffe
             scratch_fftIn_[static_cast<size_t>(i)] = std::complex<float>(src[i] * scratch_windowVec_[static_cast<size_t>(i)], 0.0f);
 
         // Forward complex FFT
-        fft.perform(scratch_fftIn_.data(), scratch_fftIn_.data(), false);
+        fft_->perform(scratch_fftIn_.data(), scratch_fftIn_.data(), false);
 
         // --- Create analytic signal: zero out negative frequencies ---
         // Bin indices: 0 .. N-1 where 0 = DC, 1..N/2-1 = positive, N/2 = Nyquist, N/2+1..N-1 = negative
@@ -451,7 +455,7 @@ void FrequencyShaper::processFrequencyShiftAudio(juce::AudioBuffer<float>& buffe
         }
 
         // Inverse FFT (complex)
-        fft.perform(scratch_fftOut_.data(), scratch_fftOut_.data(), true);
+        fft_->perform(scratch_fftOut_.data(), scratch_fftOut_.data(), true);
 
         // Real part of the IFFT is the frequency-shifted output
         const float invScale = 1.0f / static_cast<float>(fftSize);
