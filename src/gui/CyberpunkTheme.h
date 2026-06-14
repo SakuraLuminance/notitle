@@ -89,7 +89,7 @@ public:
     //==============================================================================
     // Custom button drawing
     void drawButtonBackground(juce::Graphics& g, juce::Button& button,
-                               const juce::Colour& bgColour,
+                               const juce::Colour& /*bgColour*/,
                                bool shouldDrawButtonAsHighlighted,
                                bool shouldDrawButtonAsDown) override
     {
@@ -129,9 +129,9 @@ public:
 
     //==============================================================================
     // Custom combo box
-    void drawComboBox(juce::Graphics& g, int width, int height,
-                      bool isButtonDown, int buttonX, int buttonY,
-                      int buttonW, int buttonH, juce::ComboBox& box) override
+    void drawComboBox(juce::Graphics& g, int /*width*/, int /*height*/,
+                      bool isButtonDown, int /*buttonX*/, int /*buttonY*/,
+                      int /*buttonW*/, int /*buttonH*/, juce::ComboBox& box) override
     {
         auto bounds = box.getLocalBounds().toFloat().reduced(1.0f);
         g.setColour(bg_.brighter(0.15f));
@@ -140,7 +140,7 @@ public:
         g.drawRoundedRectangle(bounds, 2.0f, 1.0f);
     }
 
-    void drawComboBoxTextWhenNothingSelected(juce::Graphics& g, juce::ComboBox& box, juce::Label& label) override
+    void drawComboBoxTextWhenNothingSelected(juce::Graphics& g, juce::ComboBox& box, juce::Label& /*label*/) override
     {
         g.setColour(fg_.withAlpha(0.4f));
         g.setFont(getCyberFont(12.0f, false));
@@ -152,7 +152,7 @@ public:
     // Custom rotary slider
     void drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h,
                           float sliderPos, float startAngle, float endAngle,
-                          juce::Slider& slider) override
+                          juce::Slider& /*slider*/) override
     {
         auto bounds = juce::Rectangle<int>(x, y, w, h).toFloat().reduced(4);
         auto centre = bounds.getCentre();
@@ -238,7 +238,7 @@ public:
         // Try to load a monospaced/tech font, fallback to default
         auto typeface = bold ? juce::Font::getDefaultMonospacedFontName()
                              : juce::Font::getDefaultSansSerifFontName();
-        return juce::Font(typeface, height, bold ? juce::Font::bold : juce::Font::plain);
+        return juce::Font(juce::FontOptions(typeface).withHeight(height).withStyle(bold ? juce::Font::bold : juce::Font::plain));
     }
 
     juce::Font getTextButtonFont(juce::TextButton&, int) override

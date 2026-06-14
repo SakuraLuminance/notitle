@@ -101,7 +101,7 @@ struct alignas(32) PartialDataSIMD
     void updateActiveMask()
     {
         static constexpr float kThreshold = 1e-6f;
-        constexpr int maskWords = (kMaxPartials + 31) / 32;
+
 
         std::memset(activeMask, 0, sizeof(activeMask));
         activeCount = 0;
