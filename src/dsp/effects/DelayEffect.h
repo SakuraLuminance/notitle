@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <juce_dsp/juce_dsp.h>
 
 namespace ana {
@@ -23,7 +23,7 @@ private:
     double sr = 44100.0, bpm = 120.0;
     bool syncMode = false, pingPong = false;
     float beats = 0.25f;
-    std::vector<juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationType::Linear>> lines;
+    std::vector<juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear>> lines;
 };
 
 } // namespace ana

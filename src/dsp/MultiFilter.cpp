@@ -298,13 +298,17 @@ void MultiFilter::updateMorphCoefficients(FilterSlot& slot)
 
     // Linear interpolation of coefficients
     const float t = juce::jlimit(0.0f, 1.0f, p.morphAmount);
+    const float* srcData = sourceCoeffs->getRawCoefficients();
+    const float* dstData = targetCoeffs->getRawCoefficients();
+
+    float b0 = srcData[0] + t * (dstData[0] - srcData[0]);
+    float b1 = srcData[1] + t * (dstData[1] - srcData[1]);
+    float b2 = srcData[2] + t * (dstData[2] - srcData[2]);
+    float a1 = srcData[3] + t * (dstData[3] - srcData[3]);
+    float a2 = srcData[4] + t * (dstData[4] - srcData[4]);
+
     slot.iirFilter.coefficients = juce::dsp::IIR::Coefficients<float>::Ptr(
-        new juce::dsp::IIR::Coefficients<float>(
-            sourceCoeffs->b0 + t * (targetCoeffs->b0 - sourceCoeffs->b0),
-            sourceCoeffs->b1 + t * (targetCoeffs->b1 - sourceCoeffs->b1),
-            sourceCoeffs->b2 + t * (targetCoeffs->b2 - sourceCoeffs->b2),
-            sourceCoeffs->a1 + t * (targetCoeffs->a1 - sourceCoeffs->a1),
-            sourceCoeffs->a2 + t * (targetCoeffs->a2 - sourceCoeffs->a2)));
+        new juce::dsp::IIR::Coefficients<float>(b0, b1, b2, 1.0f, a1, a2));
 }
 
 //==============================================================================
@@ -378,10 +382,8 @@ void MultiFilter::processSerial(juce::dsp::AudioBlock<float>& block)
             continue;
 
         // Save dry
-        dryScratch.copyFrom(0, 0,
-            const_cast<const float**>(block.getArrayOfChannels()),
-            static_cast<int>(block.getNumChannels()),
-            0, 0, static_cast<int>(block.getNumSamples()));
+        for (int ch = 0; ch < static_cast<int>(block.getNumChannels()); ++ch)
+            dryScratch.copyFrom(ch, 0, block.getChannelPointer(ch), static_cast<int>(block.getNumSamples()));
 
         const float driveGain = driveToGain(slot.params.drive);
 
@@ -737,19 +739,26 @@ float MultiFilter::evalBiquadResponse(
     const float cos2W = 2.0f * cosW * cosW - 1.0f;
     const float sin2W = 2.0f * sinW * cosW;
 
+    const float* c = coeffs.getRawCoefficients();
+    const float b0 = c[0];
+    const float b1 = c[1];
+    const float b2 = c[2];
+    const float a1 = c[3];
+    const float a2 = c[4];
+
     // Numerator:  b0 + b1*z^-1 + b2*z^-2,   z = e^(jw)
-    const float numReal = coeffs.b0
-                          + coeffs.b1 * cosW
-                          + coeffs.b2 * cos2W;
-    const float numImag = -coeffs.b1 * sinW
-                          - coeffs.b2 * sin2W;
+    const float numReal = b0
+                          + b1 * cosW
+                          + b2 * cos2W;
+    const float numImag = -b1 * sinW
+                          - b2 * sin2W;
 
     // Denominator: 1 + a1*z^-1 + a2*z^-2
     const float denReal = 1.0f
-                          + coeffs.a1 * cosW
-                          + coeffs.a2 * cos2W;
-    const float denImag = -coeffs.a1 * sinW
-                          - coeffs.a2 * sin2W;
+                          + a1 * cosW
+                          + a2 * cos2W;
+    const float denImag = -a1 * sinW
+                          - a2 * sin2W;
 
     const float magNum = std::sqrt(numReal * numReal + numImag * numImag);
     const float magDen = std::sqrt(denReal * denReal + denImag * denImag);

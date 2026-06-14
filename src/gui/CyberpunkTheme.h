@@ -238,7 +238,7 @@ public:
         // Try to load a monospaced/tech font, fallback to default
         auto typeface = bold ? juce::Font::getDefaultMonospacedFontName()
                              : juce::Font::getDefaultSansSerifFontName();
-        return juce::Font(juce::FontOptions(typeface).withHeight(height).withStyle(bold ? juce::Font::bold : juce::Font::plain));
+        return juce::Font(juce::FontOptions(typeface).withHeight(height).withStyle(bold ? "Bold" : "Regular"));
     }
 
     juce::Font getTextButtonFont(juce::TextButton&, int) override

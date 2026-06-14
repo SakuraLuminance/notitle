@@ -80,7 +80,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     filterCutoffSlider_.setRange(20.0, 20000.0, 1.0);
     filterCutoffSlider_.setValue(1000.0);
     filterCutoffSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    filterCutoffSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    filterCutoffSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     filterCutoffSlider_.setSkewFactor(0.3);
     filterCutoffSlider_.setDoubleClickReturnValue(true, 1000.0);
     addAndMakeVisible(filterCutoffSlider_);
@@ -88,7 +88,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     filterResSlider_.setRange(0.0, 1.0, 0.01);
     filterResSlider_.setValue(0.3);
     filterResSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    filterResSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    filterResSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     filterResSlider_.setDoubleClickReturnValue(true, 0.3);
     addAndMakeVisible(filterResSlider_);
 
@@ -124,14 +124,14 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     lfoRateSlider_.setRange(0.01, 20.0, 0.01);
     lfoRateSlider_.setValue(2.0);
     lfoRateSlider_.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    lfoRateSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    lfoRateSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     lfoRateSlider_.setDoubleClickReturnValue(true, 2.0);
     addAndMakeVisible(lfoRateSlider_);
 
     lfoDepthSlider_.setRange(0.0, 1.0, 0.01);
     lfoDepthSlider_.setValue(0.5);
     lfoDepthSlider_.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    lfoDepthSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    lfoDepthSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     lfoDepthSlider_.setDoubleClickReturnValue(true, 0.5);
     addAndMakeVisible(lfoDepthSlider_);
     lfoTargetCombo_.addItem("CUTOFF", 1); lfoTargetCombo_.addItem("VOLUME", 2);
@@ -148,28 +148,28 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     envAttackSlider_.setRange(0.0, 5.0, 0.01);
     envAttackSlider_.setValue(0.01);
     envAttackSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    envAttackSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    envAttackSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     envAttackSlider_.setDoubleClickReturnValue(true, 0.01);
     addAndMakeVisible(envAttackSlider_);
 
     envDecaySlider_.setRange(0.0, 5.0, 0.01);
     envDecaySlider_.setValue(0.5);
     envDecaySlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    envDecaySlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    envDecaySlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     envDecaySlider_.setDoubleClickReturnValue(true, 0.5);
     addAndMakeVisible(envDecaySlider_);
 
     envSustainSlider_.setRange(0.0, 1.0, 0.01);
     envSustainSlider_.setValue(0.7);
     envSustainSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    envSustainSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    envSustainSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     envSustainSlider_.setDoubleClickReturnValue(true, 0.7);
     addAndMakeVisible(envSustainSlider_);
 
     envReleaseSlider_.setRange(0.0, 10.0, 0.01);
     envReleaseSlider_.setValue(1.0);
     envReleaseSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    envReleaseSlider_.setTextBoxStyle(juce::Slider::NoTextBox);
+    envReleaseSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     envReleaseSlider_.setDoubleClickReturnValue(true, 1.0);
     addAndMakeVisible(envReleaseSlider_);
     envTargetCombo_.addItem("VOLUME", 1); envTargetCombo_.addItem("CUTOFF", 2);
@@ -183,11 +183,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     unisonTitle_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f, true));
     unisonTitle_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::cyan_);
     addAndMakeVisible(unisonTitle_);
-    addCyberKnob(unisonCountSlider_, unisonCountSlider_, "VOICES", 1, 8, 1, 1,
+    addCyberKnob(unisonCountSlider_, unisonCountLabel_, "VOICES", 1, 8, 1, 1,
                  juce::Slider::RotaryVerticalDrag);
-    addCyberKnob(unisonDetuneSlider_, unisonDetuneSlider_, "DETUNE", 0.0, 50.0, 5.0, 1.0,
+    addCyberKnob(unisonDetuneSlider_, unisonDetuneLabel_, "DETUNE", 0.0, 50.0, 5.0, 1.0,
                  juce::Slider::RotaryVerticalDrag);
-    addCyberKnob(unisonSpreadSlider_, unisonSpreadSlider_, "SPREAD", 0.0, 100.0, 50.0, 1.0,
+    addCyberKnob(unisonSpreadSlider_, unisonSpreadLabel_, "SPREAD", 0.0, 100.0, 50.0, 1.0,
                  juce::Slider::RotaryVerticalDrag);
 
     // Arpeggiator
@@ -200,9 +200,9 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     arpPatternCombo_.addItem("RANDOM", 5);
     arpPatternCombo_.setSelectedId(1);
     addAndMakeVisible(arpPatternCombo_);
-    addCyberKnob(arpRateSlider_, arpRateSlider_, "RATE", 0.25, 4.0, 1.0, 0.25,
+    addCyberKnob(arpRateSlider_, arpRateLabel_, "RATE", 0.25, 4.0, 1.0, 0.25,
                  juce::Slider::RotaryVerticalDrag);
-    addCyberKnob(arpGateSlider_, arpGateSlider_, "GATE", 0.01, 1.0, 0.5, 0.01,
+    addCyberKnob(arpGateSlider_, arpGateLabel_, "GATE", 0.01, 1.0, 0.5, 0.01,
                  juce::Slider::RotaryVerticalDrag);
 
     //==============================================================================
@@ -223,7 +223,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     flattenButton_.setEnabled(false);
 
     addCyberKnob(rootNoteKnob_, rootNoteLabel_, "ROOT", 0.0, 127.0, 60.0, 1.0);
-    rootNoteKnob_.textValueFromValueFunction = [](double v) { return midiNoteToName(static_cast<int>(v)); };
+    rootNoteKnob_.textFromValueFunction = [](double v) { return midiNoteToName(static_cast<int>(v)); };
     rootNoteKnob_.setDoubleClickReturnValue(true, 60.0);
     rootNoteKnob_.onValueChange = [this]() {
         audioProcessor.setRootNote(static_cast<int>(rootNoteKnob_.getValue()));
@@ -451,17 +451,32 @@ void AnaPlugAudioProcessorEditor::resized()
     unisonTitle_.setBounds(uniArea.removeFromTop(14));
     auto uniKnobs = uniArea.reduced(pad);
     int ukW = uniKnobs.getWidth() / 3;
-    unisonCountSlider_.setBounds(uniKnobs.removeFromLeft(ukW).reduced(2));
-    unisonDetuneSlider_.setBounds(uniKnobs.removeFromLeft(ukW).reduced(2));
-    unisonSpreadSlider_.setBounds(uniKnobs.reduced(2));
+    
+    auto uniCell1 = uniKnobs.removeFromLeft(ukW).reduced(2);
+    unisonCountSlider_.setBounds(uniCell1.removeFromTop(uniCell1.getWidth()));
+    unisonCountLabel_.setBounds(uniCell1);
+    
+    auto uniCell2 = uniKnobs.removeFromLeft(ukW).reduced(2);
+    unisonDetuneSlider_.setBounds(uniCell2.removeFromTop(uniCell2.getWidth()));
+    unisonDetuneLabel_.setBounds(uniCell2);
+    
+    auto uniCell3 = uniKnobs.reduced(2);
+    unisonSpreadSlider_.setBounds(uniCell3.removeFromTop(uniCell3.getWidth()));
+    unisonSpreadLabel_.setBounds(uniCell3);
 
     // Arp
     arpTitle_.setBounds(arpArea.removeFromTop(14));
     arpPatternCombo_.setBounds(arpArea.removeFromTop(18).reduced(pad));
     auto arpKnobs = arpArea.reduced(pad);
     int akW = arpKnobs.getWidth() / 2;
-    arpRateSlider_.setBounds(arpKnobs.removeFromLeft(akW).reduced(2));
-    arpGateSlider_.setBounds(arpKnobs.reduced(2));
+    
+    auto arpCell1 = arpKnobs.removeFromLeft(akW).reduced(2);
+    arpRateSlider_.setBounds(arpCell1.removeFromTop(arpCell1.getWidth()));
+    arpRateLabel_.setBounds(arpCell1);
+    
+    auto arpCell2 = arpKnobs.reduced(2);
+    arpGateSlider_.setBounds(arpCell2.removeFromTop(arpCell2.getWidth()));
+    arpGateLabel_.setBounds(arpCell2);
 
     // Sample / transport
     auto smpTop = smpArea.removeFromTop(22).reduced(pad);
@@ -478,8 +493,14 @@ void AnaPlugAudioProcessorEditor::resized()
     pitchDetectLabel_.setBounds(smpArea.removeFromTop(14).reduced(pad));
     auto rootArea = smpArea.reduced(pad);
     int rkW = rootArea.getWidth() / 2;
-    rootNoteKnob_.setBounds(rootArea.removeFromLeft(rkW).reduced(2));
-    rootFineTuneKnob_.setBounds(rootArea.reduced(2));
+    
+    auto rootCell1 = rootArea.removeFromLeft(rkW).reduced(2);
+    rootNoteKnob_.setBounds(rootCell1.removeFromTop(rootCell1.getWidth()));
+    rootNoteLabel_.setBounds(rootCell1);
+    
+    auto rootCell2 = rootArea.reduced(2);
+    rootFineTuneKnob_.setBounds(rootCell2.removeFromTop(rootCell2.getWidth()));
+    rootFineTuneLabel_.setBounds(rootCell2);
 
     // Master
     mstArea.removeFromTop(4);
@@ -631,7 +652,7 @@ void AnaPlugAudioProcessorEditor::addCyberKnob(juce::Slider& slider, juce::Label
     slider.setRange(min, max, step);
     slider.setValue(init);
     slider.setSliderStyle(style);
-    slider.setTextBoxStyle(juce::Slider::NoTextBox);
+    slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     slider.setDoubleClickReturnValue(true, init);
     addAndMakeVisible(slider);
 

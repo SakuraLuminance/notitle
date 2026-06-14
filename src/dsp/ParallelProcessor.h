@@ -145,7 +145,7 @@ private:
     struct InternalJob : public juce::ThreadPoolJob
     {
         InternalJob(std::atomic<int>& counter, juce::WaitableEvent& done) noexcept;
-        RunStatus runJob() override;
+        juce::ThreadPoolJob::JobStatus runJob() override;
 
         std::function<void()> func;
         std::atomic<int>& counterRef;

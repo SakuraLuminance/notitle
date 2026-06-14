@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <juce_dsp/juce_dsp.h>
 
 namespace ana {
@@ -16,7 +16,7 @@ public:
     void setFeedback(float percent);
     void setMix(float percent);
 private:
-    juce::dsp::Chorus chorus;
+    juce::dsp::Chorus<float> chorus;
     float rate = 1.0f, depth = 0.5f, centreDelay = 10.0f, feedback = 0.3f, mixVal = 0.3f;
 };
 

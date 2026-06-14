@@ -129,12 +129,17 @@ private:
     juce::Slider unisonCountSlider_;
     juce::Slider unisonDetuneSlider_;
     juce::Slider unisonSpreadSlider_;
+    juce::Label  unisonCountLabel_;
+    juce::Label  unisonDetuneLabel_;
+    juce::Label  unisonSpreadLabel_;
     juce::Label  unisonTitle_;
 
     // Arpeggiator
     juce::ComboBox arpPatternCombo_;
     juce::Slider arpRateSlider_;
     juce::Slider arpGateSlider_;
+    juce::Label  arpRateLabel_;
+    juce::Label  arpGateLabel_;
     juce::Label  arpTitle_;
 
     // Sample controls
