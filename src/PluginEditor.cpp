@@ -58,10 +58,14 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     //==============================================================================
     // Center — Visual feedback + view selector
     addAndMakeVisible(feedbackPanel_);
+    addAndMakeVisible(spectrumEditorCanvas_);
+    spectrumEditorCanvas_.setVisible(false);
     viewModeCombo_.addItem("PARTIALS", 1);
     viewModeCombo_.addItem("WATERFALL", 2);
     viewModeCombo_.addItem("EDITOR", 3);
+    viewModeCombo_.addItem("3D", 4);
     viewModeCombo_.setSelectedId(1);
+    viewModeCombo_.onChange = [this] { onViewModeChanged(); };
     addAndMakeVisible(viewModeCombo_);
 
     //==============================================================================
@@ -95,16 +99,36 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     addAndMakeVisible(filterViz_);
 
     //==============================================================================
-    // Macros
+    // Macros — wired to MacroController with visual curve feedback
     static const char* macroNames[] = { "M1", "M2", "M3", "M4" };
     for (int i = 0; i < 4; ++i)
     {
-        addCyberKnob(macroSliders_[i], macroLabels_[i], macroNames[i], 0.0, 1.0, 0.0, 0.01);
+        macroSliders_[i].setRange(0.0, 1.0, 0.01);
+        macroSliders_[i].setValue(0.0);
+        macroSliders_[i].setDoubleClickReturnValue(true, 0.0);
+        macroSliders_[i].setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        addAndMakeVisible(macroSliders_[i]);
+
+        macroLabels_[i].setText(macroNames[i], juce::dontSendNotification);
+        macroLabels_[i].setFont(ana::CyberpunkTheme::getCyberFont(9.0f, false));
+        macroLabels_[i].setColour(juce::Label::textColourId,
+                                  ana::CyberpunkTheme::fg_.withAlpha(0.8f));
+        macroLabels_[i].setJustificationType(juce::Justification::centred);
+        addAndMakeVisible(macroLabels_[i]);
+
+        // Push slider changes to MacroController
+        const int idx = i;
+        macroSliders_[i].onValueChange = [this, idx]()
+        {
+            audioProcessor.getMacroController().setMacroValue(
+                idx, static_cast<float>(macroSliders_[idx].getValue()));
+        };
     }
 
     //==============================================================================
-    // XY Pad
-    xyPad_ = std::make_unique<ana::XYPad>();
+    // XY Pad — morph control with smooth interpolation + MIDI Learn
+    xyPad_ = std::make_unique<ana::XYPad>(audioProcessor);
+    xyPad_->setXParameter(&audioProcessor.getMorphAmountRef(), "MORPH");
     addAndMakeVisible(xyPad_.get());
 
     //==============================================================================
@@ -293,7 +317,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     setupMidiLearnForSlider(filterCutoffSlider_, "filter_cutoff");
     setupMidiLearnForSlider(filterResSlider_, "filter_res");
     for (int i = 0; i < 4; ++i)
-        setupMidiLearnForSlider(macroSliders_[i], "macro_" + juce::String(i + 1));
+    {
+        setupMidiLearnForSlider(macroSliders_[i],
+                                "macro_" + juce::String(i + 1),
+                                audioProcessor.getMacroController().getMacroValuePtr(i));
+    }
     setupMidiLearnForSlider(unisonCountSlider_, "unison_count");
     setupMidiLearnForSlider(unisonDetuneSlider_, "unison_detune");
     setupMidiLearnForSlider(unisonSpreadSlider_, "unison_spread");
@@ -435,6 +463,7 @@ void AnaPlugAudioProcessorEditor::resized()
     viewModeCombo_.setBounds(centerArea.removeFromTop(18).reduced(centerArea.getWidth() / 2 - 80, 0));
     auto fbArea = centerArea.removeFromTop(static_cast<int>(centerArea.getHeight() * 0.70f));
     feedbackPanel_.setBounds(fbArea.reduced(2));
+    spectrumEditorCanvas_.setBounds(fbArea.reduced(2));
     xyPad_->setBounds(centerArea.reduced(2));
 
     // -- Process panel: FILTER (left) | MACROS (center) | EFFECTS (right) --
@@ -589,23 +618,92 @@ void AnaPlugAudioProcessorEditor::timerCallback()
             // Update visual feedback panel
             ana::PartialDataSIMD simd = ana::PartialDataSIMD::fromPartialData(partialData);
             feedbackPanel_.updatePartials(simd);
+            spectrumEditorCanvas_.setPartials(simd);
         }
     }
     if (audioProcessor.flattenPending())
         statusLabel_.setText(">> PITCH FLATTENING <<", juce::dontSendNotification);
 
+    // --- Macro visual update: sync slider from controller, update ring colours ---
+    {
+        auto& macroCtrl = audioProcessor.getMacroController();
+        for (int i = 0; i < 4; ++i)
+        {
+            const auto data = macroCtrl.getVisualData(i);
+
+            // Sync slider position if it differs from the controller value
+            const double currentSlider = macroSliders_[i].getValue();
+            if (std::abs(currentSlider - static_cast<double>(data.value)) > 0.001)
+            {
+                macroSliders_[i].setValue(static_cast<double>(data.value),
+                                          juce::dontSendNotification);
+            }
+
+            // Update the curve exponent for ring colour
+            macroSliders_[i].setCurveExponent(data.curveExponent);
+            macroSliders_[i].repaint();
+        }
+    }
+
     // XY Pad → processor parameter mapping
+    // X axis is already written to morphAmount via setXParameter binding
+    // Y axis → apply based on selected target
     if (xyPad_ != nullptr)
     {
-        // X = morph/sub-harmonic amount
-        audioProcessor.setSubHarmonicLevel(xyPad_->getX());
-        // Y = filter cutoff (map 0..1 to 20..20000 Hz)
-        float cutoff = 20.0f * std::pow(20000.0f / 20.0f, xyPad_->getY());
-        filterCutoffSlider_.setValue(static_cast<double>(cutoff), juce::dontSendNotification);
+        const float yVal = xyPad_->getY();
+        switch (xyPad_->getYTarget())
+        {
+            case ana::XYPad::YTarget::Cutoff:
+            {
+                const float cutoff = 20.0f * std::pow(20000.0f / 20.0f, yVal);
+                if (std::abs(static_cast<float>(filterCutoffSlider_.getValue()) - cutoff) > 1.0f)
+                    filterCutoffSlider_.setValue(static_cast<double>(cutoff), juce::dontSendNotification);
+                break;
+            }
+            case ana::XYPad::YTarget::Resonance:
+                if (std::abs(static_cast<float>(filterResSlider_.getValue()) - yVal) > 0.005f)
+                    filterResSlider_.setValue(static_cast<double>(yVal), juce::dontSendNotification);
+                break;
+            case ana::XYPad::YTarget::Volume:
+                if (std::abs(static_cast<float>(masterVolSlider_.getValue()) - yVal) > 0.005f)
+                    masterVolSlider_.setValue(static_cast<double>(yVal), juce::dontSendNotification);
+                break;
+            case ana::XYPad::YTarget::LFORate:
+            {
+                const float rate = juce::jmap(yVal, 0.0f, 1.0f, 0.01f, 20.0f);
+                if (std::abs(static_cast<float>(lfoRateSlider_.getValue()) - rate) > 0.01f)
+                    lfoRateSlider_.setValue(static_cast<double>(rate), juce::dontSendNotification);
+                break;
+            }
+            case ana::XYPad::YTarget::LFODepth:
+                if (std::abs(static_cast<float>(lfoDepthSlider_.getValue()) - yVal) > 0.005f)
+                    lfoDepthSlider_.setValue(static_cast<double>(yVal), juce::dontSendNotification);
+                break;
+        }
     }
 }
 
 //==============================================================================
+//==============================================================================
+void AnaPlugAudioProcessorEditor::onViewModeChanged()
+{
+    const int mode = viewModeCombo_.getSelectedId();
+
+    // 3D mode uses the SpectrumEditorCanvas; all others use feedbackPanel_
+    if (mode == 4)
+    {
+        feedbackPanel_.setVisible(false);
+        spectrumEditorCanvas_.setVisible(true);
+        spectrumEditorCanvas_.set3DEnabled(true);
+    }
+    else
+    {
+        spectrumEditorCanvas_.setVisible(false);
+        spectrumEditorCanvas_.set3DEnabled(false);
+        feedbackPanel_.setVisible(true);
+    }
+}
+
 void AnaPlugAudioProcessorEditor::loadButtonClicked()
 {
     fileChooser_ = std::make_unique<juce::FileChooser>(
@@ -752,6 +850,24 @@ void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     juce::PopupMenu menu;
     auto& midiLearn = audioProcessor.getMidiLearn();
 
+    // --- Check if this is a macro slider → add curve submenu ---
+    if (info.paramId.startsWith("macro_"))
+    {
+        const int macroIdx = info.paramId.getTrailingIntValue() - 1;
+        auto& macroCtrl = audioProcessor.getMacroController();
+        const float currentCurve = macroCtrl.getMappingCurve(macroIdx);
+
+        juce::PopupMenu curveMenu;
+        curveMenu.addItem("Linear (1.0)",  true, std::abs(currentCurve - 1.0f) < 0.01f,
+                          [this, macroIdx]() { audioProcessor.getMacroController().setMappingCurve(macroIdx, 1.0f); });
+        curveMenu.addItem("Exponential (2.0)", true, std::abs(currentCurve - 2.0f) < 0.01f,
+                          [this, macroIdx]() { audioProcessor.getMacroController().setMappingCurve(macroIdx, 2.0f); });
+        curveMenu.addItem("S-Curve (0.5)", true, std::abs(currentCurve - 0.5f) < 0.01f,
+                          [this, macroIdx]() { audioProcessor.getMacroController().setMappingCurve(macroIdx, 0.5f); });
+        menu.addSubMenu("Mapping Curve", curveMenu);
+        menu.addSeparator();
+    }
+
     // Check if this parameter already has a mapping
     bool alreadyMapped = false;
     for (const auto& mapping : midiLearn.getMappings())
@@ -827,6 +943,7 @@ void AnaPlugAudioProcessorEditor::updateMidiLearnState()
     }
 
     // --- Poll mapping targets and sync matching sliders ---
+    auto& macroCtrl = audioProcessor.getMacroController();
     for (const auto& mapping : midiLearn.getMappings())
     {
         if (mapping.targetParam != nullptr)
@@ -840,7 +957,20 @@ void AnaPlugAudioProcessorEditor::updateMidiLearnState()
                 if (std::abs(static_cast<double>(currentAtomic) - currentSlider) > 0.001)
                 {
                     sit->second->setValue(static_cast<double>(currentAtomic),
-                                          juce::dontSendNotification);
+                                          juce::sendNotificationSync);
+                }
+            }
+
+            // Also sync macro controller if this paramId is a macro
+            if (mapping.parameterId.startsWith("macro_"))
+            {
+                const int macroIdx = mapping.parameterId.getTrailingIntValue() - 1;
+                if (macroIdx >= 0 && macroIdx < 4)
+                {
+                    const float rawVal = macroCtrl.getMacroValue(macroIdx);
+                    const float atomicVal = mapping.targetParam->load(std::memory_order_relaxed);
+                    if (std::abs(rawVal - atomicVal) > 0.001f)
+                        macroCtrl.setMacroValue(macroIdx, atomicVal);
                 }
             }
         }

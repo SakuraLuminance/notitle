@@ -37,7 +37,15 @@ WaveformType LFOSystem::getWaveform() const noexcept
 //==============================================================================
 void LFOSystem::setRate(float hz)
 {
-    rateHz = juce::jlimit(0.01f, 100.0f, hz);
+    if (audioRate)
+    {
+        const float maxHz = static_cast<float>(sampleRate * 0.5);
+        rateHz = juce::jlimit(0.01f, maxHz, hz);
+    }
+    else
+    {
+        rateHz = juce::jlimit(0.01f, 100.0f, hz);
+    }
     syncEnabled = false;
 }
 
@@ -214,6 +222,24 @@ float LFOSystem::getValue() const noexcept
     return currentValue;
 }
 
+//==============================================================================
+float LFOSystem::getNextSample()
+{
+    return process(1);
+}
+
+//==============================================================================
+void LFOSystem::setAudioRate(bool enabled) noexcept
+{
+    audioRate = enabled;
+}
+
+bool LFOSystem::isAudioRate() const noexcept
+{
+    return audioRate;
+}
+
+//==============================================================================
 double LFOSystem::getCurrentPhase() const noexcept
 {
     double effectivePhase = phase + static_cast<double>(phaseOffsetDeg) / 360.0;

@@ -2,6 +2,11 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <unordered_set>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace ana {
 
@@ -13,18 +18,40 @@ SpectrumEditorCanvas::SpectrumEditorCanvas()
     setWantsKeyboardFocus(false);
     setMouseClickGrabsKeyboardFocus(false);
     startTimerHz(30); // 30 fps smooth animation
+
+    // Initialise waterfall ring buffer
+    for (auto& frame : waterfallBuffer_)
+    {
+        std::memset(frame.frequency, 0, sizeof(frame.frequency));
+        std::memset(frame.amplitude, 0, sizeof(frame.amplitude));
+        frame.activeCount = 0;
+    }
 }
 
 SpectrumEditorCanvas::~SpectrumEditorCanvas()
 {
     stopTimer();
+
+    if (is3DEnabled_)
+        set3DEnabled(false);
+
+    openGLContext_ = nullptr;
+    renderer3D_ = nullptr;
 }
 
 // ============================================================================
-// Timer (30 fps smooth repaint during drag operations)
+// Timer — pushes waterfall frames and repaints
 // ============================================================================
 void SpectrumEditorCanvas::timerCallback()
 {
+    if (is3DEnabled_)
+    {
+        pushWaterfallFrame();
+
+        if (openGLContext_ != nullptr)
+            openGLContext_->triggerRepaint();
+    }
+
     if (isDragging_)
         repaint();
 }
@@ -56,15 +83,8 @@ PartialDataSIMD SpectrumEditorCanvas::getEditedPartials() const
 // ============================================================================
 // Tool settings
 // ============================================================================
-void SpectrumEditorCanvas::setActiveTool(Tool tool)
-{
-    activeTool_ = tool;
-}
-
-SpectrumEditorCanvas::Tool SpectrumEditorCanvas::getActiveTool() const
-{
-    return activeTool_;
-}
+void SpectrumEditorCanvas::setActiveTool(Tool tool)     { activeTool_ = tool; }
+SpectrumEditorCanvas::Tool SpectrumEditorCanvas::getActiveTool() const { return activeTool_; }
 
 void SpectrumEditorCanvas::setBrushSize(int pixels)
 {
@@ -98,10 +118,7 @@ void SpectrumEditorCanvas::undo()
     if (undoStack_.empty())
         return;
 
-    // Save current state to redo stack
     redoStack_.push_back(partials_);
-
-    // Restore previous state
     partials_ = undoStack_.back();
     undoStack_.pop_back();
 
@@ -118,10 +135,7 @@ void SpectrumEditorCanvas::redo()
     if (redoStack_.empty())
         return;
 
-    // Save current state to undo stack
     undoStack_.push_back(partials_);
-
-    // Restore next state
     partials_ = redoStack_.back();
     redoStack_.pop_back();
 
@@ -131,15 +145,8 @@ void SpectrumEditorCanvas::redo()
         onPartialEdited(partials_);
 }
 
-bool SpectrumEditorCanvas::canUndo() const
-{
-    return !undoStack_.empty();
-}
-
-bool SpectrumEditorCanvas::canRedo() const
-{
-    return !redoStack_.empty();
-}
+bool SpectrumEditorCanvas::canUndo() const { return !undoStack_.empty(); }
+bool SpectrumEditorCanvas::canRedo() const { return !redoStack_.empty(); }
 
 void SpectrumEditorCanvas::clearHistory()
 {
@@ -257,7 +264,6 @@ float SpectrumEditorCanvas::brushFalloff(float dx, float dy, float radius) const
     if (dist >= radius)
         return 0.0f;
 
-    // Quadratic falloff: smooth at centre, zero at edges
     float t = dist / radius;
     return 1.0f - t * t;
 }
@@ -296,7 +302,6 @@ void SpectrumEditorCanvas::applyToolAt(int mx, int my)
         {
             case Tool::Draw:
             {
-                // Additive draw: push amplitude up toward mouse Y position
                 float target = mouseAmp;
                 float delta = (target - partials_.amplitude[i]) * brushStrength_ * falloff;
                 if (delta > 0.0f)
@@ -306,7 +311,6 @@ void SpectrumEditorCanvas::applyToolAt(int mx, int my)
 
             case Tool::Eraser:
             {
-                // Subtractive erase: push amplitude down
                 float delta = brushStrength_ * falloff;
                 partials_.amplitude[i] = std::max(0.0f, partials_.amplitude[i] - delta);
                 break;
@@ -321,7 +325,7 @@ void SpectrumEditorCanvas::applyToolAt(int mx, int my)
 }
 
 // ============================================================================
-// Smooth: 3-point moving average around brush centre
+// Smooth / Sharpen
 // ============================================================================
 void SpectrumEditorCanvas::applySmooth(int mx, int my)
 {
@@ -329,7 +333,6 @@ void SpectrumEditorCanvas::applySmooth(int mx, int my)
 
     float centerFreq = xToFreq(mx);
 
-    // Find nearest partial index to mouse frequency
     int centerIdx = -1;
     float minDist = std::numeric_limits<float>::max();
 
@@ -353,8 +356,7 @@ void SpectrumEditorCanvas::applySmooth(int mx, int my)
     int start = std::max(1, centerIdx - halfBrush);
     int end   = std::min(partials_.maxPartials - 2, centerIdx + halfBrush);
 
-    // Work on a copy to avoid sequential dependency
-    auto smoothed = partials_.amplitude; // copies the array
+    auto smoothed = partials_.amplitude;
 
     for (int i = start; i <= end; ++i)
     {
@@ -378,16 +380,12 @@ void SpectrumEditorCanvas::applySmooth(int mx, int my)
             smoothed[i] = sum / static_cast<float>(count);
     }
 
-    // Write back
     for (int i = start; i <= end; ++i)
         partials_.amplitude[i] = smoothed[i];
 
     partials_.updateActiveMask();
 }
 
-// ============================================================================
-// Sharpen: enhance contrast (unsharp mask) around brush centre
-// ============================================================================
 void SpectrumEditorCanvas::applySharpen(int mx, int my)
 {
     juce::ScopedLock sl(dataLock_);
@@ -417,7 +415,6 @@ void SpectrumEditorCanvas::applySharpen(int mx, int my)
     int start = std::max(1, centerIdx - halfBrush);
     int end   = std::min(partials_.maxPartials - 2, centerIdx + halfBrush);
 
-    // Compute smoothed values first
     auto smoothed = partials_.amplitude;
 
     for (int i = start; i <= end; ++i)
@@ -442,7 +439,6 @@ void SpectrumEditorCanvas::applySharpen(int mx, int my)
             smoothed[i] = sum / static_cast<float>(count);
     }
 
-    // Apply unsharp mask: original + strength * (original - smoothed)
     for (int i = start; i <= end; ++i)
     {
         if (partials_.frequency[i] <= 0.0f)
@@ -458,7 +454,7 @@ void SpectrumEditorCanvas::applySharpen(int mx, int my)
 }
 
 // ============================================================================
-// Line tool: draw a straight line between two (freq, amp) points
+// Line / Rectangle tools
 // ============================================================================
 void SpectrumEditorCanvas::drawLineTo(float freqFrom, float ampFrom,
                                        float freqTo,   float ampTo)
@@ -470,7 +466,6 @@ void SpectrumEditorCanvas::drawLineTo(float freqFrom, float ampFrom,
 
     if (maxFreq - minFreq < 1.0f)
     {
-        // Single point: just set the nearest partial
         float freq = (freqFrom + freqTo) * 0.5f;
         float amp  = (ampFrom + ampTo) * 0.5f;
 
@@ -503,10 +498,8 @@ void SpectrumEditorCanvas::drawLineTo(float freqFrom, float ampFrom,
         if (f <= 0.0f)
             continue;
 
-        // Only affect partials within the line's frequency span
         if (f >= minFreq && f <= maxFreq)
         {
-            // Linear interpolation of amplitude along frequency
             float t = (f - freqFrom) / (freqTo - freqFrom);
             float targetAmp = ampFrom + t * (ampTo - ampFrom);
             partials_.amplitude[i] = std::clamp(targetAmp, 0.0f, 1.0f);
@@ -516,9 +509,6 @@ void SpectrumEditorCanvas::drawLineTo(float freqFrom, float ampFrom,
     partials_.updateActiveMask();
 }
 
-// ============================================================================
-// Rectangle tool: fill a frequency × amplitude region
-// ============================================================================
 void SpectrumEditorCanvas::fillRectTo(float freqFrom, float ampFrom,
                                        float freqTo,   float ampTo)
 {
@@ -526,7 +516,7 @@ void SpectrumEditorCanvas::fillRectTo(float freqFrom, float ampFrom,
 
     float minFreq = std::min(freqFrom, freqTo);
     float maxFreq = std::max(freqFrom, freqTo);
-    float fillAmp = std::max(ampFrom, ampTo); // fill with the top amplitude
+    float fillAmp = std::max(ampFrom, ampTo);
 
     for (int i = 0; i < partials_.maxPartials; ++i)
     {
@@ -542,16 +532,87 @@ void SpectrumEditorCanvas::fillRectTo(float freqFrom, float ampFrom,
 }
 
 // ============================================================================
-// Mouse handling
+// Mouse handling — 2D mode (existing) and 3D mode
 // ============================================================================
 void SpectrumEditorCanvas::mouseDown(const juce::MouseEvent& e)
 {
-    // Ignore clicks outside the canvas area
+    if (is3DEnabled_)
+    {
+        lastMousePos3D_ = e.position;
+
+        // Right mouse button or Ctrl+left → orbit
+        if (e.mods.isRightButtonDown() || e.mods.isCtrlDown())
+        {
+            is3DDragging_ = true;
+            isOrbiting_ = true;
+            return;
+        }
+
+        // Middle mouse button → pan
+        if (e.mods.isMiddleButtonDown())
+        {
+            is3DDragging_ = true;
+            isPanning_ = true;
+            return;
+        }
+
+        // Left click → hit test partials
+        int hitIdx = hitTestPartial3D(e.position);
+
+        if (e.mods.isShiftDown())
+        {
+            // Box selection start
+            isBoxSelecting_ = true;
+            is3DDragging_ = true;
+            selectionBox_ = juce::Rectangle<float>(e.position.x, e.position.y, 0, 0);
+            return;
+        }
+
+        if (e.mods.isAltDown())
+        {
+            // Ctrl-click / Alt-click → toggle selection
+            is3DDragging_ = true;
+            if (hitIdx >= 0)
+            {
+                if (multiSelection_.count(hitIdx))
+                    multiSelection_.erase(hitIdx);
+                else
+                    multiSelection_.insert(hitIdx);
+                selectedPartial_ = hitIdx;
+            }
+            return;
+        }
+
+        // Simple click → select and possibly drag
+        is3DDragging_ = true;
+        if (hitIdx >= 0)
+        {
+            selectedPartial_ = hitIdx;
+            multiSelection_.clear();
+            multiSelection_.insert(hitIdx);
+            isDraggingPartial_ = true;
+            dragPartialIndex_ = hitIdx;
+
+            // Save undo state and record start position
+            saveState();
+            juce::ScopedLock sl(dataLock_);
+            dragStartFreq3D_ = partials_.frequency[hitIdx];
+            dragStartAmp3D_  = partials_.amplitude[hitIdx];
+        }
+        else
+        {
+            // Click on empty space → orbit
+            isOrbiting_ = true;
+        }
+
+        return;
+    }
+
+    // === 2D mode (existing) ===
     auto area = getCanvasArea();
     if (!area.contains(e.getPosition()))
         return;
 
-    // Check for any active partial; if none, ignore editing
     bool hasActive = false;
     for (int i = 0; i < partials_.maxPartials && !hasActive; ++i)
         if (partials_.isActive(i))
@@ -560,7 +621,6 @@ void SpectrumEditorCanvas::mouseDown(const juce::MouseEvent& e)
     if (!hasActive)
         return;
 
-    // Save undo state at the start of every stroke
     saveState();
 
     int mx = e.getPosition().x;
@@ -572,7 +632,6 @@ void SpectrumEditorCanvas::mouseDown(const juce::MouseEvent& e)
     float startFreq = xToFreq(mx);
     float startAmp  = yToAmp(my);
 
-    // Store drag start for Line / Rectangle / general interpolation
     dragStartFreq_ = startFreq;
     dragStartAmp_  = startAmp;
     dragEndFreq_   = startFreq;
@@ -609,6 +668,84 @@ void SpectrumEditorCanvas::mouseDown(const juce::MouseEvent& e)
 
 void SpectrumEditorCanvas::mouseDrag(const juce::MouseEvent& e)
 {
+    if (is3DEnabled_)
+    {
+        if (!is3DDragging_)
+            return;
+
+        auto delta = e.position - lastMousePos3D_;
+
+        if (isOrbiting_)
+        {
+            yaw_   = std::clamp(yaw_   + delta.x * 0.4f, -180.0f, 180.0f);
+            pitch_ = std::clamp(pitch_ - delta.y * 0.4f, -89.0f, 89.0f);
+            lastMousePos3D_ = e.position;
+
+            if (openGLContext_ != nullptr)
+                openGLContext_->triggerRepaint();
+            return;
+        }
+
+        if (isPanning_)
+        {
+            // Pan in screen space — scale by zoom for consistent feel
+            float sens = 0.01f / zoom_;
+            panX_ += delta.x * sens;
+            panY_ -= delta.y * sens;
+            lastMousePos3D_ = e.position;
+
+            if (openGLContext_ != nullptr)
+                openGLContext_->triggerRepaint();
+            return;
+        }
+
+        if (isBoxSelecting_)
+        {
+            float x1 = selectionBox_.getX();
+            float y1 = selectionBox_.getY();
+            float x2 = static_cast<float>(e.position.x);
+            float y2 = static_cast<float>(e.position.y);
+            selectionBox_ = juce::Rectangle<float>::leftTopRightBottom(
+                std::min(x1, x2), std::min(y1, y2),
+                std::max(x1, x2), std::max(y1, y2));
+
+            if (openGLContext_ != nullptr)
+                openGLContext_->triggerRepaint();
+            return;
+        }
+
+        if (isDraggingPartial_ && dragPartialIndex_ >= 0)
+        {
+            // Convert mouse delta to frequency/amplitude change
+            // Use screen-space delta projected onto the 3D scene
+            float freqDelta = delta.x * 20.0f / zoom_;
+            float ampDelta  = -delta.y * 0.005f / zoom_;
+
+            // Apply to the dragged partial
+            {
+                juce::ScopedLock sl(dataLock_);
+                int idx = dragPartialIndex_;
+                float newFreq = std::clamp(dragStartFreq3D_ + freqDelta, 20.0f, 20000.0f);
+                float newAmp  = std::clamp(dragStartAmp3D_  + ampDelta, 0.0f, 1.0f);
+
+                // Move partial frequency/amplitude
+                partials_.frequency[idx] = newFreq;
+                partials_.amplitude[idx] = newAmp;
+                partials_.updateActiveMask();
+            }
+
+            if (onPartialEdited)
+                onPartialEdited(partials_);
+
+            if (openGLContext_ != nullptr)
+                openGLContext_->triggerRepaint();
+            return;
+        }
+
+        return;
+    }
+
+    // === 2D mode ===
     if (!isDragging_)
         return;
 
@@ -639,7 +776,6 @@ void SpectrumEditorCanvas::mouseDrag(const juce::MouseEvent& e)
 
         case Tool::Line:
         case Tool::Rectangle:
-            // Preview is drawn in paint(); no data modification until mouseUp
             repaint();
             break;
 
@@ -650,6 +786,92 @@ void SpectrumEditorCanvas::mouseDrag(const juce::MouseEvent& e)
 
 void SpectrumEditorCanvas::mouseUp(const juce::MouseEvent& e)
 {
+    if (is3DEnabled_)
+    {
+        if (isBoxSelecting_ && !selectionBox_.isEmpty())
+        {
+            // Finalise box selection: hit-test partials in the box
+            multiSelection_.clear();
+
+            auto mousePos = e.position;
+            float x1 = selectionBox_.getX();
+            float y1 = selectionBox_.getY();
+            float x2 = mousePos.x;
+            float y2 = mousePos.y;
+
+            auto box = juce::Rectangle<float>::leftTopRightBottom(
+                std::min(x1, x2), std::min(y1, y2),
+                std::max(x1, x2), std::max(y1, y2));
+
+            // For each active partial, test if its projected 3D position falls in the box
+            {
+                juce::ScopedLock sl(dataLock_);
+                for (int i = 0; i < partials_.maxPartials; ++i)
+                {
+                    if (!partials_.isActive(i))
+                        continue;
+
+                    // Quick screen-space test using the front-most frame depth
+                    float freq = partials_.frequency[i];
+                    float amp  = partials_.amplitude[i];
+
+                    // Normalised frequency: 0..1
+                    float nx = std::log(freq / 20.0f) / std::log(20000.0f / 20.0f);
+                    // Approximate screen y from amplitude (0 at bottom, 1 at top)
+                    float ny = amp;
+
+                    // Project to screen (simplified — uses front Z=0)
+                    float sx, sy;
+                    {
+                        float pitchRad = pitch_ * static_cast<float>(M_PI) / 180.0f;
+                        float yawRad   = yaw_   * static_cast<float>(M_PI) / 180.0f;
+                        float nx3 = (nx * 2.0f - 1.0f);   // -1..1
+                        float ny3 = ny * 2.0f;              // 0..2 (amplitude up)
+                        float nz3 = 0.0f;                    // front
+
+                        // Yaw rotation
+                        float xYaw = nx3 * std::cos(yawRad) + nz3 * std::sin(yawRad);
+                        float zYaw = -nx3 * std::sin(yawRad) + nz3 * std::cos(yawRad);
+                        // Pitch rotation
+                        float yPitch = ny3 * std::cos(pitchRad) - zYaw * std::sin(pitchRad);
+                        float zPitch = ny3 * std::sin(pitchRad) + zYaw * std::cos(pitchRad);
+
+                        float scale = zoom_ / (1.0f + zPitch * 3.0f);
+                        float cx = getWidth() * 0.5f + panX_ * getWidth();
+                        float cy = getHeight() * 0.5f + panY_ * getHeight();
+                        sx = cx + xYaw * scale * getWidth() * 0.4f;
+                        sy = cy - yPitch * scale * getHeight() * 0.4f;
+                    }
+
+                    if (box.contains(sx, sy))
+                        multiSelection_.insert(i);
+                }
+            }
+
+            selectedPartial_ = multiSelection_.empty() ? -1 : *multiSelection_.begin();
+        }
+
+        if (isDraggingPartial_ && dragPartialIndex_ >= 0)
+        {
+            // Notify listeners of the edit
+            if (onPartialEdited)
+                onPartialEdited(partials_);
+        }
+
+        is3DDragging_ = false;
+        isOrbiting_ = false;
+        isPanning_ = false;
+        isBoxSelecting_ = false;
+        isDraggingPartial_ = false;
+        dragPartialIndex_ = -1;
+
+        if (openGLContext_ != nullptr)
+            openGLContext_->triggerRepaint();
+
+        return;
+    }
+
+    // === 2D mode ===
     if (!isDragging_)
         return;
 
@@ -660,7 +882,6 @@ void SpectrumEditorCanvas::mouseUp(const juce::MouseEvent& e)
     dragEndFreq_ = xToFreq(mx);
     dragEndAmp_  = yToAmp(my);
 
-    // Apply line / rectangle on mouse-up
     if (hasPendingStroke_)
     {
         switch (activeTool_)
@@ -685,16 +906,299 @@ void SpectrumEditorCanvas::mouseUp(const juce::MouseEvent& e)
     isDragging_ = false;
     hasPendingStroke_ = false;
 
-    // Notify listeners
     if (onPartialEdited)
         onPartialEdited(partials_);
 }
 
+void SpectrumEditorCanvas::mouseWheelMove(const juce::MouseEvent& e,
+                                           const juce::MouseWheelDetails& w)
+{
+    if (is3DEnabled_)
+    {
+        zoom_ = std::clamp(zoom_ * (w.deltaY > 0.0f ? 1.1f : 0.9f), 0.1f, 10.0f);
+
+        if (openGLContext_ != nullptr)
+            openGLContext_->triggerRepaint();
+
+        return;
+    }
+}
+
 // ============================================================================
-// Paint
+// 3D Waterfall Mode — Public API
+// ============================================================================
+void SpectrumEditorCanvas::set3DEnabled(bool enabled)
+{
+    if (is3DEnabled_ == enabled)
+        return;
+
+    is3DEnabled_ = enabled;
+
+    if (enabled)
+    {
+        // Create OpenGL context and renderer
+        openGLContext_ = std::make_unique<juce::OpenGLContext>();
+        renderer3D_ = std::make_unique<Spectrum3DRenderer>(*this);
+        openGLContext_->setRenderer(renderer3D_.get());
+        openGLContext_->setComponentPaintingEnabled(false);
+        openGLContext_->attachTo(*this);
+
+        // Reset waterfall buffer on enable
+        totalWaterfallFrames_ = 0;
+        waterfallWritePos_ = 0;
+
+        // Push current partial data as initial frame
+        pushWaterfallFrame();
+
+        // Increase timer rate for 3D mode
+        startTimerHz(k3DUpdateHz);
+    }
+    else
+    {
+        // Detach OpenGL
+        if (openGLContext_ != nullptr)
+        {
+            openGLContext_->detach();
+            openGLContext_ = nullptr;
+            renderer3D_ = nullptr;
+        }
+
+        // Restore timer to normal rate
+        startTimerHz(30);
+
+        repaint();
+    }
+}
+
+bool SpectrumEditorCanvas::is3DEnabled() const
+{
+    return is3DEnabled_;
+}
+
+// ============================================================================
+// Camera controls
+// ============================================================================
+void SpectrumEditorCanvas::setCameraRotation(float yawDeg, float pitchDeg)
+{
+    yaw_   = std::clamp(yawDeg, -180.0f, 180.0f);
+    pitch_ = std::clamp(pitchDeg, -89.0f, 89.0f);
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+}
+
+void SpectrumEditorCanvas::setCameraZoom(float zoom)
+{
+    zoom_ = std::clamp(zoom, 0.1f, 10.0f);
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+}
+
+void SpectrumEditorCanvas::setCameraPanX(float x) { panX_ = x; if (openGLContext_ != nullptr) openGLContext_->triggerRepaint(); }
+void SpectrumEditorCanvas::setCameraPanY(float y) { panY_ = y; if (openGLContext_ != nullptr) openGLContext_->triggerRepaint(); }
+float SpectrumEditorCanvas::getYaw()   const { return yaw_; }
+float SpectrumEditorCanvas::getPitch() const { return pitch_; }
+float SpectrumEditorCanvas::getZoom()  const { return zoom_; }
+
+// ============================================================================
+// Partial selection API
+// ============================================================================
+int SpectrumEditorCanvas::getSelectedPartial() const
+{
+    return selectedPartial_;
+}
+
+void SpectrumEditorCanvas::setSelectedPartial(int index)
+{
+    selectedPartial_ = index;
+    multiSelection_.clear();
+    if (index >= 0)
+        multiSelection_.insert(index);
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+    repaint();
+}
+
+void SpectrumEditorCanvas::movePartial(int index, float newFreq, float newAmp)
+{
+    if (index < 0 || index >= partials_.maxPartials)
+        return;
+
+    {
+        juce::ScopedLock sl(dataLock_);
+        partials_.frequency[index] = std::clamp(newFreq, 20.0f, 20000.0f);
+        partials_.amplitude[index] = std::clamp(newAmp, 0.0f, 1.0f);
+        partials_.updateActiveMask();
+    }
+
+    if (onPartialEdited)
+        onPartialEdited(partials_);
+
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+    repaint();
+}
+
+void SpectrumEditorCanvas::batchMovePartials(const std::vector<int>& indices,
+                                              float freqOffset, float ampOffset)
+{
+    if (indices.empty())
+        return;
+
+    saveState();
+
+    {
+        juce::ScopedLock sl(dataLock_);
+        for (int idx : indices)
+        {
+            if (idx < 0 || idx >= partials_.maxPartials)
+                continue;
+
+            partials_.frequency[idx] = std::clamp(
+                partials_.frequency[idx] + freqOffset, 20.0f, 20000.0f);
+            partials_.amplitude[idx] = std::clamp(
+                partials_.amplitude[idx] + ampOffset, 0.0f, 1.0f);
+        }
+        partials_.updateActiveMask();
+    }
+
+    if (onPartialEdited)
+        onPartialEdited(partials_);
+
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+    repaint();
+}
+
+void SpectrumEditorCanvas::clearSelection()
+{
+    selectedPartial_ = -1;
+    multiSelection_.clear();
+    isBoxSelecting_ = false;
+    selectionBox_ = {};
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+    repaint();
+}
+
+bool SpectrumEditorCanvas::isPartialSelected(int index) const
+{
+    return multiSelection_.count(index) > 0;
+}
+
+std::vector<int> SpectrumEditorCanvas::getSelectedPartials() const
+{
+    return { multiSelection_.begin(), multiSelection_.end() };
+}
+
+juce::Rectangle<float> SpectrumEditorCanvas::getSelectionBox() const
+{
+    return selectionBox_;
+}
+
+// ============================================================================
+// Waterfall buffer
+// ============================================================================
+void SpectrumEditorCanvas::pushWaterfallFrame()
+{
+    juce::ScopedLock sl(dataLock_);
+
+    auto& frame = waterfallBuffer_[waterfallWritePos_];
+    int count = 0;
+
+    for (int i = 0; i < partials_.maxPartials; ++i)
+    {
+        if (partials_.isActive(i))
+        {
+            frame.frequency[count] = partials_.frequency[i];
+            frame.amplitude[count] = partials_.amplitude[i];
+            ++count;
+        }
+    }
+
+    frame.activeCount = count;
+
+    // Zero out the rest
+    for (int i = count; i < PartialDataSIMD::kMaxPartials; ++i)
+    {
+        frame.frequency[i] = 0.0f;
+        frame.amplitude[i] = 0.0f;
+    }
+
+    waterfallWritePos_ = (waterfallWritePos_ + 1) % kWaterfallDepth;
+    if (totalWaterfallFrames_ < kWaterfallDepth)
+        ++totalWaterfallFrames_;
+}
+
+// ============================================================================
+// 3D hit testing — projects partials to screen and finds nearest
+// ============================================================================
+int SpectrumEditorCanvas::hitTestPartial3D(juce::Point<float> mousePos)
+{
+    juce::ScopedLock sl(dataLock_);
+
+    constexpr float hitRadius = 8.0f;  // pixels
+    int bestIdx = -1;
+    float bestDist = hitRadius;
+
+    // Build the projection from the latest frame
+    for (int i = 0; i < partials_.maxPartials; ++i)
+    {
+        if (!partials_.isActive(i))
+            continue;
+
+        float freq = partials_.frequency[i];
+        float amp  = partials_.amplitude[i];
+
+        // Normalise frequency to 0..1 (log scale)
+        float nx = std::log(freq / 20.0f) / std::log(20000.0f / 20.0f);
+        // Project to screen using current camera
+        float sx, sy;
+        {
+            float pitchRad = pitch_ * static_cast<float>(M_PI) / 180.0f;
+            float yawRad   = yaw_   * static_cast<float>(M_PI) / 180.0f;
+            float nx3 = (nx * 2.0f - 1.0f);
+            float ny3 = amp * 2.0f;
+            float nz3 = 0.0f;  // front depth
+
+            float xYaw = nx3 * std::cos(yawRad) + nz3 * std::sin(yawRad);
+            float zYaw = -nx3 * std::sin(yawRad) + nz3 * std::cos(yawRad);
+            float yPitch = ny3 * std::cos(pitchRad) - zYaw * std::sin(pitchRad);
+            float zPitch = ny3 * std::sin(pitchRad) + zYaw * std::cos(pitchRad);
+
+            float scale = zoom_ / (1.0f + zPitch * 3.0f);
+            float cx = getWidth() * 0.5f + panX_ * getWidth();
+            float cy = getHeight() * 0.5f + panY_ * getHeight();
+            sx = cx + xYaw * scale * getWidth() * 0.4f;
+            sy = cy - yPitch * scale * getHeight() * 0.4f;
+        }
+
+        float dx = mousePos.x - sx;
+        float dy = mousePos.y - sy;
+        float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist < bestDist)
+        {
+            bestDist = dist;
+            bestIdx = i;
+        }
+    }
+
+    return bestIdx;
+}
+
+// ============================================================================
+// Paint — 2D mode only
 // ============================================================================
 void SpectrumEditorCanvas::paint(juce::Graphics& g)
 {
+    if (is3DEnabled_)
+    {
+        // 3D mode: OpenGL renders, but paint may still be called
+        // (e.g. when component painting is not disabled)
+        g.fillAll(bgColour_);
+        return;
+    }
+
     auto bounds = getLocalBounds();
     g.fillAll(bgColour_);
 
@@ -727,7 +1231,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
     {
         juce::ScopedLock sl(dataLock_);
 
-        // Calculate bar width based on number of active partials
         int activeCount = partials_.activeCount;
         int barWidth = activeCount > 0
                            ? std::max(1, area.getWidth() / activeCount)
@@ -748,11 +1251,9 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
             int barHeight = static_cast<int>(amp * static_cast<float>(area.getHeight()));
             int y = area.getBottom() - barHeight;
 
-            // Clamp to canvas
             if (x > area.getRight() || x + barWidth < area.getX())
                 continue;
 
-            // Colour: brighter for higher amplitudes
             float alpha = 0.25f + 0.75f * amp;
             g.setColour(barColour_.withMultipliedAlpha(alpha));
             g.fillRect(x, y, barWidth, barHeight);
@@ -764,7 +1265,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
     {
         g.setColour(gridColour_);
 
-        // Vertical lines (frequency divisions)
         for (int i = 0; i <= gridLinesX_; ++i)
         {
             float t = static_cast<float>(i) / static_cast<float>(gridLinesX_);
@@ -780,7 +1280,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
                                    static_cast<float>(area.getBottom()));
         }
 
-        // Horizontal lines (amplitude divisions)
         for (int i = 0; i <= gridLinesY_; ++i)
         {
             float amp = static_cast<float>(i) / static_cast<float>(gridLinesY_);
@@ -791,7 +1290,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
         }
     }
 
-    // --- Canvas border ---
     g.setColour(gridColour_.brighter(0.5f));
     g.drawRect(area, 1);
 
@@ -801,7 +1299,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
         g.setFont(juce::Font(10.0f, juce::Font::plain));
         g.setColour(juce::Colours::lightgrey);
 
-        // Frequency labels (bottom axis)
         for (int i = 0; i <= gridLinesX_; ++i)
         {
             float t = static_cast<float>(i) / static_cast<float>(gridLinesX_);
@@ -828,7 +1325,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
                        juce::Justification::centred);
         }
 
-        // Amplitude labels (left axis)
         for (int i = 0; i <= gridLinesY_; ++i)
         {
             float amp = static_cast<float>(gridLinesY_ - i) / static_cast<float>(gridLinesY_);
@@ -843,7 +1339,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
                        juce::Justification::centredRight);
         }
 
-        // Axis title
         g.setFont(juce::Font(9.0f, juce::Font::plain));
         g.setColour(juce::Colours::grey);
 
@@ -858,7 +1353,7 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
                    juce::Justification::centredRight);
     }
 
-    // --- Tool preview (Line / Rectangle) ---
+    // --- Tool preview ---
     if (isDragging_ && hasPendingStroke_ &&
         (activeTool_ == Tool::Line || activeTool_ == Tool::Rectangle))
     {
@@ -873,14 +1368,12 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
         {
             g.drawLine(static_cast<float>(x1), static_cast<float>(y1),
                        static_cast<float>(x2), static_cast<float>(y2), 2.0f);
-
-            // Draw end points
             g.fillEllipse(static_cast<float>(x1) - 3.0f,
                           static_cast<float>(y1) - 3.0f, 6.0f, 6.0f);
             g.fillEllipse(static_cast<float>(x2) - 3.0f,
                           static_cast<float>(y2) - 3.0f, 6.0f, 6.0f);
         }
-        else // Rectangle
+        else
         {
             int rx = std::min(x1, x2);
             int ry = std::min(y1, y2);
@@ -888,8 +1381,6 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
             int rh = std::abs(y2 - y1);
 
             g.drawRect(rx, ry, rw, rh, 2.0f);
-
-            // Semi-transparent fill
             g.setColour(toolColour_.withAlpha(0.15f));
             g.fillRect(rx, ry, rw, rh);
         }
@@ -898,7 +1389,293 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
 
 void SpectrumEditorCanvas::resized()
 {
+    // When using OpenGL, the context needs to know about the resize
+    if (openGLContext_ != nullptr)
+        openGLContext_->triggerRepaint();
+
     repaint();
+}
+
+// ============================================================================
+// 3D Waterfall — OpenGL Renderer
+// ============================================================================
+
+void SpectrumEditorCanvas::Spectrum3DRenderer::newOpenGLContextCreated()
+{
+    using namespace juce::gl;
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glClearColor(0.04f, 0.04f, 0.08f, 1.0f);  // dark navy
+}
+
+void SpectrumEditorCanvas::Spectrum3DRenderer::openGLContextClosing()
+{
+    // Nothing to clean up
+}
+
+void SpectrumEditorCanvas::Spectrum3DRenderer::renderOpenGL()
+{
+    owner_.render3DContent();
+}
+
+// ============================================================================
+// 3D Waterfall — Core OpenGL rendering
+// ============================================================================
+void SpectrumEditorCanvas::render3DContent()
+{
+    using namespace juce::gl;
+
+    int w = getWidth();
+    int h = getHeight();
+    if (w <= 0 || h <= 0)
+        return;
+
+    glViewport(0, 0, w, h);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // --- Perspective projection ---
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    float aspect = static_cast<float>(w) / static_cast<float>(h);
+    float fovY = 45.0f * static_cast<float>(M_PI) / 180.0f;
+    float nearP = 0.1f, farP = 50.0f;
+    float topP = nearP * std::tan(fovY * 0.5f);
+    float bottomP = -topP;
+    float leftP = bottomP * aspect;
+    float rightP = topP * aspect;
+    glFrustum(leftP, rightP, bottomP, topP, nearP, farP);
+
+    // --- Camera modelview ---
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    float dist = 5.0f / zoom_;
+    glTranslatef(panX_ * 3.0f, panY_ * 2.0f, -dist);
+    glRotatef(pitch_, 1.0f, 0.0f, 0.0f);
+    glRotatef(yaw_, 0.0f, 1.0f, 0.0f);
+
+    // Data volume spans [-1, 1] in X (frequency), [-1, 1] in Y (depth/time),
+    // and [0, 2] in Z (amplitude / height)
+
+    // ====================================================================
+    // 1. Floor grid
+    // ====================================================================
+    glLineWidth(1.0f);
+    glBegin(GL_LINES);
+
+    // XY grid lines at Z = 0 (frequency × depth plane)
+    const int gridDivX = 10;  // frequency divisions
+    const int gridDivY = 8;   // depth divisions
+
+    for (int i = 0; i <= gridDivX; ++i)
+    {
+        float x = static_cast<float>(i) / static_cast<float>(gridDivX) * 2.0f - 1.0f;
+        glColor4f(0.15f, 0.15f, 0.3f, 0.8f);
+        glVertex3f(x, -1.0f, 0.0f);
+        glVertex3f(x,  1.0f, 0.0f);
+    }
+
+    for (int i = 0; i <= gridDivY; ++i)
+    {
+        float y = static_cast<float>(i) / static_cast<float>(gridDivY) * 2.0f - 1.0f;
+        glColor4f(0.15f, 0.15f, 0.3f, 0.8f);
+        glVertex3f(-1.0f, y, 0.0f);
+        glVertex3f( 1.0f, y, 0.0f);
+    }
+
+    // Z-axis line (amplitude)
+    glColor4f(0.3f, 0.3f, 0.5f, 0.5f);
+    glVertex3f(-1.0f, -1.0f, 0.0f);
+    glVertex3f(-1.0f, -1.0f, 2.0f);
+
+    glEnd();
+
+    // ====================================================================
+    // 2. Waterfall bars (back to front for proper depth ordering)
+    // ====================================================================
+    int validFrames = std::min(totalWaterfallFrames_, kWaterfallDepth);
+    if (validFrames < 1)
+    {
+        // No data yet — render empty state text
+        return;
+    }
+
+    // Determine the oldest frame index in the ring buffer
+    int oldestIdx;
+    if (totalWaterfallFrames_ < kWaterfallDepth)
+        oldestIdx = 0;
+    else
+        oldestIdx = waterfallWritePos_;
+
+    // Render from back (oldest) to front (newest)
+    for (int fi = 0; fi < validFrames; ++fi)
+    {
+        int bufIdx = (oldestIdx + fi) % kWaterfallDepth;
+        const auto& frame = waterfallBuffer_[bufIdx];
+
+        // Normalised depth: 0 = front (newest), 1 = back (oldest)
+        float depth = 1.0f - static_cast<float>(fi) / static_cast<float>(validFrames - 1);
+        // Map depth to Y position: front = -1, back = +1
+        float yPos = -depth * 2.0f + 1.0f;
+
+        // Opacity: front = fully opaque, back = more transparent
+        float alpha = 0.85f - depth * 0.5f;
+
+        if (frame.activeCount <= 0)
+            continue;
+
+        for (int pi = 0; pi < frame.activeCount; ++pi)
+        {
+            float freq = frame.frequency[pi];
+            float amp  = frame.amplitude[pi];
+
+            if (amp < 1e-6f || freq <= 0.0f)
+                continue;
+
+            // Normalise frequency to -1..1
+            float nx = std::log(freq / 20.0f) / std::log(20000.0f / 20.0f);
+            float xPos = nx * 2.0f - 1.0f;
+
+            // Amplitude → height (0 at floor, 2*amp at top)
+            float zPos = amp * 2.0f;
+
+            // Color: amplitude maps to blue→cyan→yellow→red
+            float t = std::clamp(amp, 0.0f, 1.0f);
+            float r, g, b;
+            if (t < 0.25f)
+            {
+                // Dark blue → blue
+                float u = t / 0.25f;
+                r = 0.1f; g = 0.1f + u * 0.6f; b = 0.4f + u * 0.6f;
+            }
+            else if (t < 0.5f)
+            {
+                // Blue → cyan
+                float u = (t - 0.25f) / 0.25f;
+                r = 0.1f + u * 0.3f; g = 0.7f; b = 1.0f - u * 0.3f;
+            }
+            else if (t < 0.75f)
+            {
+                // Cyan → yellow
+                float u = (t - 0.5f) / 0.25f;
+                r = 0.4f + u * 0.6f; g = 1.0f; b = 0.7f - u * 0.7f;
+            }
+            else
+            {
+                // Yellow → red
+                float u = (t - 0.75f) / 0.25f;
+                r = 1.0f; g = 1.0f - u; b = 0.0f;
+            }
+
+            // Check if this partial is selected
+            bool isSelected = isPartialSelected(pi);
+            float barWidth = 0.02f;  // proportional to view volume
+
+            // Render as a 3D bar (quad)
+            float x0 = xPos - barWidth;
+            float x1 = xPos + barWidth;
+            float z0 = 0.0f;
+            float z1 = zPos;
+
+            // Front face
+            glBegin(GL_QUADS);
+            if (isSelected)
+                glColor4f(1.0f, 1.0f, 1.0f, alpha);   // white highlight
+            else
+                glColor4f(r, g, b, alpha);
+
+            glVertex3f(x0, yPos, z0);
+            glVertex3f(x1, yPos, z0);
+            glVertex3f(x1, yPos, z1);
+            glVertex3f(x0, yPos, z1);
+            glEnd();
+        }
+    }
+
+    // ====================================================================
+    // 3. Front ridge highlight (newest frame — drawn last on top)
+    // ====================================================================
+    if (validFrames > 0)
+    {
+        int newestIdx;
+        if (totalWaterfallFrames_ < kWaterfallDepth)
+            newestIdx = totalWaterfallFrames_ - 1;
+        else
+            newestIdx = (waterfallWritePos_ - 1 + kWaterfallDepth) % kWaterfallDepth;
+
+        const auto& frontFrame = waterfallBuffer_[newestIdx];
+
+        glLineWidth(2.5f);
+        glBegin(GL_LINE_STRIP);
+        glColor4f(0.0f, 0.9f, 1.0f, 0.9f);  // neon cyan
+
+        for (int pi = 0; pi < frontFrame.activeCount; ++pi)
+        {
+            float freq = frontFrame.frequency[pi];
+            float amp  = frontFrame.amplitude[pi];
+
+            if (amp < 1e-6f || freq <= 0.0f)
+                continue;
+
+            float nx = std::log(freq / 20.0f) / std::log(20000.0f / 20.0f);
+            float xPos = nx * 2.0f - 1.0f;
+            float zPos = amp * 2.0f;
+
+            glVertex3f(xPos, -1.0f, zPos);
+        }
+        glEnd();
+    }
+
+    // ====================================================================
+    // 4. Selection box overlay
+    // ====================================================================
+    if (isBoxSelecting_ && !selectionBox_.isEmpty())
+    {
+        // Convert screen-space selection box to NDC for overlay
+        float sx = (selectionBox_.getX() / static_cast<float>(w)) * 2.0f - 1.0f;
+        float sy = (selectionBox_.getY() / static_cast<float>(h)) * -2.0f + 1.0f;
+        float sx2 = ((selectionBox_.getX() + selectionBox_.getWidth()) / static_cast<float>(w)) * 2.0f - 1.0f;
+        float sy2 = ((selectionBox_.getY() + selectionBox_.getHeight()) / static_cast<float>(h)) * -2.0f + 1.0f;
+
+        // Switch to 2D ortho overlay
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        glDisable(GL_DEPTH_TEST);
+
+        glBegin(GL_LINE_LOOP);
+        glColor4f(0.0f, 1.0f, 1.0f, 0.8f);
+        glVertex2f(sx, sy);
+        glVertex2f(sx2, sy);
+        glVertex2f(sx2, sy2);
+        glVertex2f(sx, sy2);
+        glEnd();
+
+        // Semi-transparent fill
+        glBegin(GL_QUADS);
+        glColor4f(0.0f, 1.0f, 1.0f, 0.1f);
+        glVertex2f(sx, sy);
+        glVertex2f(sx2, sy);
+        glVertex2f(sx2, sy2);
+        glVertex2f(sx, sy2);
+        glEnd();
+
+        glEnable(GL_DEPTH_TEST);
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+    }
 }
 
 } // namespace ana

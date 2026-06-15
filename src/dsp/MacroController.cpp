@@ -1,4 +1,5 @@
 #include "MacroController.h"
+#include "MidiLearn.h"
 #include "SIMDSupport.h"
 
 #include <algorithm>
@@ -58,11 +59,34 @@ void MacroController::setMacroValue(int macroIndex, float value)
     if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
         return;
 
+    const float clamped = juce::jlimit(0.0f, 1.0f, value);
+
     macros_[static_cast<size_t>(macroIndex)].value.store(
-        juce::jlimit(0.0f, 1.0f, value),
-        std::memory_order_relaxed);
+        clamped, std::memory_order_relaxed);
+
+    // Push mapped value to direct (new-style) targets
+    pushToDirectTargets(macroIndex);
 
     updateTargetCache();
+}
+
+void MacroController::pushToDirectTargets(int macroIndex)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    auto& macro = macros_[static_cast<size_t>(macroIndex)];
+    const float rawVal = macro.value.load(std::memory_order_relaxed);
+    const float mapped = std::pow(rawVal, macro.mappingCurve);
+
+    for (auto& target : macro.targets)
+    {
+        if (target.target != nullptr)
+        {
+            target.target->store(juce::jlimit(0.0f, 1.0f, mapped),
+                                 std::memory_order_relaxed);
+        }
+    }
 }
 
 float MacroController::getMacroValue(int macroIndex) const
@@ -142,6 +166,151 @@ float MacroController::applyCurve(float input, const MacroMapping& mapping) cons
         val = 1.0f - val;
 
     return val; // Always in [0, 1]
+}
+
+//==============================================================================
+// --- Mapping Curve ---
+
+void MacroController::setMappingCurve(int macroIndex, float exponent)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    macros_[static_cast<size_t>(macroIndex)].mappingCurve =
+        juce::jlimit(0.01f, 10.0f, exponent);
+
+    // Re-apply curve to direct targets
+    pushToDirectTargets(macroIndex);
+}
+
+float MacroController::getMappingCurve(int macroIndex) const
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return 1.0f;
+
+    return macros_[static_cast<size_t>(macroIndex)].mappingCurve;
+}
+
+//==============================================================================
+// --- Direct Target Binding ---
+
+void MacroController::setMacroTarget(int macroIndex,
+                                     const juce::String& paramId,
+                                     std::atomic<float>* target)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    auto& macro = macros_[static_cast<size_t>(macroIndex)];
+
+    // Check if target with this paramId already exists → update it
+    for (auto& t : macro.targets)
+    {
+        if (t.paramId == paramId)
+        {
+            t.target = target;
+            pushToDirectTargets(macroIndex);
+            return;
+        }
+    }
+
+    // Enforce max targets
+    if (static_cast<int>(macro.targets.size()) >= maxDirectTargetsPerMacro)
+        return;
+
+    MacroTarget mt;
+    mt.paramId = paramId;
+    mt.target  = target;
+    macro.targets.push_back(std::move(mt));
+
+    pushToDirectTargets(macroIndex);
+}
+
+void MacroController::clearMacroTarget(int macroIndex, const juce::String& paramId)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    auto& macro = macros_[static_cast<size_t>(macroIndex)];
+    auto it = std::remove_if(macro.targets.begin(), macro.targets.end(),
+        [&paramId](const MacroTarget& t) { return t.paramId == paramId; });
+    macro.targets.erase(it, macro.targets.end());
+}
+
+void MacroController::clearMacroTargets(int macroIndex)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    macros_[static_cast<size_t>(macroIndex)].targets.clear();
+}
+
+int MacroController::getNumMacroTargets(int macroIndex) const
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return 0;
+
+    return static_cast<int>(macros_[static_cast<size_t>(macroIndex)].targets.size());
+}
+
+//==============================================================================
+// --- MIDI Learn Integration ---
+
+void MacroController::bindMidiLearn(int macroIndex, MidiLearn& midiLearn)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    auto& macro = macros_[static_cast<size_t>(macroIndex)];
+    const juce::String paramId = "macro_" + juce::String(macroIndex + 1);
+
+    // Remove any previous binding for this macro
+    if (macro.midiLearnCC >= 0)
+        midiLearn.removeMapping(macro.midiLearnCC);
+
+    // Start learn mode so the next incoming CC binds to this macro
+    midiLearn.startLearn(paramId, &macro.value, 0.0f, 1.0f);
+
+    // We don't know the CC yet - it will be set when learn completes
+    macro.midiLearnCC = -2; // -2 = currently learning
+}
+
+void MacroController::unbindMidiLearn(int macroIndex)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return;
+
+    auto& macro = macros_[static_cast<size_t>(macroIndex)];
+    // We don't have a direct reference to MidiLearn here,
+    // so the caller is responsible for calling midiLearn.removeMapping().
+    // This just resets the local tracking state.
+    macro.midiLearnCC = -1;
+}
+
+//==============================================================================
+// --- Visualization Data ---
+
+MacroVisualData MacroController::getVisualData(int macroIndex) const
+{
+    MacroVisualData data;
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return data;
+
+    const auto& macro = macros_[static_cast<size_t>(macroIndex)];
+    data.value         = macro.value.load(std::memory_order_relaxed);
+    data.curveExponent = macro.mappingCurve;
+    data.mappedValue   = std::pow(data.value, data.curveExponent);
+    data.name          = macro.name;
+    data.numTargets    = static_cast<int>(macro.targets.size());
+    return data;
+}
+
+std::atomic<float>* MacroController::getMacroValuePtr(int macroIndex)
+{
+    if (macroIndex < 0 || macroIndex >= static_cast<int>(macros_.size()))
+        return nullptr;
+
+    return &macros_[static_cast<size_t>(macroIndex)].value;
 }
 
 //==============================================================================
@@ -230,11 +399,13 @@ juce::XmlElement* MacroController::createXml() const
 
     for (int m = 0; m < static_cast<int>(macros_.size()); ++m)
     {
+        const auto& macro = macros_[static_cast<size_t>(m)];
         auto* macroXml = xml->createNewChildElement("macro");
-        macroXml->setAttribute("index", m);
-        macroXml->setAttribute("name", macros_[static_cast<size_t>(m)].name);
+        macroXml->setAttribute("index",   m);
+        macroXml->setAttribute("name",    macro.name);
+        macroXml->setAttribute("curve",   static_cast<double>(macro.mappingCurve));
 
-        for (const auto& mapping : macros_[static_cast<size_t>(m)].mappings)
+        for (const auto& mapping : macro.mappings)
         {
             auto* mapXml = macroXml->createNewChildElement("mapping");
             mapXml->setAttribute("target", mapping.targetParamIndex);
@@ -243,6 +414,14 @@ juce::XmlElement* MacroController::createXml() const
             mapXml->setAttribute("curve",  static_cast<int>(mapping.curve));
             mapXml->setAttribute("bipolar", mapping.bipolar);
             mapXml->setAttribute("invert",  mapping.invert);
+        }
+
+        // Serialize direct targets (paramId only - the atomic pointer
+        // is reconnected at runtime by the plugin)
+        for (const auto& target : macro.targets)
+        {
+            auto* tgtXml = macroXml->createNewChildElement("directtarget");
+            tgtXml->setAttribute("paramId", target.paramId);
         }
     }
 
@@ -286,24 +465,34 @@ void MacroController::loadFromXml(const juce::XmlElement& xml)
             continue;
 
         auto& macro = macros_[static_cast<size_t>(macroIndex)];
-        macro.name = macroXml->getStringAttribute("name");
+        macro.name         = macroXml->getStringAttribute("name");
+        macro.mappingCurve = static_cast<float>(
+            macroXml->getDoubleAttribute("curve", 1.0));
         macro.mappings.clear();
+        macro.targets.clear();
 
         for (auto* mapXml : *macroXml)
         {
-            if (! mapXml->hasTagName("mapping"))
-                continue;
+            if (mapXml->hasTagName("mapping"))
+            {
+                MacroMapping mapping;
+                mapping.targetParamIndex = mapXml->getIntAttribute("target", 0);
+                mapping.min              = static_cast<float>(mapXml->getDoubleAttribute("min", 0.0));
+                mapping.max              = static_cast<float>(mapXml->getDoubleAttribute("max", 1.0));
+                mapping.curve            = static_cast<MacroMapping::Curve>(
+                                               mapXml->getIntAttribute("curve", 0));
+                mapping.bipolar          = mapXml->getBoolAttribute("bipolar", false);
+                mapping.invert           = mapXml->getBoolAttribute("invert",  false);
 
-            MacroMapping mapping;
-            mapping.targetParamIndex = mapXml->getIntAttribute("target", 0);
-            mapping.min              = static_cast<float>(mapXml->getDoubleAttribute("min", 0.0));
-            mapping.max              = static_cast<float>(mapXml->getDoubleAttribute("max", 1.0));
-            mapping.curve            = static_cast<MacroMapping::Curve>(
-                                           mapXml->getIntAttribute("curve", 0));
-            mapping.bipolar          = mapXml->getBoolAttribute("bipolar", false);
-            mapping.invert           = mapXml->getBoolAttribute("invert",  false);
-
-            macro.mappings.push_back(mapping);
+                macro.mappings.push_back(mapping);
+            }
+            else if (mapXml->hasTagName("directtarget"))
+            {
+                MacroTarget mt;
+                mt.paramId = mapXml->getStringAttribute("paramId");
+                mt.target  = nullptr; // reconnected at runtime
+                macro.targets.push_back(std::move(mt));
+            }
         }
     }
 

@@ -10,7 +10,12 @@
 #include "dsp/PartialDataSIMD.h"
 #include "dsp/SpectralDNA.h"
 #include "dsp/SpectralMorpher.h"
+#include "dsp/WavetableEngine.h"
 #include "dsp/MidiLearn.h"
+#include "dsp/MacroController.h"
+#include "dsp/MultibandProcessor.h"
+#include "dsp/ModulationBus.h"
+#include "dsp/PartialModulator.h"
 #include <array>
 
 class AnaPlugAudioProcessor : public juce::AudioProcessor
@@ -143,10 +148,24 @@ public:
     ana::MidiLearn& getMidiLearn() { return midiLearn_; }
     const ana::MidiLearn& getMidiLearn() const { return midiLearn_; }
 
+    // --- Macro Controller ---
+    ana::MacroController& getMacroController() { return macroController_; }
+    const ana::MacroController& getMacroController() const { return macroController_; }
+
     // Atomic references for MIDI Learn targets
     std::atomic<float>& getSubHarmonicLevelRef() { return subHarmonicLevel_; }
     std::atomic<int>& getRootNoteRef() { return rootNoteParam_; }
     std::atomic<float>& getRootFineTuneRef() { return rootFineTuneParam_; }
+    std::atomic<float>& getMorphAmountRef() { return morphAmount_; }
+
+    // Wavetable engine access
+    ana::WavetableEngine& getWavetableEngine() { return wavetableEngine_; }
+    std::atomic<float>& getWavetablePositionRef() { return wavetablePosition_; }
+    float getWavetablePosition() const { return wavetablePosition_.load(); }
+    void setWavetablePosition(float pos) { wavetablePosition_.store(pos); wavetableEngine_.setPosition(pos); }
+    bool isWavetableEnabled() const { return wavetableEnabled_.load(); }
+    void setWavetableEnabled(bool enabled) { wavetableEnabled_.store(enabled); }
+    std::atomic<bool>& getWavetableEnabledRef() { return wavetableEnabled_; }
 
 private:
     ana::PresetManager presetManager;
@@ -204,6 +223,11 @@ private:
     std::array<float, 512 * 3> dnaAudioBuffer_{};  // freq, amp, phase interleaved
     std::atomic<bool> dnaBufferValid_{false};
 
+    // --- Wavetable engine ---
+    ana::WavetableEngine wavetableEngine_;
+    std::atomic<float> wavetablePosition_{0.0f};
+    std::atomic<bool> wavetableEnabled_{false};
+
     //==============================================================================
     // --- Preset morphing state ---
     // Engine partial data in SIMD format (mirrors engine.getPartialData())
@@ -217,8 +241,24 @@ private:
     juce::String        morphPresetA_;   // message-thread only
     juce::String        morphPresetB_;   // message-thread only
 
+    // --- Multiband Processor (frequency-band partial processing) ---
+    ana::MultibandProcessor multibandProcessor_;
+
     // --- MIDI Learn ---
     ana::MidiLearn midiLearn_;
+
+    // --- Macro Controller ---
+    ana::MacroController macroController_;
+
+    // Multiband processor access
+    ana::MultibandProcessor& getMultibandProcessor() { return multibandProcessor_; }
+    const ana::MultibandProcessor& getMultibandProcessor() const { return multibandProcessor_; }
+
+    // --- Modulation bus (audio-rate modulation routing) ---
+    ana::ModulationBus modBus_;
+
+    // --- Per-partial LFO/envelope modulator ---
+    ana::PartialModulator partialMod_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnaPlugAudioProcessor)
 };

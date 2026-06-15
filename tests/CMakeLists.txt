@@ -47,7 +47,13 @@ add_executable(AnaPlugTests
     test_unison_engine.cpp
     test_vocoder_mode.cpp
     test_voice_manager.cpp
+    test_wavetable_engine.cpp
     test_wav_loader.cpp
+    test_spectral_morpher.cpp
+    test_midi_learn.cpp
+    test_effects_new.cpp
+    test_noise_oscillator.cpp
+    test_undo_manager.cpp
 )
 
 target_include_directories(AnaPlugTests

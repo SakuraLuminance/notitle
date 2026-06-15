@@ -1,11 +1,17 @@
 #include "XYPad.h"
 #include "CyberpunkTheme.h"
+#include "../PluginProcessor.h"
 #include <cmath>
+#include <algorithm>
 
 namespace ana {
 
 //==============================================================================
-XYPad::XYPad()
+static constexpr float cornerShrink = 12.0f;
+
+//==============================================================================
+XYPad::XYPad(AnaPlugAudioProcessor& processor)
+    : processor_(processor)
 {
     startTimerHz(30);
 }
@@ -43,7 +49,7 @@ void XYPad::paint(juce::Graphics& g)
 
     // Crosshair at current position
     auto pos = juce::Point<float>(x_.load(), y_.load());
-    drawCrosshair(g, bounds.reduced(12.0f), pos, CyberpunkTheme::cyan_);
+    drawCrosshair(g, bounds.reduced(cornerShrink), pos, CyberpunkTheme::cyan_);
 
     // Corner accents
     auto cornerLen = 10.0f;
@@ -67,13 +73,19 @@ void XYPad::paint(juce::Graphics& g)
     g.setFont(CyberpunkTheme::getCyberFont(10.0f, true));
     g.setColour(CyberpunkTheme::magenta_);
     auto yLabelBounds = bounds.removeFromRight(14.0f).reduced(0.0f, 2.0f);
-    // Draw vertical text by saving/restoring transform
     juce::Graphics::ScopedSaveState saveState(g);
     auto yText = yLabel_ + ": " + juce::String(static_cast<int>(y_.load() * 100.0f));
     auto centre = yLabelBounds.getCentre();
     g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi,
                                                      centre.x, centre.y));
     g.drawText(yText, yLabelBounds.toNearestInt(), juce::Justification::centred);
+
+    // Y target indicator (top-left inside the pad)
+    g.setFont(CyberpunkTheme::getCyberFont(8.0f, false));
+    g.setColour(CyberpunkTheme::magenta_.withAlpha(0.6f));
+    g.drawText("Y: " + yTargetToString(yTarget_),
+               getLocalBounds().reduced(4).removeFromTop(12).toNearestInt(),
+               juce::Justification::topRight);
 }
 
 void XYPad::resized()
@@ -82,13 +94,74 @@ void XYPad::resized()
 
 void XYPad::timerCallback()
 {
-    // If bound to external atomics, read from them to stay in sync
-    if (xParam_ != nullptr)
-        x_.store(xParam_->load());
-    if (yParam_ != nullptr)
-        y_.store(yParam_->load());
+    const float timerDt = 1.0f / 30.0f;                // ~33ms per tick
+    const float rampSec = rampTimeMs_ / 1000.0f;       // ramp duration in seconds
+    const float smoothFactor = 1.0f - std::exp(-timerDt / juce::jmax(0.001f, rampSec));
 
-    // Age the trail points and remove fully faded ones
+    // --- Smooth interpolation: ramp X toward target ---
+    {
+        float currentX = x_.load(std::memory_order_relaxed);
+        float diffX = targetX_ - currentX;
+        if (std::abs(diffX) > 0.0005f)
+        {
+            float newX = currentX + diffX * smoothFactor;
+            x_.store(newX, std::memory_order_relaxed);
+            if (xParam_ != nullptr)
+                xParam_->store(newX, std::memory_order_relaxed);
+        }
+        else if (currentX != targetX_)
+        {
+            x_.store(targetX_, std::memory_order_relaxed);
+            if (xParam_ != nullptr)
+                xParam_->store(targetX_, std::memory_order_relaxed);
+        }
+    }
+
+    // --- Smooth interpolation: ramp Y toward target ---
+    {
+        float currentY = y_.load(std::memory_order_relaxed);
+        float diffY = targetY_ - currentY;
+        if (std::abs(diffY) > 0.0005f)
+        {
+            float newY = currentY + diffY * smoothFactor;
+            y_.store(newY, std::memory_order_relaxed);
+            if (yParam_ != nullptr)
+                yParam_->store(newY, std::memory_order_relaxed);
+        }
+        else if (currentY != targetY_)
+        {
+            y_.store(targetY_, std::memory_order_relaxed);
+            if (yParam_ != nullptr)
+                yParam_->store(targetY_, std::memory_order_relaxed);
+        }
+    }
+
+    // --- Poll MIDI Learn atomics for external changes ---
+    {
+        float xLearn = xLearnAtomic_.load(std::memory_order_relaxed);
+        if (std::abs(xLearn - lastXLearn_) > 0.001f)
+        {
+            lastXLearn_ = xLearn;
+            targetX_ = xLearn;
+        }
+
+        float yLearn = yLearnAtomic_.load(std::memory_order_relaxed);
+        if (std::abs(yLearn - lastYLearn_) > 0.001f)
+        {
+            lastYLearn_ = yLearn;
+            targetY_ = yLearn;
+        }
+    }
+
+    // --- Notify listeners when values settle (avoid flooding) ---
+    {
+        // Use a coarser check: notify roughly every ~100ms during drag
+        static int tickCount = 0;
+        if (++tickCount % 3 == 0)
+            listeners_.call([this](Listener& l) { l.xyPadChanged(this, x_.load(), y_.load()); });
+    }
+
+    // --- Age the trail points and remove fully faded ones ---
     for (auto& tp : trail_)
         tp.age = std::min(tp.age + 0.08f, 1.0f);
 
@@ -104,7 +177,11 @@ void XYPad::setXParameter(std::atomic<float>* param, const juce::String& label)
     xParam_ = param;
     xLabel_ = label;
     if (param != nullptr)
-        x_.store(param->load());
+    {
+        float v = param->load();
+        targetX_ = v;
+        x_.store(v);
+    }
 }
 
 void XYPad::setYParameter(std::atomic<float>* param, const juce::String& label)
@@ -112,62 +189,156 @@ void XYPad::setYParameter(std::atomic<float>* param, const juce::String& label)
     yParam_ = param;
     yLabel_ = label;
     if (param != nullptr)
-        y_.store(param->load());
+    {
+        float v = param->load();
+        targetY_ = v;
+        y_.store(v);
+    }
+}
+
+//==============================================================================
+void XYPad::setYTarget(YTarget target)
+{
+    yTarget_ = target;
+    repaint();
+}
+
+juce::String XYPad::yTargetToString(YTarget t)
+{
+    switch (t)
+    {
+        case YTarget::Cutoff:    return "CUTOFF";
+        case YTarget::Resonance: return "RES";
+        case YTarget::Volume:    return "VOL";
+        case YTarget::LFORate:   return "LFO RATE";
+        case YTarget::LFODepth:  return "LFO DEPTH";
+        default:                 return "?";
+    }
 }
 
 //==============================================================================
 void XYPad::mouseDown(const juce::MouseEvent& e)
 {
+    if (e.mods.isRightButtonDown())
+    {
+        showContextMenu(e);
+        return;
+    }
+
     isDragging_ = true;
-    setPosition(e.position);
+    setTargetPosition(e.position);
 }
 
 void XYPad::mouseDrag(const juce::MouseEvent& e)
 {
-    setPosition(e.position);
+    if (!isDragging_)
+        return;
+    setTargetPosition(e.position);
 }
 
 void XYPad::mouseUp(const juce::MouseEvent& e)
 {
+    if (!isDragging_)
+        return;
     isDragging_ = false;
-    setPosition(e.position);
+    setTargetPosition(e.position);
 }
 
 //==============================================================================
-juce::Point<float> XYPad::getPosition() const
+juce::Point<float> XYPad::mouseToNormalized(juce::Point<float> mousePos) const
 {
-    return { x_.load(), y_.load() };
+    auto bounds = getLocalBounds().toFloat().reduced(cornerShrink);
+    if (bounds.getWidth() <= 0.0f || bounds.getHeight() <= 0.0f)
+        return { 0.5f, 0.5f };
+
+    float nx = (mousePos.x - bounds.getX()) / bounds.getWidth();
+    float ny = 1.0f - (mousePos.y - bounds.getY()) / bounds.getHeight(); // flip Y
+
+    return { juce::jlimit(0.0f, 1.0f, nx),
+             juce::jlimit(0.0f, 1.0f, ny) };
 }
 
-void XYPad::setPosition(juce::Point<float> p)
+void XYPad::setTargetPosition(juce::Point<float> p)
 {
-    auto bounds = getLocalBounds().toFloat().reduced(12.0f);
-    if (bounds.getWidth() <= 0.0f || bounds.getHeight() <= 0.0f)
-        return;
+    auto norm = mouseToNormalized(p);
 
-    // Convert from pixel to normalized [0,1] coords
-    float nx = (p.x - bounds.getX()) / bounds.getWidth();
-    float ny = 1.0f - (p.y - bounds.getY()) / bounds.getHeight(); // flip Y so top = 1
-
-    nx = juce::jlimit(0.0f, 1.0f, nx);
-    ny = juce::jlimit(0.0f, 1.0f, ny);
-
-    // Update internal atomics
-    if (x_.load() != nx)
-        x_.store(nx);
-    if (y_.load() != ny)
-        y_.store(ny);
-
-    // Push to external bound parameters
-    if (xParam_ != nullptr)
-        xParam_->store(nx);
-    if (yParam_ != nullptr)
-        yParam_->store(ny);
+    // Set target (smooth interpolation will ramp toward it)
+    targetX_ = norm.x;
+    targetY_ = norm.y;
 
     // Add to trail
-    trail_.push_back({ nx, ny, 0.0f });
+    trail_.push_back({ targetX_, targetY_, 0.0f });
     while (static_cast<int>(trail_.size()) > maxTrailLength_)
         trail_.pop_front();
+
+    // Immediate listener notification for responsive UI
+    listeners_.call([this](Listener& l) {
+        l.xyPadChanged(this, targetX_, targetY_);
+    });
+}
+
+//==============================================================================
+void XYPad::showContextMenu(const juce::MouseEvent& e)
+{
+    juce::PopupMenu menu;
+
+    // --- Y Target submenu ---
+    juce::PopupMenu yTargetMenu;
+    auto addYItem = [&](YTarget t) {
+        yTargetMenu.addItem(yTargetToString(t), true, yTarget_ == t,
+                            [this, t]() { setYTarget(t); });
+    };
+    addYItem(YTarget::Cutoff);
+    addYItem(YTarget::Resonance);
+    addYItem(YTarget::Volume);
+    addYItem(YTarget::LFORate);
+    addYItem(YTarget::LFODepth);
+    menu.addSubMenu("Y Target", yTargetMenu);
+    menu.addSeparator();
+
+    // --- MIDI Learn X ---
+    auto& midiLearn = processor_.getMidiLearn();
+    bool xMapped = false;
+    bool yMapped = false;
+    int xCC = -1, yCC = -1;
+    for (const auto& m : midiLearn.getMappings())
+    {
+        if (m.parameterId == getXParamId()) { xMapped = true; xCC = m.ccNumber; }
+        if (m.parameterId == getYParamId()) { yMapped = true; yCC = m.ccNumber; }
+    }
+
+    if (midiLearn.isLearning())
+    {
+        menu.addItem("MIDI Learn (in progress...)", false, false);
+    }
+    else
+    {
+        menu.addItem("MIDI Learn X" + (xMapped ? juce::String(" [CC ") + juce::String(xCC) + "]" : ""),
+                     [this]() { startLearnX(); });
+
+        menu.addItem("MIDI Learn Y" + (yMapped ? juce::String(" [CC ") + juce::String(yCC) + "]" : ""),
+                     [this]() { startLearnY(); });
+
+        if (xMapped)
+            menu.addItem("Clear X Mapping (CC " + juce::String(xCC) + ")",
+                         [this, xCC]() { processor_.getMidiLearn().removeMapping(xCC); });
+
+        if (yMapped)
+            menu.addItem("Clear Y Mapping (CC " + juce::String(yCC) + ")",
+                         [this, yCC]() { processor_.getMidiLearn().removeMapping(yCC); });
+    }
+
+    menu.showMenuAsync(juce::PopupMenu::Options());
+}
+
+void XYPad::startLearnX()
+{
+    processor_.getMidiLearn().startLearn(getXParamId(), &xLearnAtomic_, 0.0f, 1.0f);
+}
+
+void XYPad::startLearnY()
+{
+    processor_.getMidiLearn().startLearn(getYParamId(), &yLearnAtomic_, 0.0f, 1.0f);
 }
 
 //==============================================================================
@@ -178,14 +349,12 @@ void XYPad::drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds)
 
     g.setColour(CyberpunkTheme::cyan_.withAlpha(0.04f));
 
-    // Vertical lines
     for (int i = 1; i < numLines; ++i)
     {
         float x = bounds.getX() + static_cast<float>(i) * gridSpacing;
         g.drawLine(x, bounds.getY(), x, bounds.getBottom(), 0.5f);
     }
 
-    // Horizontal lines
     for (int i = 1; i < numLines; ++i)
     {
         float y = bounds.getY() + static_cast<float>(i) * gridSpacing;
@@ -203,16 +372,12 @@ void XYPad::drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds)
 void XYPad::drawCrosshair(juce::Graphics& g, juce::Rectangle<float> bounds,
                             juce::Point<float> pos, juce::Colour colour)
 {
-    // Convert normalized position to pixel
     float px = bounds.getX() + pos.x * bounds.getWidth();
     float py = bounds.getY() + (1.0f - pos.y) * bounds.getHeight();
 
     // Glow (outer aura)
     g.setColour(colour.withAlpha(0.15f));
-
-    // Horizontal glow bar
     g.drawLine(bounds.getX(), py, bounds.getRight(), py, 4.0f);
-    // Vertical glow bar
     g.drawLine(px, bounds.getY(), px, bounds.getBottom(), 4.0f);
 
     // Main crosshair lines

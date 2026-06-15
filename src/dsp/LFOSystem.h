@@ -70,7 +70,7 @@ public:
     //==============================================================================
     /** Sets the LFO rate in Hertz (free-running mode).
         Disables tempo sync when called.
-        @param hz  Rate in Hz (clamped to 0.01–100.0)
+        @param hz  Rate in Hz (clamped to 0.01–100.0, or up to sampleRate/2 in audio-rate mode)
     */
     void setRate(float hz);
 
@@ -140,6 +140,24 @@ public:
     float getValue() const noexcept;
 
     //==============================================================================
+    /** Per-sample processing: advances the LFO by one sample and returns the value.
+        Intended for audio-rate modulation where the LFO is polled per-sample
+        rather than per-block.
+    */
+    float getNextSample();
+
+    //==============================================================================
+    /** Enables or disables audio-rate mode.
+        When enabled, the maximum free-running rate is raised to sampleRate/2
+        (Nyquist), allowing the LFO to run at audio frequencies (>20 Hz).
+        The existing control-rate behaviour is unaffected when disabled.
+    */
+    void setAudioRate(bool enabled) noexcept;
+
+    /** Returns true if audio-rate mode is active. */
+    bool isAudioRate() const noexcept;
+
+    //==============================================================================
     /** Returns the current normalised phase position in [0, 1). Useful for diagnostics. */
     double getCurrentPhase() const noexcept;
 
@@ -167,6 +185,8 @@ private:
     double tempo = 120.0;
     bool bipolar = true;
     bool syncEnabled = false;
+
+    bool audioRate = false;
 
     float randomValue = 0.0f;
     std::mt19937 rng{ std::random_device{}() };

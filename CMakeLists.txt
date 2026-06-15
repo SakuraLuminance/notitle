@@ -103,6 +103,9 @@ target_sources(AnaPlug
         src/dsp/QuantumSpectralProcessor.cpp
         src/dsp/ParallelProcessor.cpp
         src/dsp/MacroController.cpp
+        src/dsp/SpectralMorpher.cpp
+        src/dsp/MidiLearn.cpp
+        src/dsp/UndoManager.cpp
         src/dsp/PhysicalModel.cpp
         src/dsp/SampleProcessor.cpp
         src/dsp/SampleSlicer.cpp
@@ -117,7 +120,15 @@ target_sources(AnaPlug
         src/dsp/HPSSEngine.cpp
         src/dsp/BpmDetector.cpp
         src/dsp/ModulationMatrix.cpp
+        src/dsp/effects/PhaserEffect.cpp
+        src/dsp/effects/FlangerEffect.cpp
+        src/dsp/effects/CompressorEffect.cpp
+        src/dsp/effects/LimiterEffect.cpp
+        src/dsp/WavetableEngine.cpp
         src/dsp/MidiLearn.cpp
+        src/dsp/MultibandProcessor.cpp
+        src/dsp/ModulationBus.cpp
+        src/dsp/PartialModulator.cpp
 )
 
 target_link_libraries(AnaPlug

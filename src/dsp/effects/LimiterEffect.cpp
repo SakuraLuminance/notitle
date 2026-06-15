@@ -81,28 +81,25 @@ void LimiterEffect::processLimiter(juce::AudioBuffer<float>& buffer) {
 
     // Lookahead delay in samples
     float lookaheadSamples = lookaheadMs * static_cast<float>(sampleRate) / 1000.0f;
-
     float thresholdLinear = juce::Decibels::decibelsToGain(thresholdDb);
 
-    // Push all samples into lookahead delays first
-    for (int ch = 0; ch < numCh; ++ch) {
-        const auto* data = buffer.getReadPointer(ch);
-        for (int s = 0; s < numSamples; ++s)
-            lookaheadLines[ch].pushSample(ch, data[s]);
-    }
+    // Temporary buffer to hold the pre-gain output
+    juce::AudioBuffer<float> wet(numCh, numSamples);
+    wet.clear();
 
-    // Compute envelope per sample from max across channels
-    std::vector<float> gainReduction(numSamples, 1.0f);
-
+    // First pass: push all samples into lookahead, compute envelope,
+    // and read delayed samples into wet buffer
     for (int s = 0; s < numSamples; ++s) {
-        // Find max absolute level across all channels (stereo-linked)
+        // Push current samples and find max level across all channels
         float absMax = 0.0f;
-        int readPos = juce::jmax(0, s - static_cast<int>(lookaheadSamples));
         for (int ch = 0; ch < numCh; ++ch) {
-            float sample = std::abs(buffer.getSample(ch, readPos));
-            if (sample > absMax) absMax = sample;
+            float sample = buffer.getSample(ch, s);
+            lookaheadLines[ch].pushSample(ch, sample);
+            float absSample = std::abs(sample);
+            if (absSample > absMax) absMax = absSample;
         }
 
+        // Compute envelope from max level (stereo-linked)
         float targetGain = 1.0f;
         if (absMax > thresholdLinear)
             targetGain = thresholdLinear / (absMax + 1e-10f);
@@ -112,25 +109,18 @@ void LimiterEffect::processLimiter(juce::AudioBuffer<float>& buffer) {
         else
             envelope = envelope + (1.0f - releaseCoeff) * (targetGain - envelope);
 
-        gainReduction[s] = envelope;
-    }
-
-    // Apply gain reduction + lookahead read to each channel
-    for (int ch = 0; ch < numCh; ++ch) {
-        auto* outData = buffer.getWritePointer(ch);
-        for (int s = 0; s < numSamples; ++s) {
-            float delayedSample = lookaheadLines[ch].popSample(ch, lookaheadSamples);
-            outData[s] = delayedSample * gainReduction[s];
-        }
+        // Read delayed sample and apply envelope
+        for (int ch = 0; ch < numCh; ++ch)
+            wet.setSample(ch, s, lookaheadLines[ch].popSample(ch, lookaheadSamples) * envelope);
     }
 
     // Dry/wet mix with gain
     for (int ch = 0; ch < numCh; ++ch) {
         const auto* dryData = dry.getReadPointer(ch);
+        const auto* wetData = wet.getReadPointer(ch);
         auto* outData = buffer.getWritePointer(ch);
-        for (int s = 0; s < numSamples; ++s) {
-            outData[s] = dryData[s] * (1.0f - mixVal) + outData[s] * mixVal * gainVal;
-        }
+        for (int s = 0; s < numSamples; ++s)
+            outData[s] = dryData[s] * (1.0f - mixVal) + wetData[s] * mixVal * gainVal;
     }
 }
 

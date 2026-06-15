@@ -90,6 +90,9 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     // partial data from the engine after loading each preset.
     enginePartials_ = ana::PartialDataSIMD::fromPartialData(engine.getPartialData());
     presetManager.setEnginePartialsRef(&enginePartials_);
+
+    // Initialise MacroController with 4 macros
+    macroController_.setNumMacros(4);
 }
 
 AnaPlugAudioProcessor::~AnaPlugAudioProcessor()
@@ -161,6 +164,7 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     if (sampleRate > 0.0)
     {
         voiceManager.prepare(sampleRate);
+        partialMod_.prepare(sampleRate);
         subHarmonicGen_.setSampleRate(sampleRate);
 
         // Pre-allocate voiceBuffer to avoid heap allocations in the audio callback
@@ -341,6 +345,11 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         }
     }
 
+    // --- Modulation bus (apply modulation routes) ---
+    // Must run after MIDI processing so CC-learned targets are updated
+    // before voice processing begins.
+    modBus_.processBlock(numSamples);
+
     // --- Process VoiceManager audio ---
     // Use a temporary buffer for VoiceManager output, then mix into the main buffer
     voiceBuffer.setSize(numChannels, numSamples, false, false, true);
@@ -421,6 +430,35 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         }
     }
 
+    // --- Wavetable engine (oscillator source) ---
+    // When wavetable mode is enabled and the engine has loaded frames,
+    // populate synthPartials_ with the interpolated wavetable frame.
+    // This feeds into the partial modulator and multiband processor
+    // downstream, acting as a spectral oscillator source.
+    // Wavetable takes priority over morphing when both are enabled,
+    // since it runs after the morph block above.
+    if (wavetableEnabled_.load() && wavetableEngine_.isLoaded())
+    {
+        synthPartials_ = wavetableEngine_.getCurrentFrame();
+    }
+
+    // --- Per-partial LFO/envelope modulation ---
+    // Modulates synthPartials_ amplitudes using independent per-partial
+    // LFO phases and ADSR envelopes.  Wired after voice generation and
+    // sub-harmonics, before effects and dual-chain processing.
+    {
+        ana::PartialModulator::Config modConfig;
+        modConfig.lfoRate  = 1.0f;
+        modConfig.lfoDepth = 0.0f;   // default: no LFO modulation
+        modConfig.attack   = 0.01f;
+        modConfig.decay    = 0.1f;
+        modConfig.sustain  = 0.7f;
+        modConfig.release  = 0.3f;
+        modConfig.perPartialPhase = true;
+
+        partialMod_.process(synthPartials_, modConfig);
+    }
+
     // --- Dual signal chain (partial-domain spectral shaping) ---
     // Currently operates on PartialDataSIMD/TimbrePart data.  Once the synth is
     // refactored to produce partials (via synthPartials_), this will apply the
@@ -437,6 +475,10 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         // Placeholder: chain requires partial-domain synth output.
         // Wire when synth is refactored to populate synthPartials_.
     }
+
+    // --- Multiband Processor (frequency-band partial processing) ---
+    if (synthPartials_.activeCount > 0)
+        multibandProcessor_.process(synthPartials_);
 
     // --- Effects chain ---
     if (effectsEnabled_.load())
@@ -533,6 +575,16 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     if (midiLearnState.isValid())
         state.addChild(midiLearnState, -1, nullptr);
 
+    // Macro Controller state
+    auto* macroXml = macroController_.createXml();
+    if (macroXml != nullptr)
+    {
+        juce::ValueTree macroTree = juce::ValueTree::fromXml(*macroXml);
+        if (macroTree.isValid())
+            state.addChild(macroTree, -1, nullptr);
+        delete macroXml;
+    }
+
     juce::MemoryOutputStream stream(destData, true);
     state.writeToStream(stream);
 }
@@ -562,7 +614,17 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     auto midiLearnState = state.getChildWithName("MidiLearn");
     if (midiLearnState.isValid())
         midiLearn_.loadState(midiLearnState);
-}
+
+    // Macro Controller state
+    auto macroState = state.getChildWithName("macrocontroller");
+    if (macroState.isValid())
+    {
+        auto macroXml = macroState.toXml();
+        if (macroXml != nullptr)
+        {
+            macroController_.loadFromXml(*macroXml);
+        }
+    }
 
 bool AnaPlugAudioProcessor::loadFile(const juce::File& file)
 {

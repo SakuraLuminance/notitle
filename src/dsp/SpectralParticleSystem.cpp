@@ -284,9 +284,9 @@ void SpectralParticleSystem::advanceNoiseEnvelope(float dt)
             break;
 
         case EnvStage::Release:
-            noiseEnvValue_ -= dt / releaseSec * juce::jmax(kEnvTimeMin,
-                                                             noiseEnvSustain_);
-            if (noiseEnvValue_ <= 0.0f)
+            // Exponential decay: V(t) = V₀ · exp(-t / releaseSec)
+            noiseEnvValue_ *= 1.0f - dt / releaseSec;
+            if (noiseEnvValue_ < 0.001f)
             {
                 noiseEnvValue_ = 0.0f;
                 noiseEnvStage_ = EnvStage::Idle;

@@ -6,6 +6,9 @@
 
 namespace ana {
 
+// Forward declaration
+class MidiLearn;
+
 //==============================================================================
 /**
     A single macro-to-parameter mapping definition.
@@ -45,6 +48,34 @@ struct MacroMapping
 
     /** When true, the curve output is flipped: 1 - val. */
     bool invert = false;
+};
+
+//==============================================================================
+/**
+    A direct target binding for a macro.
+
+    Each MacroTarget associates a macro with a parameter identified by
+    a string paramId and an atomic float pointer.  When the macro value
+    changes, the mapped + curved value is written directly into the
+    target atomic.  This is the new-style binding (vs MacroMapping which
+    uses integer targetParamIndex + the getTargetValue() cache).
+
+    Up to 4 targets per macro are supported.
+*/
+struct MacroTarget
+{
+    juce::String paramId;
+    std::atomic<float>* target = nullptr;
+};
+
+/** Per-macro visualization data for the UI. */
+struct MacroVisualData
+{
+    float value = 0.0f;           /**< Raw macro value [0, 1]. */
+    float mappedValue = 0.0f;     /**< Value after mapping curve. */
+    float curveExponent = 1.0f;   /**< Current curve exponent. */
+    juce::String name;            /**< Macro display name. */
+    int numTargets = 0;           /**< Number of bound direct targets. */
 };
 
 //==============================================================================
@@ -140,6 +171,85 @@ public:
     void reset();
 
     //==============================================================================
+    // --- Mapping Curve (custom power-curve per macro) ---
+
+    /** Sets a custom power-curve exponent for the given macro.
+
+        The raw macro value is transformed as:
+            mappedValue = std::pow(rawValue, exponent)
+
+        @param macroIndex  Index of the macro (0-based)
+        @param exponent    Curve exponent:
+                           1.0  = linear
+                           2.0  = exponential (quadratic)
+                           0.5  = concave "S-curve" (sqrt-like)
+                           Any positive float is valid.
+    */
+    void setMappingCurve(int macroIndex, float exponent);
+
+    /** Returns the current mapping curve exponent for the given macro.
+        Default is 1.0 (linear).
+    */
+    float getMappingCurve(int macroIndex) const;
+
+    //==============================================================================
+    // --- Direct Target Binding (new-style paramId + atomic pointer) ---
+
+    /** Binds a direct atomic target to the given macro.
+
+        When the macro value changes, the value after applying the
+        mapping curve is written directly to the target atomic.
+
+        Each macro supports up to 4 direct targets.
+
+        @param macroIndex  Index of the macro (0-based)
+        @param paramId     Unique parameter identifier (for persistence/MIDI Learn)
+        @param target      Pointer to the target atomic<float> to write to
+    */
+    void setMacroTarget(int macroIndex, const juce::String& paramId,
+                        std::atomic<float>* target);
+
+    /** Removes the direct target with the given paramId from the macro. */
+    void clearMacroTarget(int macroIndex, const juce::String& paramId);
+
+    /** Removes all direct targets from the given macro. */
+    void clearMacroTargets(int macroIndex);
+
+    /** Returns the number of direct targets bound to the given macro. */
+    int getNumMacroTargets(int macroIndex) const;
+
+    //==============================================================================
+    // --- MIDI Learn Integration ---
+
+    /** Binds this macro to the MIDI Learn system.
+
+        This registers the macro's internal value atomic with the MidiLearn
+        instance so that incoming MIDI CC messages on a newly-learned CC
+        will control the macro value directly.
+
+        Call this once at setup time per macro you want to be MIDI-learnable.
+    */
+    void bindMidiLearn(int macroIndex, MidiLearn& midiLearn);
+
+    /** Unbinds the macro from MIDI Learn (removes its mapping). */
+    void unbindMidiLearn(int macroIndex);
+
+    //==============================================================================
+    // --- Visualization Data ---
+
+    /** Returns visualisation data for the given macro.
+
+        This is intended for the UI to display the current value,
+        mapped value, curve shape, and target count.
+    */
+    MacroVisualData getVisualData(int macroIndex) const;
+
+    /** Returns the raw atomic pointer for a macro's value.
+        Used by MIDI Learn and the UI to read/write the value directly.
+    */
+    std::atomic<float>* getMacroValuePtr(int macroIndex);
+
+    //==============================================================================
     /** Creates an XML representation of the entire macro controller state
         including all macros, their names, and all mappings.
         Caller owns the returned object.
@@ -159,7 +269,18 @@ private:
         juce::String name;
         std::atomic<float> value { 0.0f };
         std::vector<MacroMapping> mappings;
+
+        // New-style direct targets (max 4)
+        std::vector<MacroTarget> targets;
+
+        // Custom power-curve exponent (1.0 = linear)
+        float mappingCurve = 1.0f;
+
+        // MIDI Learn bindings
+        int midiLearnCC = -1;  // -1 = not bound
     };
+
+    static constexpr int maxDirectTargetsPerMacro = 4;
 
     std::vector<Macro> macros_;
 
@@ -192,6 +313,9 @@ private:
         Returns a normalised value in [0, 1] (no min/max scaling).
     */
     float applyCurve(float input, const MacroMapping& mapping) const noexcept;
+
+    /** Writes the power-curved macro value to all direct targets. */
+    void pushToDirectTargets(int macroIndex);
 
     /** Recomputes the entire target cache from the current macro values.
         Called after any macro value change or structural edit.
