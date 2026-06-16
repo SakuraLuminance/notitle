@@ -1,6 +1,8 @@
 add_executable(AnaPlugTests
     main.cpp
     bench_performance.cpp
+    test_ui_colors.cpp
+    test_ui_paint.cpp
     test_advanced_granular.cpp
     test_arpeggiator.cpp
     test_blur_effect.cpp

@@ -6,10 +6,11 @@ namespace ana {
 
 //==============================================================================
 /**
-    Cyberpunk 2077-inspired LookAndFeel for AnaPlug.
+    Monochrome Purple Cyberpunk LookAndFeel for AnaPlug.
     
-    Dark background (#0a0a14), cyan/magenta/yellow neon accents,
+    Dark background (#080512), neon purple/magenta/lavender accents,
     sharp geometric borders, futuristic typography, scan-line overlays.
+    Supports both Dark and Light modes with a coordinated purple palette.
 */
 class CyberpunkTheme : public juce::LookAndFeel_V4
 {
@@ -33,19 +34,19 @@ public:
     {
         if (type == ThemeType::Light)
         {
-            bg_      = juce::Colour(0xf0, 0xf0, 0xf5); // light gray
-            fg_      = juce::Colour(0x1a, 0x1a, 0x24); // dark gray
-            cyan_    = juce::Colour(0x00, 0xb0, 0xc0); // darker cyan for visibility
-            magenta_ = juce::Colour(0xd0, 0x00, 0x45);
-            yellow_  = juce::Colour(0xd0, 0xa0, 0x00);
+            bg_      = juce::Colour(0xe8, 0xe0, 0xf0); // light purple-gray
+            fg_      = juce::Colour(0x22, 0x18, 0x30); // dark purple
+            cyan_    = juce::Colour(0x7c, 0x3a, 0xed); // medium purple (primary accent)
+            magenta_ = juce::Colour(0x9b, 0x30, 0xff); // bright purple
+            yellow_  = juce::Colour(0xaa, 0x80, 0xff); // muted lavender
         }
         else
         {
-            bg_      = juce::Colour(0x0a, 0x0a, 0x14); // near-black
-            fg_      = juce::Colour(0xc0, 0xc0, 0xd0); // light gray
-            cyan_    = juce::Colour(0x00, 0xf0, 0xff); // neon cyan
-            magenta_ = juce::Colour(0xff, 0x00, 0x55);
-            yellow_  = juce::Colour(0xff, 0xd0, 0x00);
+            bg_      = juce::Colour(0x08, 0x05, 0x12); // deep dark purple-black
+            fg_      = juce::Colour(0xc8, 0xc0, 0xd8); // light lavender
+            cyan_    = juce::Colour(0x88, 0x00, 0xff); // neon purple (primary accent)
+            magenta_ = juce::Colour(0xcf, 0x00, 0xff); // electric magenta-purple
+            yellow_  = juce::Colour(0xbb, 0x88, 0xff); // cool lavender accent
         }
         setupColours();
     }
@@ -278,7 +279,7 @@ public:
         auto b = bounds.toFloat().reduced(1.0f);
         
         // Background fill
-        g.setColour(juce::Colour(0x0a, 0x0a, 0x14).withAlpha(0.85f));
+        g.setColour(bg_.withAlpha(0.85f));
         g.fillRoundedRectangle(b, 4.0f);
 
         // Border glow
@@ -300,11 +301,11 @@ public:
     }
 
     //==============================================================================
-    inline static juce::Colour bg_      { 0x0a, 0x0a, 0x14 };
-    inline static juce::Colour fg_      { 0xc0, 0xc0, 0xd0 };
-    inline static juce::Colour cyan_    { 0x00, 0xf0, 0xff };
-    inline static juce::Colour magenta_ { 0xff, 0x00, 0x55 };
-    inline static juce::Colour yellow_  { 0xff, 0xd0, 0x00 };
+    inline static juce::Colour bg_      { 0x08, 0x05, 0x12 };
+    inline static juce::Colour fg_      { 0xc8, 0xc0, 0xd8 };
+    inline static juce::Colour cyan_    { 0x88, 0x00, 0xff };
+    inline static juce::Colour magenta_ { 0xcf, 0x00, 0xff };
+    inline static juce::Colour yellow_  { 0xbb, 0x88, 0xff };
 };
 
 } // namespace ana
