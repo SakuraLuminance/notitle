@@ -4,14 +4,14 @@
 namespace ana {
 
 static const juce::Colour filterColours[] = {
-    juce::Colours::blue,
-    juce::Colours::red,
-    juce::Colours::green,
-    juce::Colours::yellow,
-    juce::Colours::cyan,
-    juce::Colours::magenta,
-    juce::Colours::orange,
-    juce::Colours::white
+    juce::Colour(0x88, 0x00, 0xff), // neon purple
+    juce::Colour(0xcf, 0x00, 0xff), // electric magenta
+    juce::Colour(0xbb, 0x88, 0xff), // lavender
+    juce::Colour(0xc8, 0xc0, 0xd8), // light lavender
+    juce::Colour(0x6a, 0x00, 0xcc), // darker neon purple
+    juce::Colour(0xa0, 0x00, 0xcc), // darker magenta
+    juce::Colour(0x99, 0x66, 0xcc), // darker lavender
+    juce::Colour(0xe8, 0xe0, 0xf0)  // very light purple
 };
 
 FilterVisualization::FilterVisualization()

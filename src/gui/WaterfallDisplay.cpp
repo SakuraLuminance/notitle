@@ -438,39 +438,36 @@ juce::Colour WaterfallDisplay::magnitudeColour(float mag, float maxMag) const
 
     switch (colourScheme_)
     {
-        case 1: // Rainbow: blue -> cyan -> green -> yellow -> red
+        case 1: // Purple-Wash Rainbow: deep blue-purple -> magenta -> pink -> white
         {
-            const float hue = (1.0f - t) * 0.67f; // 0.67 (blue) -> 0.0 (red)
-            return juce::Colour::fromHSV(hue, 0.85f, 0.85f, 1.0f);
+            const float hue = 0.75f + t * 0.10f;
+            const float sat = t > 0.8f ? 1.0f - (t - 0.8f) * 5.0f : 1.0f;
+            const float val = 0.2f + t * 0.8f;
+            return juce::Colour::fromHSV(hue, sat, val, 1.0f);
         }
 
-        case 2: // Mono: black -> white
+        case 2: // Purple-Wash Mono: dark purple -> light purple
         {
-            const uint8_t v = static_cast<uint8_t>(t * 255.0f);
-            return juce::Colour(v, v, v);
+            const float hue = 0.78f;
+            const float sat = 0.6f - t * 0.4f;
+            const float val = t;
+            return juce::Colour::fromHSV(hue, sat, val, 1.0f);
         }
 
-        default: // 0: Fire: black -> red -> yellow -> white
+        default: // 0: Purple-Wash Fire: black -> dark purple -> neon purple -> white
         {
-            if (t < 0.25f)
+            if (t < 0.33f)
             {
-                // black to red
-                const float u = t / 0.25f;
-                return juce::Colour(static_cast<uint8_t>(u * 255.0f), 0, 0);
+                const float u = t / 0.33f;
+                return juce::Colour::fromHSV(0.78f, 1.0f, u * 0.5f, 1.0f);
             }
-            if (t < 0.50f)
+            if (t < 0.66f)
             {
-                // red to yellow
-                const float u = (t - 0.25f) / 0.25f;
-                return juce::Colour(255, static_cast<uint8_t>(u * 255.0f), 0);
+                const float u = (t - 0.33f) / 0.33f;
+                return juce::Colour::fromHSV(0.78f + u * 0.05f, 1.0f, 0.5f + u * 0.5f, 1.0f);
             }
-            if (t < 0.75f)
-            {
-                // yellow to white (increase blue)
-                const float u = (t - 0.50f) / 0.25f;
-                return juce::Colour(255, 255, static_cast<uint8_t>(u * 255.0f));
-            }
-            return juce::Colours::white;
+            const float u = (t - 0.66f) / 0.34f;
+            return juce::Colour::fromHSV(0.83f, 1.0f - u, 1.0f, 1.0f);
         }
     }
 }

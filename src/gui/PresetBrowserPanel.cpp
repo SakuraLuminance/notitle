@@ -1,4 +1,5 @@
 #include "PresetBrowserPanel.h"
+#include "CyberpunkTheme.h"
 
 namespace ana {
 
@@ -18,10 +19,10 @@ PresetBrowserPanel::PresetBrowserPanel(PresetManager& pm)
 
     addAndMakeVisible(presetListBox);
     presetListBox.setModel(this);
-    presetListBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xff1e1e1e));
+    presetListBox.setColour(juce::ListBox::backgroundColourId, CyberpunkTheme::bg_.brighter(0.05f));
 
     addAndMakeVisible(presetNameEditor);
-    presetNameEditor.setTextToShowWhenEmpty("Preset Name...", juce::Colours::grey);
+    presetNameEditor.setTextToShowWhenEmpty("Preset Name...", CyberpunkTheme::fg_.darker(0.5f));
 
     addAndMakeVisible(loadButton);
     loadButton.onClick = [this] { loadSelectedPreset(); };
@@ -40,7 +41,7 @@ PresetBrowserPanel::~PresetBrowserPanel()
 
 void PresetBrowserPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xff2d2d2d));
+    g.fillAll(CyberpunkTheme::bg_.brighter(0.1f));
 }
 
 void PresetBrowserPanel::resized()
@@ -72,9 +73,9 @@ int PresetBrowserPanel::getNumRows()
 void PresetBrowserPanel::paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected)
 {
     if (rowIsSelected)
-        g.fillAll(juce::Colours::lightblue.withAlpha(0.2f));
+        g.fillAll(CyberpunkTheme::cyan_.withAlpha(0.2f));
 
-    g.setColour(juce::Colours::white);
+    g.setColour(CyberpunkTheme::fg_);
     g.setFont(14.0f);
     
     if (juce::isPositiveAndBelow(rowNumber, currentPresets.size()))

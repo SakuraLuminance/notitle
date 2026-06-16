@@ -116,14 +116,17 @@ private:
 
         juce::Colour getCurveColour() const
         {
-            // Linear (1.0) → cyan
-            // Exponential (2.0) → magenta
-            // S-curve (0.5) → yellow
+            // Linear (1.0) → cyan_ (neon purple)
+            // Exponential (2.0) → magenta_ (electric magenta-purple)
+            // S-curve (0.5) → yellow_ (cool lavender)
+            // Other → fg_ (light lavender)
             if (curveExp_ > 1.5f)
-                return juce::Colour(0xff, 0x00, 0x55); // magenta
+                return ana::CyberpunkTheme::magenta_;
             if (curveExp_ < 0.75f)
-                return juce::Colour(0xff, 0xd0, 0x00); // yellow
-            return juce::Colour(0x00, 0xf0, 0xff);     // cyan
+                return ana::CyberpunkTheme::yellow_;
+            if (curveExp_ == 1.0f)
+                return ana::CyberpunkTheme::cyan_;
+            return ana::CyberpunkTheme::fg_;
         }
 
         void paint(juce::Graphics& g) override

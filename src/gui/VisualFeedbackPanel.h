@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <vector>
 #include "../dsp/PartialDataSIMD.h"
+#include "CyberpunkTheme.h"
 
 namespace ana {
 
@@ -61,10 +62,10 @@ private:
     static constexpr float maxFreq_ = 20000.0f;
 
     // Colours
-    juce::Colour barColour_      { 0xCC, 0xAA, 0x66 };  // amber
-    juce::Colour envelopeColour_ { 0xFF, 0xFF, 0xFF };  // white
-    juce::Colour peakColour_     { 0xFF, 0x44, 0x44 };  // red
-    juce::Colour bgColour_       { 0x1A, 0x1A, 0x2E };  // dark navy
+    juce::Colour barColour_      { CyberpunkTheme::cyan_ };
+    juce::Colour envelopeColour_ { CyberpunkTheme::fg_ };
+    juce::Colour peakColour_     { CyberpunkTheme::magenta_ };
+    juce::Colour bgColour_       { CyberpunkTheme::bg_ };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VisualFeedbackPanel)
 };

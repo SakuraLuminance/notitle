@@ -398,7 +398,7 @@ void XYPad::drawCrosshair(juce::Graphics& g, juce::Rectangle<float> bounds,
     g.fillEllipse(px - 2.5f, py - 2.5f, 5.0f, 5.0f);
 
     // Inner bright core
-    g.setColour(juce::Colours::white.withAlpha(0.8f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.8f));
     g.fillEllipse(px - 1.0f, py - 1.0f, 2.0f, 2.0f);
 }
 

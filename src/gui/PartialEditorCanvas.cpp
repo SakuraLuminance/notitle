@@ -5,41 +5,33 @@
 namespace ana {
 
 // ============================================================================
-// Colour mapping:  amplitude -> colour
+// Colour mapping:  amplitude -> colour (Purple-Wash)
 //    0.0  = black
-//    0.25 = dark blue
-//    0.5  = cyan
-//    0.75 = yellow
-//    1.0  = red
+//    0.33 = dark purple
+//    0.66 = neon purple
+//    1.0  = white
 // ============================================================================
 juce::Colour PartialEditorCanvas::amplitudeToColour(float amplitude)
 {
     amplitude = std::clamp(amplitude, 0.0f, 1.0f);
 
-    if (amplitude < 0.25f)
+    if (amplitude < 0.33f)
     {
-        // black -> blue
-        float t = amplitude / 0.25f;
-        return juce::Colour::fromFloatRGBA(0.0f, 0.0f, t, 1.0f);
+        // black -> dark purple
+        float t = amplitude / 0.33f;
+        return juce::Colour::fromHSV(0.78f, 1.0f, t * 0.5f, 1.0f);
     }
 
-    if (amplitude < 0.5f)
+    if (amplitude < 0.66f)
     {
-        // blue -> cyan
-        float t = (amplitude - 0.25f) / 0.25f;
-        return juce::Colour::fromFloatRGBA(0.0f, t, 1.0f, 1.0f);
+        // dark purple -> neon purple
+        float t = (amplitude - 0.33f) / 0.33f;
+        return juce::Colour::fromHSV(0.78f + t * 0.05f, 1.0f, 0.5f + t * 0.5f, 1.0f);
     }
 
-    if (amplitude < 0.75f)
-    {
-        // cyan -> yellow
-        float t = (amplitude - 0.5f) / 0.25f;
-        return juce::Colour::fromFloatRGBA(t, 1.0f, 1.0f - t, 1.0f);
-    }
-
-    // yellow -> red
-    float t = (amplitude - 0.75f) / 0.25f;
-    return juce::Colour::fromFloatRGBA(1.0f, 1.0f - t, 0.0f, 1.0f);
+    // neon purple -> white
+    float t = (amplitude - 0.66f) / 0.34f;
+    return juce::Colour::fromHSV(0.83f, 1.0f - t, 1.0f, 1.0f);
 }
 
 // ============================================================================

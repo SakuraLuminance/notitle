@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <functional>
 #include "../dsp/PartialDataSIMD.h"
+#include "CyberpunkTheme.h"
 
 namespace ana {
 
@@ -158,11 +159,11 @@ private:
     int gridLinesY_ = 8;
 
     // Colours
-    juce::Colour bgColour_    { 0x12, 0x12, 0x26 };  // very dark blue
-    juce::Colour gridColour_  { 0x30, 0x30, 0x50 };  // dim blue
-    juce::Colour barColour_   { 0xEE, 0xCC, 0x66 };  // gold
-    juce::Colour toolColour_  { 0x66, 0xCC, 0xFF };  // light blue
-    juce::Colour activeBar_   { 0xFF, 0xCC, 0x44 };  // brighter gold for active
+    juce::Colour bgColour_    { CyberpunkTheme::bg_ };
+    juce::Colour gridColour_  { CyberpunkTheme::bg_.brighter(0.1f) };
+    juce::Colour barColour_   { CyberpunkTheme::cyan_ };
+    juce::Colour toolColour_  { CyberpunkTheme::magenta_ };
+    juce::Colour activeBar_   { CyberpunkTheme::yellow_ };
 
     // =========================================================================
     // 3D Waterfall OpenGL rendering
