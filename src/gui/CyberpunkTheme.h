@@ -6,11 +6,11 @@ namespace ana {
 
 //==============================================================================
 /**
-    Monochrome Purple Cyberpunk LookAndFeel for AnaPlug.
+    Toxic Cyberpunk LookAndFeel for AnaPlug.
     
-    Dark background (#080512), neon purple/magenta/lavender accents,
+    Dark background (#0a0a05), neon green/magenta/cyan accents,
     sharp geometric borders, futuristic typography, scan-line overlays.
-    Supports both Dark and Light modes with a coordinated purple palette.
+    Supports both Dark and Light modes with a coordinated toxic palette.
 */
 class CyberpunkTheme : public juce::LookAndFeel_V4
 {
@@ -34,19 +34,19 @@ public:
     {
         if (type == ThemeType::Light)
         {
-            bg_      = juce::Colour(0xe8, 0xe0, 0xf0); // light purple-gray
-            fg_      = juce::Colour(0x22, 0x18, 0x30); // dark purple
-            cyan_    = juce::Colour(0x7c, 0x3a, 0xed); // medium purple (primary accent)
-            magenta_ = juce::Colour(0x9b, 0x30, 0xff); // bright purple
-            yellow_  = juce::Colour(0xaa, 0x80, 0xff); // muted lavender
+            bg_      = juce::Colour(0xe0, 0xe8, 0xd8); // light green-gray
+            fg_      = juce::Colour(0x0a, 0x15, 0x08); // dark green-black
+            cyan_    = juce::Colour(0x00, 0x99, 0xcc); // medium cyan
+            magenta_ = juce::Colour(0xcc, 0x00, 0xcc); // medium magenta
+            yellow_  = juce::Colour(0x29, 0xcc, 0x10); // medium green
         }
         else
         {
-            bg_      = juce::Colour(0x08, 0x05, 0x12); // deep dark purple-black
-            fg_      = juce::Colour(0xc8, 0xc0, 0xd8); // light lavender
-            cyan_    = juce::Colour(0x88, 0x00, 0xff); // neon purple (primary accent)
-            magenta_ = juce::Colour(0xcf, 0x00, 0xff); // electric magenta-purple
-            yellow_  = juce::Colour(0xbb, 0x88, 0xff); // cool lavender accent
+            bg_      = juce::Colour(0x0a, 0x0a, 0x05); // deep dark green-black
+            fg_      = juce::Colour(0xd0, 0xe0, 0xc8); // light green-gray
+            cyan_    = juce::Colour(0x00, 0xcc, 0xff); // bright cyan (primary accent)
+            magenta_ = juce::Colour(0xff, 0x00, 0xff); // hot magenta (secondary accent)
+            yellow_  = juce::Colour(0x39, 0xff, 0x14); // neon green (highlight)
         }
         setupColours();
     }
@@ -301,11 +301,11 @@ public:
     }
 
     //==============================================================================
-    inline static juce::Colour bg_      { 0x08, 0x05, 0x12 };
-    inline static juce::Colour fg_      { 0xc8, 0xc0, 0xd8 };
-    inline static juce::Colour cyan_    { 0x88, 0x00, 0xff };
-    inline static juce::Colour magenta_ { 0xcf, 0x00, 0xff };
-    inline static juce::Colour yellow_  { 0xbb, 0x88, 0xff };
+    inline static juce::Colour bg_      { 0x0a, 0x0a, 0x05 };
+    inline static juce::Colour fg_      { 0xd0, 0xe0, 0xc8 };
+    inline static juce::Colour cyan_    { 0x00, 0xcc, 0xff };
+    inline static juce::Colour magenta_ { 0xff, 0x00, 0xff };
+    inline static juce::Colour yellow_  { 0x39, 0xff, 0x14 };
 };
 
 } // namespace ana
