@@ -1,4 +1,5 @@
 #include "WaveformDisplay.h"
+#include "CyberpunkTheme.h"
 
 namespace ana {
 
@@ -12,7 +13,7 @@ WaveformDisplay::~WaveformDisplay()
 
 void WaveformDisplay::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    g.fillAll(CyberpunkTheme::bg_.brighter(0.05f));
 
     if (samples.empty())
         return;
@@ -23,7 +24,7 @@ void WaveformDisplay::paint(juce::Graphics& g)
     const float centerY = height / 2.0f;
 
     // Draw waveform
-    g.setColour(juce::Colours::cyan);
+    g.setColour(CyberpunkTheme::cyan_); // neon purple
     juce::Path waveformPath;
 
     const int numSamples = static_cast<int>(samples.size());
@@ -49,7 +50,7 @@ void WaveformDisplay::paint(juce::Graphics& g)
     // Draw playback position cursor
     if (playbackPosition >= 0.0 && !samples.empty())
     {
-        g.setColour(juce::Colours::red);
+        g.setColour(CyberpunkTheme::magenta_); // electric magenta-purple
         float cursorX = static_cast<float>(playbackPosition / samples.size()) * width;
         g.drawLine(area.getX() + cursorX, area.getY(),
                    area.getX() + cursorX, area.getBottom(), 2.0f);
