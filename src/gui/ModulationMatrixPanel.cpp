@@ -15,7 +15,7 @@ ModulationMatrixPanel::~ModulationMatrixPanel()
 
 void ModulationMatrixPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(CyberpunkTheme::bg_); // Dark purple background
+    g.fillAll(CyberpunkTheme::bg_); // Dark green-black background
     
     g.setColour(CyberpunkTheme::fg_);
     g.setFont(16.0f);

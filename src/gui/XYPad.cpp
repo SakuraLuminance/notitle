@@ -347,7 +347,7 @@ void XYPad::drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds)
     const float gridSpacing = bounds.getWidth() / 8.0f;
     const int numLines = static_cast<int>(bounds.getWidth() / gridSpacing);
 
-    g.setColour(CyberpunkTheme::cyan_.withAlpha(0.04f));
+    g.setColour(CyberpunkTheme::cyan_.withAlpha(0.12f));
 
     for (int i = 1; i < numLines; ++i)
     {

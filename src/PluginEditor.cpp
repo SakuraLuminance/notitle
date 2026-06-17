@@ -387,7 +387,7 @@ void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
     // Draw panel borders with cyberpunk accents
     ana::CyberpunkTheme::drawPanelBorder(g, r.timbreAPanel, "TIMBRE A", ana::CyberpunkTheme::cyan_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.timbreBPanel, "TIMBRE B", ana::CyberpunkTheme::magenta_);
-    ana::CyberpunkTheme::drawPanelBorder(g, r.centerPanel, "SPECTRUM", ana::CyberpunkTheme::cyan_.withAlpha(0.3f));
+    ana::CyberpunkTheme::drawPanelBorder(g, r.centerPanel, "SPECTRUM", ana::CyberpunkTheme::cyan_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.processArea, "PROCESS", ana::CyberpunkTheme::cyan_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.modArea, "MODULATION", ana::CyberpunkTheme::yellow_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.bottomArea, "CONTROLS", ana::CyberpunkTheme::magenta_);

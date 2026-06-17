@@ -160,7 +160,7 @@ private:
 
     // Colours
     juce::Colour bgColour_    { CyberpunkTheme::bg_ };
-    juce::Colour gridColour_  { CyberpunkTheme::bg_.brighter(0.1f) };
+    juce::Colour gridColour_  { CyberpunkTheme::fg_.withAlpha(0.12f) };
     juce::Colour barColour_   { CyberpunkTheme::cyan_ };
     juce::Colour toolColour_  { CyberpunkTheme::magenta_ };
     juce::Colour activeBar_   { CyberpunkTheme::yellow_ };

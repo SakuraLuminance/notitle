@@ -142,7 +142,7 @@ private:
             const float arcAngle = juce::jmap(sliderPos, 0.0f, 1.0f, startAngle, endAngle);
 
             // Background track
-            g.setColour(juce::Colour(0x0a, 0x0a, 0x14).brighter(0.15f));
+            g.setColour(ana::CyberpunkTheme::bg_.brighter(0.15f));
             g.fillEllipse(centre.getX() - radius, centre.getY() - radius,
                           radius * 2, radius * 2);
 
@@ -168,7 +168,7 @@ private:
             g.fillEllipse(dotX - 3, dotY - 3, 6, 6);
 
             // Center cap
-            g.setColour(juce::Colour(0x0a, 0x0a, 0x14).brighter(0.3f));
+            g.setColour(ana::CyberpunkTheme::bg_.brighter(0.3f));
             g.fillEllipse(centre.getX() - 4, centre.getY() - 4, 8, 8);
             g.setColour(arcColour.withAlpha(0.5f));
             g.drawEllipse(centre.getX() - 4, centre.getY() - 4, 8, 8, 1.0f);

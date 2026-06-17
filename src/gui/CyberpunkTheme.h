@@ -76,7 +76,7 @@ public:
         setColour(juce::Slider::trackColourId, cyan_.darker(0.5f));
         setColour(juce::Slider::backgroundColourId, bg_.brighter(0.1f));
         setColour(juce::Slider::textBoxTextColourId, fg_);
-        setColour(juce::Slider::textBoxBackgroundColourId, bg_.brighter(0.05f));
+        setColour(juce::Slider::textBoxBackgroundColourId, bg_.brighter(0.15f));
         setColour(juce::Slider::textBoxOutlineColourId, cyan_.withAlpha(0.3f));
         setColour(juce::ListBox::backgroundColourId, bg_);
         setColour(juce::ListBox::textColourId, fg_);
@@ -95,7 +95,7 @@ public:
                                bool shouldDrawButtonAsDown) override
     {
         auto bounds = button.getLocalBounds().toFloat().reduced(1.5f);
-        auto baseColour = button.getToggleState() ? cyan_ : cyan_.darker(0.7f);
+        auto baseColour = button.getToggleState() ? cyan_ : cyan_.darker(0.5f);
 
         if (shouldDrawButtonAsDown)
             baseColour = cyan_.brighter(0.3f);
@@ -103,7 +103,7 @@ public:
             baseColour = baseColour.brighter(0.2f);
 
         // Neon glow effect
-        g.setColour(baseColour.withAlpha(0.3f));
+        g.setColour(baseColour.withAlpha(0.5f));
         g.fillRoundedRectangle(bounds, 3.0f);
         
         g.setColour(baseColour);
@@ -262,7 +262,7 @@ public:
     static void drawGridBackground(juce::Graphics& g, juce::Rectangle<int> bounds)
     {
         const int gridSpacing = 40;
-        g.setColour(cyan_.withAlpha(0.04f));
+        g.setColour(cyan_.withAlpha(0.12f));
 
         for (int x = bounds.getX(); x < bounds.getRight(); x += gridSpacing)
             g.drawVerticalLine(x, bounds.getY(), bounds.getBottom());

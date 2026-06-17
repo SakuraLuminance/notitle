@@ -1,14 +1,15 @@
 #include "PartialEditorCanvas.h"
+#include "CyberpunkTheme.h"
 #include <cmath>
 #include <algorithm>
 
 namespace ana {
 
 // ============================================================================
-// Colour mapping:  amplitude -> colour (Purple-Wash)
+// Colour mapping:  amplitude -> colour (Toxic Green)
 //    0.0  = black
-//    0.33 = dark purple
-//    0.66 = neon purple
+//    0.33 = dark green
+//    0.66 = neon green
 //    1.0  = white
 // ============================================================================
 juce::Colour PartialEditorCanvas::amplitudeToColour(float amplitude)
@@ -17,21 +18,21 @@ juce::Colour PartialEditorCanvas::amplitudeToColour(float amplitude)
 
     if (amplitude < 0.33f)
     {
-        // black -> dark purple
+        // black -> dark green
         float t = amplitude / 0.33f;
-        return juce::Colour::fromHSV(0.78f, 1.0f, t * 0.5f, 1.0f);
+        return juce::Colour::fromHSV(0.33f, 1.0f, t * 0.5f, 1.0f);
     }
 
     if (amplitude < 0.66f)
     {
-        // dark purple -> neon purple
+        // dark green -> neon green
         float t = (amplitude - 0.33f) / 0.33f;
-        return juce::Colour::fromHSV(0.78f + t * 0.05f, 1.0f, 0.5f + t * 0.5f, 1.0f);
+        return juce::Colour::fromHSV(0.33f + t * 0.05f, 1.0f, 0.5f + t * 0.5f, 1.0f);
     }
 
-    // neon purple -> white
+    // neon green -> white
     float t = (amplitude - 0.66f) / 0.34f;
-    return juce::Colour::fromHSV(0.83f, 1.0f - t, 1.0f, 1.0f);
+    return juce::Colour::fromHSV(0.38f, 1.0f - t, 1.0f, 1.0f);
 }
 
 // ============================================================================
@@ -569,11 +570,11 @@ void PartialEditorCanvas::mouseWheelMove(const juce::MouseEvent& e,
 void PartialEditorCanvas::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
-    g.fillAll(juce::Colour(0xFF0A0A0A));
+    g.fillAll(CyberpunkTheme::bg_);
 
     if (numFrames == 0 || numPartials == 0)
     {
-        g.setColour(juce::Colours::grey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
         g.setFont(14.0f);
         g.drawText("No partial data loaded", bounds,
                    juce::Justification::centred);
@@ -606,7 +607,7 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     }
 
     // --- Grid overlay ---
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.3f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.15f));
 
     // Vertical grid lines (every 10 frames, or fewer if zoomed out)
     int frameStep = std::max(1, numFrames / 40);
@@ -629,14 +630,14 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     }
 
     // --- Canvas border ---
-    g.setColour(juce::Colours::darkgrey);
+    g.setColour(CyberpunkTheme::bg_.brighter(0.15f));
     g.drawRect(area.toNearestInt(), 1);
 
     // --- Axis labels ---
     g.setFont(juce::Font(10.0f, juce::Font::plain));
 
     // Frequency labels (Y axis, left margin)
-    g.setColour(juce::Colours::lightgrey);
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.6f));
     for (int p = vpStart; p < vpEnd; p += partialStep)
     {
         auto pos = gridToPixel(0, p);
@@ -683,7 +684,7 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
         auto startPixel = gridToPixel(dragStart.x, dragStart.y);
         auto endPixel   = gridToPixel(dragCurrent.x, dragCurrent.y);
 
-        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
 
         if (brushMode == BrushMode::Line)
         {

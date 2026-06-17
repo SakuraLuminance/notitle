@@ -1,17 +1,18 @@
 #include "FilterVisualization.h"
+#include "CyberpunkTheme.h"
 #include <cmath>
 
 namespace ana {
 
 static const juce::Colour filterColours[] = {
-    juce::Colour(0x88, 0x00, 0xff), // neon purple
-    juce::Colour(0xcf, 0x00, 0xff), // electric magenta
-    juce::Colour(0xbb, 0x88, 0xff), // lavender
-    juce::Colour(0xc8, 0xc0, 0xd8), // light lavender
-    juce::Colour(0x6a, 0x00, 0xcc), // darker neon purple
-    juce::Colour(0xa0, 0x00, 0xcc), // darker magenta
-    juce::Colour(0x99, 0x66, 0xcc), // darker lavender
-    juce::Colour(0xe8, 0xe0, 0xf0)  // very light purple
+    juce::Colour(0x39, 0xff, 0x14), // neon green
+    juce::Colour(0xff, 0x00, 0xff), // hot magenta
+    juce::Colour(0x00, 0xcc, 0xff), // bright cyan
+    juce::Colour(0xaa, 0xff, 0x00), // yellow-green
+    juce::Colour(0xff, 0x66, 0x00), // neon orange
+    juce::Colour(0x00, 0xff, 0x88), // spring green
+    juce::Colour(0xff, 0x00, 0x88), // hot pink
+    juce::Colour(0x88, 0xff, 0x00), // lime
 };
 
 FilterVisualization::FilterVisualization()
@@ -26,7 +27,7 @@ FilterVisualization::~FilterVisualization()
 
 void FilterVisualization::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::black);
+    g.fillAll(CyberpunkTheme::bg_);
 
     auto area = getLocalBounds().toFloat();
     const float width = area.getWidth();

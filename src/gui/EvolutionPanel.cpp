@@ -148,7 +148,7 @@ void EvolutionPanel::paint(juce::Graphics& g)
         g.fillRect(cell);
 
         // Divider lines between cells (neon grid)
-        g.setColour(CyberpunkTheme::cyan_.withAlpha(0.08f));
+        g.setColour(CyberpunkTheme::cyan_.withAlpha(0.15f));
         g.drawRect(cell, 1.0f);
 
         // --- Selection highlights ---

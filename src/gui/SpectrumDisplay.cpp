@@ -1,4 +1,5 @@
 #include "SpectrumDisplay.h"
+#include "CyberpunkTheme.h"
 
 namespace ana {
 
@@ -12,11 +13,11 @@ SpectrumDisplay::~SpectrumDisplay()
 
 void SpectrumDisplay::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::black);
+    g.fillAll(CyberpunkTheme::bg_);
 
     if (partials.empty())
     {
-        g.setColour(juce::Colours::grey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
         g.drawText("No partials detected", getLocalBounds(),
                    juce::Justification::centred);
         return;

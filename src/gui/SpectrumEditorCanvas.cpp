@@ -1381,7 +1381,7 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
             int rh = std::abs(y2 - y1);
 
             g.drawRect(rx, ry, rw, rh, 2.0f);
-            g.setColour(toolColour_.withAlpha(0.15f));
+            g.setColour(toolColour_.withAlpha(0.3f));
             g.fillRect(rx, ry, rw, rh);
         }
     }

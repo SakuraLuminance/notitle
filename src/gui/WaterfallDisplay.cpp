@@ -1,4 +1,5 @@
 #include "WaterfallDisplay.h"
+#include "CyberpunkTheme.h"
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -143,13 +144,13 @@ void WaterfallDisplay::mouseWheelMove(const juce::MouseEvent&,
 //==============================================================================
 void WaterfallDisplay::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::black);
+    g.fillAll(CyberpunkTheme::bg_);
 
     auto bounds = getLocalBounds();
 
     if (!hasData_ || numBins_ < 2)
     {
-        g.setColour(juce::Colours::grey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
         g.setFont(14.0f);
         g.drawText("No spectral data", bounds, juce::Justification::centred);
         return;
@@ -179,7 +180,7 @@ void WaterfallDisplay::paint(juce::Graphics& g)
     if (validFrames < 2)
     {
         // Not enough history yet — draw a single front ridge if we have data
-        g.setColour(juce::Colours::grey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
         g.drawText("Accumulating history...", bounds, juce::Justification::centred);
         return;
     }
@@ -296,7 +297,7 @@ void WaterfallDisplay::paint(juce::Graphics& g)
 
         if (started)
         {
-            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.setColour(CyberpunkTheme::fg_.withAlpha(0.9f));
             g.strokePath(frontRidge, juce::PathStrokeType(2.0f));
         }
     }
@@ -304,7 +305,7 @@ void WaterfallDisplay::paint(juce::Graphics& g)
     // --- Floor grid (base plane at y=0) ---
     {
         const int gridSteps = 8;
-        g.setColour(juce::Colours::grey.withAlpha(0.15f));
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.15f));
 
         // Radial lines from front to back
         for (int i = 0; i <= gridSteps; ++i)
@@ -332,7 +333,7 @@ void WaterfallDisplay::paint(juce::Graphics& g)
     // --- Frequency labels along front edge ---
     {
         g.setFont(10.0f);
-        g.setColour(juce::Colours::grey.withAlpha(0.5f));
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
 
         static constexpr float labelPositions[] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
 #if JUCE_DEBUG
@@ -438,36 +439,36 @@ juce::Colour WaterfallDisplay::magnitudeColour(float mag, float maxMag) const
 
     switch (colourScheme_)
     {
-        case 1: // Purple-Wash Rainbow: deep blue-purple -> magenta -> pink -> white
+        case 1: // 1: Toxic Rainbow: green -> cyan -> blue -> white
         {
-            const float hue = 0.75f + t * 0.10f;
+            const float hue = 0.30f + t * 0.30f;  // green (0.30) to blue (0.60)
             const float sat = t > 0.8f ? 1.0f - (t - 0.8f) * 5.0f : 1.0f;
             const float val = 0.2f + t * 0.8f;
             return juce::Colour::fromHSV(hue, sat, val, 1.0f);
         }
 
-        case 2: // Purple-Wash Mono: dark purple -> light purple
+        case 2: // 2: Toxic Mono: dark green -> light green
         {
-            const float hue = 0.78f;
+            const float hue = 0.33f;
             const float sat = 0.6f - t * 0.4f;
             const float val = t;
             return juce::Colour::fromHSV(hue, sat, val, 1.0f);
         }
 
-        default: // 0: Purple-Wash Fire: black -> dark purple -> neon purple -> white
+        default: // 0: Toxic Fire: black -> dark green -> neon green -> white
         {
             if (t < 0.33f)
             {
                 const float u = t / 0.33f;
-                return juce::Colour::fromHSV(0.78f, 1.0f, u * 0.5f, 1.0f);
+                return juce::Colour::fromHSV(0.33f, 1.0f, u * 0.5f, 1.0f);
             }
             if (t < 0.66f)
             {
                 const float u = (t - 0.33f) / 0.33f;
-                return juce::Colour::fromHSV(0.78f + u * 0.05f, 1.0f, 0.5f + u * 0.5f, 1.0f);
+                return juce::Colour::fromHSV(0.33f + u * 0.05f, 1.0f, 0.5f + u * 0.5f, 1.0f);
             }
             const float u = (t - 0.66f) / 0.34f;
-            return juce::Colour::fromHSV(0.83f, 1.0f - u, 1.0f, 1.0f);
+            return juce::Colour::fromHSV(0.38f, 1.0f - u, 1.0f, 1.0f);
         }
     }
 }
