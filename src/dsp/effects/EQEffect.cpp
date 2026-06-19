@@ -34,6 +34,7 @@ void EQEffect::updateCoeffs(int band) {
 }
 
 void EQEffect::process(juce::AudioBuffer<float>& buffer) {
+    if (bypassed) return;
     for (int i = 0; i < 3; ++i) {
         updateCoeffs(i);
         juce::dsp::AudioBlock<float> block(buffer);

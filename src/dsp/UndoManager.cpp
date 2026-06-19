@@ -8,6 +8,11 @@ UndoManager::UndoManager(int maxDepth)
 {
 }
 
+UndoManager::~UndoManager()
+{
+    delete currentComposite_;
+}
+
 //==============================================================================
 void UndoManager::execute(std::unique_ptr<UndoCommand> cmd)
 {
@@ -119,6 +124,7 @@ void UndoManager::clear()
 {
     undoStack_.clear();
     redoStack_.clear();
+    delete currentComposite_;
     currentComposite_ = nullptr;
     inComposite_ = false;
 }

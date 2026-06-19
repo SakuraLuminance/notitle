@@ -38,7 +38,9 @@ private:
     juce::TextEditor presetNameEditor;
     juce::Label titleLabel{ {}, "Preset Browser" };
 
+    std::unique_ptr<juce::TextEditor> searchField_;
     juce::StringArray currentPresets;
+    static constexpr int starWidth = 22;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PresetBrowserPanel)
 };

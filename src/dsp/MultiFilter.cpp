@@ -661,10 +661,10 @@ void MultiFilter::processCombSlot(FilterSlot& slot, juce::dsp::AudioBlock<float>
             const float delayed = delay.popSample(ch, delaySamples);
 
             // Apply damping (low-pass filter on feedback path)
-            float damped = delayed;
+            float damped = delayed + 1e-30f;  // denormal flushing
             if (ch < 2) // max 2 channels for damping state
             {
-                damped = slot.lastDelayed[ch] * damping + delayed * (1.0f - damping);
+                damped = slot.lastDelayed[ch] * damping + delayed * (1.0f - damping) + 1e-30f;
                 slot.lastDelayed[ch] = damped;
             }
 

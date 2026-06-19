@@ -10,7 +10,7 @@ include(FetchContent)
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 8.0.0
+    GIT_TAG 8.0.13
     GIT_SHALLOW TRUE
 )
 
@@ -21,7 +21,31 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
 )
 
-FetchContent_MakeAvailable(JUCE Catch2)
+# libebur128 — ITU-R BS.1770-4 LUFS loudness metering (MIT)
+FetchContent_Declare(
+    libebur128
+    GIT_REPOSITORY https://github.com/jiixyj/libebur128.git
+    GIT_TAG v1.2.6
+    GIT_SHALLOW TRUE
+)
+
+# clap-juce-extensions — CLAP polyphonic modulation & note expressions (MIT)
+FetchContent_Declare(
+    clap-juce-extensions
+    GIT_REPOSITORY https://github.com/free-audio/clap-juce-extensions.git
+    GIT_TAG main
+)
+
+set(SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
+FetchContent_MakeAvailable(JUCE Catch2 libebur128 clap-juce-extensions)
+set(BUILD_SHARED_LIBS ${SAVED_BUILD_SHARED_LIBS})
+
+# libebur128 does not set INTERFACE_INCLUDE_DIRECTORIES on its target,
+# so ensure the header can be found via #include <ebur128.h>
+if(TARGET ebur128)
+    target_include_directories(ebur128 PUBLIC ${libebur128_SOURCE_DIR}/ebur128)
+endif()
 
 # ---- Plugin Target ----
 juce_add_plugin(AnaPlug
@@ -54,11 +78,23 @@ target_sources(AnaPlug
         src/dsp/FilterModulation.cpp
         src/dsp/Arpeggiator.cpp
         src/dsp/effects/ChorusEffect.cpp
+        src/dsp/effects/ConsolidatedDelay.cpp
         src/dsp/effects/DelayEffect.cpp
+        src/dsp/effects/DriveModule.cpp
+        src/dsp/effects/SaturationEffect.cpp
+        src/dsp/effects/StereoWidenerEffect.cpp
+        src/dsp/effects/BitcrusherEffect.cpp
         src/dsp/effects/DistortionEffect.cpp
         src/dsp/effects/EQEffect.cpp
         src/dsp/effects/ReverbEffect.cpp
         src/dsp/effects/AutoTuneEffect.cpp
+        src/dsp/ProcessorStore.cpp
+        src/dsp/effects/SpaceModule.cpp
+        src/dsp/effects/ModulationModule.cpp
+        src/dsp/effects/DeEsserModule.cpp
+        src/dsp/effects/DynamicsModule.cpp
+        src/dsp/effects/EQModule.cpp
+        src/dsp/effects/PitchModule.cpp
         src/dsp/EffectsChain.cpp
         src/dsp/GranularSynthesizer.cpp
         src/dsp/ImageSynthesizer.cpp
@@ -82,6 +118,10 @@ target_sources(AnaPlug
         src/gui/EvolutionPanel.cpp
         src/gui/XYPad.cpp
         src/gui/ModulationMatrixPanel.cpp
+        src/gui/MeteringPanel.cpp
+        src/gui/ModulationAssignPanel.cpp
+        src/gui/EffectRackComponent.cpp
+        src/gui/CreditsPanel.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
         src/dsp/DualTimbre.cpp
@@ -119,16 +159,26 @@ target_sources(AnaPlug
         src/dsp/DualSignalChain.cpp
         src/dsp/HPSSEngine.cpp
         src/dsp/BpmDetector.cpp
+        src/dsp/MeteringEngine.cpp
         src/dsp/ModulationMatrix.cpp
         src/dsp/effects/PhaserEffect.cpp
         src/dsp/effects/FlangerEffect.cpp
+        src/dsp/effects/RingModulatorEffect.cpp
         src/dsp/effects/CompressorEffect.cpp
         src/dsp/effects/LimiterEffect.cpp
+        src/dsp/effects/BreathNoiseGenerator.cpp
+        src/dsp/effects/FormantTuner.cpp
+        src/dsp/effects/SoloistVocalChain.cpp
+        src/dsp/effects/VocalNoiseReducer.cpp
+        src/dsp/effects/VocalProcessor.cpp
+        src/dsp/effects/VocalThickenerEffect.cpp
         src/dsp/WavetableEngine.cpp
         src/dsp/MidiLearn.cpp
         src/dsp/MultibandProcessor.cpp
         src/dsp/ModulationBus.cpp
         src/dsp/PartialModulator.cpp
+        src/dsp/StepSequencer.cpp
+        src/dsp/Randomizer.cpp
 )
 
 target_link_libraries(AnaPlug
@@ -140,6 +190,7 @@ target_link_libraries(AnaPlug
         juce::juce_core
         juce::juce_gui_basics
         juce::juce_gui_extra
+        ebur128
         -ld2d1 -ld3d11 -ldcomp -ldxstub
     PUBLIC
         juce::juce_recommended_config_flags
@@ -215,6 +266,18 @@ if(UNIX AND NOT APPLE)
     )
     target_compile_options(AnaPlug PRIVATE
         -pthread
+    )
+endif()
+
+# ---- CLAP Extensions (clap-juce-extensions) ----
+# Creates AnaPlug_CLAP target with note expressions & polyphonic modulation.
+# The original AnaPlug target (VST3) is unaffected.
+if(TARGET clap_juce_extensions)
+    clap_juce_extensions_plugin(TARGET AnaPlug
+        CLAP_ID "com.anaplug.synth"
+        CLAP_FEATURES instrument synthesizer
+        CLAP_MANUAL_URL "https://github.com/anaplug/AnaPlug"
+        CLAP_SUPPORT_URL "https://github.com/anaplug/AnaPlug"
     )
 endif()
 

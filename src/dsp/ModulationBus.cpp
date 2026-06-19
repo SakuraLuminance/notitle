@@ -8,8 +8,8 @@ namespace ana {
 void ModulationBus::addRoute(Source src, int srcIndex, const std::string& targetId,
                               std::atomic<float>* target, const float* sourceValue, float depth)
 {
-    jassert(target != nullptr);
-    jassert(sourceValue != nullptr);
+    if (target == nullptr || sourceValue == nullptr)
+        return;
 
     Route r;
     r.source        = src;

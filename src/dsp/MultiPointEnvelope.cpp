@@ -146,6 +146,44 @@ void MultiPointEnvelope::release()
     released = true;
 }
 
+//==============================================================================
+// ADSR convenience API
+//==============================================================================
+
+void MultiPointEnvelope::setAttack(float time)
+{
+    attack_ = juce::jlimit(0.0f, 10.0f, time);
+    rebuildADSR();
+}
+
+void MultiPointEnvelope::setDecay(float time)
+{
+    decay_ = juce::jlimit(0.0f, 10.0f, time);
+    rebuildADSR();
+}
+
+void MultiPointEnvelope::setSustain(float level)
+{
+    sustain_ = juce::jlimit(0.0f, 1.0f, level);
+    rebuildADSR();
+}
+
+void MultiPointEnvelope::setRelease(float time)
+{
+    release_ = juce::jlimit(0.0f, 10.0f, time);
+    rebuildADSR();
+}
+
+void MultiPointEnvelope::rebuildADSR()
+{
+    clearBreakpoints();
+    addBreakpoint(0.0f, 0.0f, CurveType::Linear);
+    addBreakpoint(attack_, 1.0f, CurveType::Linear);
+    addBreakpoint(attack_ + decay_, sustain_, CurveType::Linear);
+    addBreakpoint(attack_ + decay_ + release_, 0.0f, CurveType::Exponential);
+}
+
+//==============================================================================
 bool MultiPointEnvelope::isActive() const noexcept  { return active; }
 bool MultiPointEnvelope::isReleased() const noexcept { return released; }
 

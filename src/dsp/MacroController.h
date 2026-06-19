@@ -254,7 +254,7 @@ public:
         including all macros, their names, and all mappings.
         Caller owns the returned object.
     */
-    juce::XmlElement* createXml() const;
+    std::unique_ptr<juce::XmlElement> createXml() const;
 
     /** Restores the macro controller state from an XML element
         previously created by createXml().

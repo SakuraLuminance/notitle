@@ -10,10 +10,21 @@ namespace ana {
  */
 struct UnisonVoice
 {
-    float phase = 0.0f;          // Current phase accumulator [0, 2pi)
+    float phase = 0.0f;          // Current phase accumulator [0, 2pi) (kept for test compat)
     float initialPhase = 0.0f;   // Starting phase offset set on noteOn
     float detuneCents = 0.0f;    // Detune offset from center pitch
     float pan = 0.0f;            // Pan position [-1 .. +1]
+
+    // Recursive phasor state (replaces per-sample std::sin in the render loop)
+    float phasorRe = 1.0f;       // Real part of phasor (cos)
+    float phasorIm = 0.0f;       // Imag part of phasor (sin)
+    float cosDelta = 1.0f;       // cos(phaseDelta) per-block
+    float sinDelta = 0.0f;       // sin(phaseDelta) per-block
+
+    // Precomputed voice parameters (set once in updateVoices, not per-sample)
+    float detuneRatio = 1.0f;    // std::pow(2, detuneCents/1200)
+    float leftGain  = 1.0f;      // std::sqrt(0.5 * (1 - pan))
+    float rightGain = 1.0f;      // std::sqrt(0.5 * (1 + pan))
 };
 
 /**

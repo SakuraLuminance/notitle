@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_data_structures/juce_data_structures.h>
 #include "../PitchCorrector.h"
 #include <vector>
 
@@ -19,6 +20,9 @@ public:
     ~AutoTuneEffect() = default;
 
     void setSampleRate(double sr);
+    
+    /** Pre-allocate buffers for the given spec. Must be called before processing. */
+    void prepare(const juce::dsp::ProcessSpec& spec);
     
     /** Set retune speed in milliseconds (0 = instant, >0 = smooth transition). */
     void setRetuneSpeed(float ms);
@@ -42,9 +46,28 @@ public:
     /** Reset internal state (e.g., smoothing filters). */
     void reset();
 
+    juce::ValueTree getState() const
+    {
+        juce::ValueTree tree("AutoTuneEffect");
+        tree.setProperty("retuneSpeed", retuneSpeed_, nullptr);
+        tree.setProperty("amount", amount_, nullptr);
+        tree.setProperty("enabled", enabled_, nullptr);
+        tree.setProperty("scale", scaleMask, nullptr);
+        return tree;
+    }
+
+    void setState(const juce::ValueTree& state)
+    {
+        setRetuneSpeed(state.getProperty("retuneSpeed", 50.0f));
+        setAmount(state.getProperty("amount", 1.0f));
+        setEnabled(state.getProperty("enabled", false));
+        scaleMask = (int)state.getProperty("scale", 0);
+    }
+
 private:
     PitchCorrector pitchCorrector_;
     std::vector<bool> scaleNotes_;
+    int scaleMask = 0;
     
     double sampleRate_ = 44100.0;
     float retuneSpeed_ = 50.0f; // ms

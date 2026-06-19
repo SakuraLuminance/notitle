@@ -14,14 +14,18 @@ void LimiterEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     for (auto& dl : lookaheadLines)
         dl.prepare(spec);
 
-    // Pre-allocate oversampling buffer (4x max)
+    // Pre-allocate oversampling buffer (4x max) with avoidReallocating=true
     int maxOsBlock = static_cast<int>(spec.maximumBlockSize * 4);
-    osBuffer.setSize(numChannels, maxOsBlock);
+    osBuffer.setSize(numChannels, maxOsBlock, false, true, true);
     osBuffer.clear();
 
     envelope = 1.0f;
     attackCoeff = std::exp(-1.0f / (attackMs * sampleRate / 1000.0f));
     releaseCoeff = std::exp(-1.0f / (releaseMs * sampleRate / 1000.0f));
+
+    // Pre-allocate dry and wet buffers (avoidReallocating=true — never realloc in audio thread)
+    dryBuffer_.setSize(static_cast<int>(spec.numChannels), static_cast<int>(spec.maximumBlockSize), false, false, true);
+    wetBuffer_.setSize(static_cast<int>(spec.numChannels), static_cast<int>(spec.maximumBlockSize), false, false, true);
 }
 
 void LimiterEffect::reset() {
@@ -44,8 +48,6 @@ void LimiterEffect::process(juce::AudioBuffer<float>& buffer) {
     if (oversamplingFactor > 1) {
         // Upsample: insert zeros and process at higher rate
         int osSamples = numSamples * oversamplingFactor;
-        if (osBuffer.getNumSamples() < osSamples)
-            osBuffer.setSize(numCh, osSamples, false, true, false);
         osBuffer.clear();
 
         // Simple copy + zero-stuff upsampling
@@ -75,17 +77,15 @@ void LimiterEffect::processLimiter(juce::AudioBuffer<float>& buffer) {
     int numSamples = buffer.getNumSamples();
     int numCh = juce::jmin(numChannels, buffer.getNumChannels());
 
-    // Dry buffer for mixing
-    juce::AudioBuffer<float> dry(numCh, numSamples);
-    dry.makeCopyOf(buffer);
+    // Dry buffer for mixing (pre-allocated)
+    dryBuffer_.makeCopyOf(buffer, true);
 
     // Lookahead delay in samples
     float lookaheadSamples = lookaheadMs * static_cast<float>(sampleRate) / 1000.0f;
     float thresholdLinear = juce::Decibels::decibelsToGain(thresholdDb);
 
-    // Temporary buffer to hold the pre-gain output
-    juce::AudioBuffer<float> wet(numCh, numSamples);
-    wet.clear();
+    // Temporary buffer to hold the pre-gain output (pre-allocated in prepare())
+    wetBuffer_.clear();
 
     // First pass: push all samples into lookahead, compute envelope,
     // and read delayed samples into wet buffer
@@ -111,13 +111,13 @@ void LimiterEffect::processLimiter(juce::AudioBuffer<float>& buffer) {
 
         // Read delayed sample and apply envelope
         for (int ch = 0; ch < numCh; ++ch)
-            wet.setSample(ch, s, lookaheadLines[ch].popSample(ch, lookaheadSamples) * envelope);
+            wetBuffer_.setSample(ch, s, lookaheadLines[ch].popSample(ch, lookaheadSamples) * envelope);
     }
 
     // Dry/wet mix with gain
     for (int ch = 0; ch < numCh; ++ch) {
-        const auto* dryData = dry.getReadPointer(ch);
-        const auto* wetData = wet.getReadPointer(ch);
+        const auto* dryData = dryBuffer_.getReadPointer(ch);
+        const auto* wetData = wetBuffer_.getReadPointer(ch);
         auto* outData = buffer.getWritePointer(ch);
         for (int s = 0; s < numSamples; ++s)
             outData[s] = dryData[s] * (1.0f - mixVal) + wetData[s] * mixVal * gainVal;

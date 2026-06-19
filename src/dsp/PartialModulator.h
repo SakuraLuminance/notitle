@@ -59,7 +59,7 @@ public:
         @param partials  The SIMD partial data to modulate (modified in-place)
         @param config    Modulation configuration
     */
-    void process(PartialDataSIMD& partials, const Config& config);
+    void process(PartialDataSIMD& partials, const Config& config, int numSamples);
 
     /** Resets all per-partial states (LFO phase, envelope level, envelope state). */
     void reset();

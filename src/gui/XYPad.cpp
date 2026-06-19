@@ -13,6 +13,7 @@ static constexpr float cornerShrink = 12.0f;
 XYPad::XYPad(AnaPlugAudioProcessor& processor)
     : processor_(processor)
 {
+    setTooltip("X: Morph Amount (0-100%) | Y: Modulation Depth (0-100%) | Drag to position, double-click to reset");
     startTimerHz(30);
 }
 
@@ -301,10 +302,11 @@ void XYPad::showContextMenu(const juce::MouseEvent& e)
     bool xMapped = false;
     bool yMapped = false;
     int xCC = -1, yCC = -1;
+    bool xGlobal = false, yGlobal = false;
     for (const auto& m : midiLearn.getMappings())
     {
-        if (m.parameterId == getXParamId()) { xMapped = true; xCC = m.ccNumber; }
-        if (m.parameterId == getYParamId()) { yMapped = true; yCC = m.ccNumber; }
+        if (m.parameterId == getXParamId()) { xMapped = true; xCC = m.ccNumber; xGlobal = m.isGlobal; }
+        if (m.parameterId == getYParamId()) { yMapped = true; yCC = m.ccNumber; yGlobal = m.isGlobal; }
     }
 
     if (midiLearn.isLearning())
@@ -320,12 +322,20 @@ void XYPad::showContextMenu(const juce::MouseEvent& e)
                      [this]() { startLearnY(); });
 
         if (xMapped)
+        {
             menu.addItem("Clear X Mapping (CC " + juce::String(xCC) + ")",
                          [this, xCC]() { processor_.getMidiLearn().removeMapping(xCC); });
+            menu.addItem("Global X (survives presets)", true, xGlobal,
+                         [this, xGlobal]() { processor_.getMidiLearn().setMappingGlobal(getXParamId(), !xGlobal); });
+        }
 
         if (yMapped)
+        {
             menu.addItem("Clear Y Mapping (CC " + juce::String(yCC) + ")",
                          [this, yCC]() { processor_.getMidiLearn().removeMapping(yCC); });
+            menu.addItem("Global Y (survives presets)", true, yGlobal,
+                         [this, yGlobal]() { processor_.getMidiLearn().setMappingGlobal(getYParamId(), !yGlobal); });
+        }
     }
 
     menu.showMenuAsync(juce::PopupMenu::Options());

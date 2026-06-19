@@ -39,7 +39,8 @@ public:
         Envelope,   /**< Envelope generator */
         Macro,      /**< Macro control */
         Audio,      /**< Audio-rate signal */
-        Partial     /**< Partial-domain modulation */
+        Partial,    /**< Partial-domain modulation */
+        Sequencer   /**< Step sequencer CV output */
     };
 
     //==============================================================================
@@ -50,7 +51,9 @@ public:
         int sourceIndex = 0;             /**< Which LFO/envelope/macro (0-based). */
         std::string targetParamId;       /**< Human-readable target parameter ID. */
         std::atomic<float>* targetParam = nullptr;  /**< Target parameter (atomic for thread safety). */
-        const float* sourceValue = nullptr;         /**< Pointer to the source's current value. */
+        const float* sourceValue = nullptr;         /**< Pointer to the source's current value.
+                                                                     WARNING: Must outlive the ModulationBus route.
+                                                                     Call removeRoute() before destroying the source. */
         float depth = 1.0f;              /**< Modulation depth scalar. */
     };
 

@@ -393,9 +393,9 @@ void MacroController::updateTargetCache()
 }
 
 //==============================================================================
-juce::XmlElement* MacroController::createXml() const
+std::unique_ptr<juce::XmlElement> MacroController::createXml() const
 {
-    auto* xml = new juce::XmlElement("macrocontroller");
+    auto xml = std::make_unique<juce::XmlElement>("macrocontroller");
 
     for (int m = 0; m < static_cast<int>(macros_.size()); ++m)
     {

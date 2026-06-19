@@ -65,7 +65,7 @@ public:
     */
     explicit UndoManager(int maxDepth = 128);
 
-    ~UndoManager() = default;
+    ~UndoManager();
 
     //==============================================================================
     /** Executes a command and pushes it onto the undo stack.

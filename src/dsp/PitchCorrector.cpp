@@ -120,6 +120,10 @@ void PitchCorrector::ensureScratchSizes() noexcept
     const size_t lpcN = 41;
     resizeIfSmaller(scratch_aPrev_, lpcN);
     resizeIfSmaller(scratch_aCurr_, lpcN);
+
+    // Pre-size input copy buffer for default stereo + generous block (no alloc in process())
+    if (inputCopyBuffer_.getNumChannels() < 2 || inputCopyBuffer_.getNumSamples() < 8192)
+        inputCopyBuffer_.setSize(2, 8192, false, false, true);
 }
 
 //==============================================================================
@@ -144,6 +148,12 @@ void PitchCorrector::setFormantPreservation(float amount) noexcept
 void PitchCorrector::setCorrectionAmount(float amount) noexcept
 {
     correctionAmount_ = clamp(amount, 0.0f, 1.0f);
+}
+
+void PitchCorrector::prepare(int maxNumChannels, int maxBlockSize)
+{
+    // Pre-allocate input copy buffer for worst-case block (never alloc in process())
+    inputCopyBuffer_.setSize(maxNumChannels, maxBlockSize, false, false, true);
 }
 
 void PitchCorrector::setSampleRate(double sr) noexcept
@@ -186,17 +196,16 @@ void PitchCorrector::process(juce::AudioBuffer<float>& buffer)
     if (std::abs(pitchShift_) < 0.01f || correctionAmount_ < 0.01f)
         return;
 
-    // Snapshot input so every algorithm reads clean data
-    juce::AudioBuffer<float> inputCopy;
-    inputCopy.makeCopyOf(buffer);
+    // Snapshot input so every algorithm reads clean data (pre-allocated, no-heap)
+    inputCopyBuffer_.makeCopyOf(buffer, true);
 
     switch (algo_)
     {
-        case PitchAlgorithm::Simple:        processSimple(inputCopy, buffer);        break;
-        case PitchAlgorithm::PhaseVocoder:  processPhaseVocoder(inputCopy, buffer);  break;
-        case PitchAlgorithm::Spectral:      processSpectralShift(inputCopy, buffer);  break;
-        case PitchAlgorithm::Formant:       processFormantPreserving(inputCopy, buffer); break;
-        case PitchAlgorithm::Granular:      processGranularShift(inputCopy, buffer); break;
+        case PitchAlgorithm::Simple:        processSimple(inputCopyBuffer_, buffer);        break;
+        case PitchAlgorithm::PhaseVocoder:  processPhaseVocoder(inputCopyBuffer_, buffer);  break;
+        case PitchAlgorithm::Spectral:      processSpectralShift(inputCopyBuffer_, buffer);  break;
+        case PitchAlgorithm::Formant:       processFormantPreserving(inputCopyBuffer_, buffer); break;
+        case PitchAlgorithm::Granular:      processGranularShift(inputCopyBuffer_, buffer); break;
     }
 
     // Global wet/dry mix (applies to all algorithms)
@@ -206,7 +215,7 @@ void PitchCorrector::process(juce::AudioBuffer<float>& buffer)
         const float wetMix = correctionAmount_;
         for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
         {
-            const float* dry = inputCopy.getReadPointer(ch);
+            const float* dry = inputCopyBuffer_.getReadPointer(ch);
             float*       out = buffer.getWritePointer(ch);
             for (int i = 0; i < numSamples; ++i)
                 out[i] = dry[i] * dryMix + out[i] * wetMix;

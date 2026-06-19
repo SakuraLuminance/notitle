@@ -24,6 +24,34 @@ enum class VoiceState : uint8_t
 
 //==============================================================================
 /**
+ * Voice mode for the synthesizer.
+ *
+ * Poly:   Multiple voices can play simultaneously (current behavior).
+ * Mono:   Only one voice plays at a time. New note-on replaces the current note.
+ *         Release phase only begins when all keys have been released.
+ * Legato: Like Mono but the envelope does NOT retrigger on overlapping notes.
+ *         Pitch slides smoothly from the old note to the new note via portamento.
+ */
+enum class VoiceMode : uint8_t
+{
+    Poly   = 0,  /**< Full polyphony — multiple simultaneous voices. */
+    Mono   = 1,  /**< Monophonic — single voice, retrigger envelope. */
+    Legato = 2   /**< Monophonic — single voice, no envelope retrigger. */
+};
+
+//==============================================================================
+/**
+ * Portamento curve type for pitch glide interpolation.
+ */
+enum class PortamentoCurve : uint8_t
+{
+    Linear      = 0,  /**< Linear pitch interpolation. */
+    Exponential = 1,  /**< Exponential (constant-rate) pitch interpolation. */
+    Logarithmic = 2   /**< Logarithmic pitch interpolation (fast initial, slow finish). */
+};
+
+//==============================================================================
+/**
  * Voice allocation strategy for choosing which voice slot to assign next.
  */
 enum class AllocationMode : uint8_t
@@ -35,23 +63,22 @@ enum class AllocationMode : uint8_t
 
 //==============================================================================
 /**
- * Represents a single voice in the synthesizer's polyphonic voice pool.
+ * Represents a single voice in the MPE synthesizer's polyphonic voice pool.
  *
- * Each voice carries its own note, velocity, pitch, amplitude, phase,
- * envelope level, ADSR parameters, and state machine state.
+ * Inherits from juce::MPESynthesiserVoice for MPE-compatible per-note
+ * modulation (pitch bend, pressure, timbre). Each voice carries its own
+ * oscillator state, ADSR envelope, state-variable filter, and complex
+ * phasor oscillator.
  */
-struct Voice
+class AnaVoice : public juce::MPESynthesiserVoice
 {
-    // --- Voice identity ---
-    std::atomic<VoiceState> state{VoiceState::free};
-    int        note     = -1;       /**< MIDI note number (0-127), -1 if unused. */
-    float      velocity = 0.0f;     /**< Note-on velocity in [0, 1]. */
-
+public:
+    //==============================================================================
     // --- Synthesis state ---
     std::atomic<float> pitchHz       { 0.0f }; /**< Oscillator frequency in Hz. */
     std::atomic<float> amplitude     { 0.0f }; /**< Current output amplitude (includes velocity scaling). */
     float              phase         = 0.0f;   /**< Oscillator phase in radians [0, 2pi). */
-    std::atomic<float> envelopeLevel { 0.0f }; /**< Current ADSR envelope value in [0, 1]. */
+    float              envelopeLevel = 0.0f;   /**< Current ADSR envelope value in [0, 1]. */
 
     // --- Per-voice ADSR parameters ---
     float attackSeconds  = 0.01f;   /**< Attack time in seconds [0, 10]. */
@@ -82,92 +109,109 @@ struct Voice
     float hp0 = 0.0f;  /**< Highpass state sample (0). */
     float hp1 = 0.0f;  /**< Highpass state sample (1). */
 
+    // --- Performance caches ---
+    float cachedMod = 1.0f; /**< Precomputed amplitude * (1+aftertouch*0.5) * (1+pressure*0.5). */
+    float smoothFc  = 0.0f; /**< Smoothed filter cutoff for 1-pole zipper prevention. */
+
     // --- Complex phasor oscillator (lock-free rotation) ---
     float phasorRe = 1.0f;    /**< cos(phase) of complex oscillator. */
     float phasorIm = 0.0f;    /**< sin(phase) of complex oscillator. */
     float cosDelta = 1.0f;    /**< cos(2π * freq / sampleRate) per-sample rotation. */
     float sinDelta = 0.0f;    /**< sin(2π * freq / sampleRate) per-sample rotation. */
+
+    // --- Portamento / glide state ---
+    float portamentoStartPitch  = 0.0f;   /**< Pitch at the start of a glide (Hz). */
+    float portamentoTargetPitch = 0.0f;   /**< Target pitch for the glide (Hz). */
+    int   portamentoElapsed     = 0;      /**< Samples elapsed since glide start. */
+    int   portamentoTotalSamples= 0;      /**< Total samples the glide should last. */
+    PortamentoCurve portamentoCurve = PortamentoCurve::Linear;
+    bool  portamentoActive      = false;  /**< True while a glide is in progress. */
+
+    // --- Voice state machine ---
+    std::atomic<VoiceState> state{VoiceState::free};
+    int        note     = -1;       /**< MIDI note number (0-127), -1 if unused. */
+    float      velocity = 0.0f;     /**< Note-on velocity in [0, 1]. */
+
+    //==============================================================================
+    // MPESynthesiserVoice overrides
+    //==============================================================================
+
+    /** Returns true if this voice is not in the free state. */
+    bool isActive() const override;
+
+    /** Called by MPESynthesiser when a new MPE note starts on this voice. */
+    void noteStarted() override;
+
+    /** Called by MPESynthesiser when the note on this voice stops. */
+    void noteStopped(bool allowTailOff) override;
+
+    /** Called by MPESynthesiser when the note's pressure changes. */
+    void notePressureChanged() override;
+
+    /** Called by MPESynthesiser when the note's pitch bend changes. */
+    void notePitchbendChanged() override;
+
+    /** Called by MPESynthesiser when the note's timbre changes. */
+    void noteTimbreChanged() override;
+
+    /** Called by MPESynthesiser when the note's key state changes (sustain pedal). */
+    void noteKeyStateChanged() override;
+
+    /** Renders the next block of audio for this voice. */
+    void renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
+                         int startSample,
+                         int numSamples) override;
 };
 
 //==============================================================================
 /**
- * Polyphonic voice manager with 32-voice support.
+ * MPE-compatible polyphonic voice manager.
  *
- * Handles voice allocation (round-robin, oldest-first, random), voice stealing,
- * per-voice ADSR envelope processing, and audio output summation.
+ * Inherits from juce::MPESynthesiser for full MPE support including
+ * per-note pitch bend, pressure, and timbre (CC74). Falls back to
+ * standard MIDI via legacy mode when MPE is disabled.
  *
  * Usage:
  * @code
  *   ana::VoiceManager vm;
  *   vm.prepare(44100.0);
- *   vm.noteOn(60, 0.7f);
- *   vm.noteOff(60);
+ *   vm.enableMPE(false);  // standard MIDI mode
  *
  *   juce::AudioBuffer<float> buffer(2, 512);
- *   vm.process(buffer);
+ *   juce::MidiBuffer midi;
+ *   vm.renderNextBlock(buffer, midi, 0, 512);
  * @endcode
  */
-class VoiceManager
+class VoiceManager : public juce::MPESynthesiser
 {
 public:
     static constexpr int maxVoices = 32;
 
     //==============================================================================
-    /** Creates a VoiceManager with all voices in the free state. */
+    /** Creates a VoiceManager with maxVoices voices. */
     VoiceManager();
 
     /** Destructor. */
-    ~VoiceManager() = default;
+    ~VoiceManager() override = default;
 
     JUCE_DECLARE_NON_COPYABLE(VoiceManager)
 
     //==============================================================================
     /**
      * Prepares the voice manager for processing at a given sample rate.
-     * Must be called before any process() calls.
+     * Must be called before any renderNextBlock() calls.
      */
     void prepare(double sampleRate);
 
     //==============================================================================
     /**
-     * Triggers a note-on event: allocates a voice and starts its attack phase.
+     * Processes one audio buffer (legacy API).
      *
-     * @param note     MIDI note number (0-127). Clamped to valid range.
-     * @param velocity Note-on velocity (0-1). Clamped to valid range.
-     */
-    void noteOn(int note, float velocity);
-
-    /**
-     * Triggers a note-off event: transitions any voice playing the given note
-     * into the release phase.
+     * Clears the buffer, renders all active voices into it using the
+     * MPESynthesiser audio pipeline. No MIDI is processed — use
+     * renderNextBlock() if you need MIDI input.
      *
-     * @param note MIDI note number (0-127). Clamped to valid range.
-     */
-    void noteOff(int note);
-
-    /**
-     * Triggers a note-off on a specific MPE channel.
-     * Only voices matching both channel and note are released.
-     *
-     * @param midiChannel  MPE per-note channel to target.
-     * @param note         MIDI note number (0-127).
-     */
-    void noteOffWithChannel(int midiChannel, int note);
-
-    /**
-     * Immediately transitions all active voices into the release phase.
-     * Useful for panic / all-silence functionality.
-     */
-    void allVoicesOff();
-
-    //==============================================================================
-    /**
-     * Processes one audio buffer, summing all active voices into the output.
-     *
-     * Each active voice generates a sine wave at its pitch, shaped by its
-     * envelope and amplitude. The buffer is cleared before summation.
-     *
-     * @param buffer  The output audio buffer to fill. Must be non-null.
+     * @param buffer  The output audio buffer to fill.
      */
     void process(juce::AudioBuffer<float>& buffer);
 
@@ -215,26 +259,19 @@ public:
     [[nodiscard]] bool isVoiceActive(int voiceIndex) const;
 
     /**
-     * Returns a const reference to the voice at the given index.
-     * Useful for testing and debug inspection.
+     * Returns a pointer to the AnaVoice at the given index.
+     * Shadows MPESynthesiser::getVoice() to return the concrete type.
      */
-    [[nodiscard]] const Voice& getVoice(int voiceIndex) const;
+    AnaVoice* getVoice(int index) const
+    {
+        return static_cast<AnaVoice*>(MPESynthesiser::getVoice(index));
+    }
 
     //==============================================================================
-    /**
-     * Sets per-voice aftertouch amount.
-     *
-     * @param voiceIndex  Index of the voice to modify.
-     * @param amount      Aftertouch amount in [0, 1].
-     */
+    /** Sets per-voice aftertouch amount. */
     void setVoiceAftertouch(int voiceIndex, float amount);
 
-    /**
-     * Sets per-voice pitch bend multiplier.
-     *
-     * @param voiceIndex  Index of the voice to modify.
-     * @param bend        Pitch bend amount in [-1, 1] (maps to 0.5x-2x).
-     */
+    /** Sets per-voice pitch bend multiplier. */
     void setVoicePitchBend(int voiceIndex, float bend);
 
     //==============================================================================
@@ -242,75 +279,55 @@ public:
     //==============================================================================
 
     /**
-     * Triggers a note-on with an explicit MPE MIDI channel.
-     *
-     * @param midiChannel  MPE per-note MIDI channel [1, 15] or 0 for master.
-     * @param note         MIDI note number (0-127).
-     * @param velocity     Note-on velocity [0, 1].
-     * @param sampleRate   Current sample rate for pitch calculation.
-     */
-    void noteOnWithChannel(int midiChannel, int note, float velocity, double sampleRate);
-
-    /**
-     * Sets slide amount (CC74) for a specific voice.
-     *
-     * @param voiceIndex  Index of the voice to modify.
-     * @param amount      Slide amount in [0, 1].
-     */
-    void setSlide(int voiceIndex, float amount);
-
-    /**
-     * Sets per-voice pressure (channel pressure / aftertouch).
-     *
-     * @param voiceIndex  Index of the voice to modify.
-     * @param amount      Pressure amount in [0, 1].
-     */
-    void setPressure(int voiceIndex, float amount);
-
-    /**
-     * Sets per-voice timbre (CC74 mapped to filter cutoff).
-     *
-     * @param voiceIndex  Index of the voice to modify.
-     * @param amount      Timbre amount in [0, 1].
-     */
-    void setTimbre(int voiceIndex, float amount);
-
-    /**
      * Enables or disables MPE mode.
-     * When enabled, note-on/off events use per-note MIDI channels
-     * instead of the global channel.
+     *
+     * When enabled, a lower MPE zone (channels 1-15) is configured with
+     * channel 1 as the master channel. When disabled, the synthesiser
+     * falls back to standard MIDI (legacy mode) using all channels.
      */
     void enableMPE(bool enabled);
 
-    /**
-     * Returns true if MPE mode is currently enabled.
-     */
+    /** Returns true if MPE mode is currently enabled (non-legacy). */
     [[nodiscard]] bool isMPEEnabled() const;
 
     /**
-     * Sets the MPE master channel. Per-note channels are
-     * masterChannel + 1 to 15.
-     *
-     * @param channel  Master MIDI channel [0, 15].
+     * Sets the MPE master channel number (0-15, 0-indexed).
+     * The per-note channels occupy masterChannel+1 through 15.
+     * The zone layout is reconfigured on the next enableMPE(true) call.
      */
     void setMPEMasterChannel(int channel);
 
-    /**
-     * Returns the current MPE master channel.
-     */
+    /** Returns the current MPE master channel. */
     [[nodiscard]] int getMPEMasterChannel() const;
 
-    /**
-     * Sets the velocity curve mapping amount.
-     *
-     * @param amount  Curve amount [0, 1] where 0 = linear, 1 = exponential.
-     */
+    /** Sets the velocity curve mapping amount. */
     void setVelocityCurve(float amount);
 
-    /**
-     * Returns the current velocity curve amount.
-     */
+    /** Returns the current velocity curve amount. */
     [[nodiscard]] float getVelocityCurve() const;
+
+    //==============================================================================
+    /**
+     * Sets the voice mode (Poly / Mono / Legato).
+     * In Mono and Legato modes, only voice 0 is used.
+     */
+    void setVoiceMode(VoiceMode mode);
+
+    /** Returns the current voice mode. */
+    [[nodiscard]] VoiceMode getVoiceMode() const;
+
+    //==============================================================================
+    /** Sets the portamento glide time in seconds [0, 2]. */
+    void setPortamentoTime(float seconds);
+
+    /** Returns the portamento glide time in seconds. */
+    [[nodiscard]] float getPortamentoTime() const;
+
+    /** Sets the portamento curve type. */
+    void setPortamentoCurve(PortamentoCurve curve);
+
+    /** Returns the portamento curve type. */
+    [[nodiscard]] PortamentoCurve getPortamentoCurve() const;
 
     //==============================================================================
     /** Sets the adaptive envelope tracking amount (0 = none, 1 = full key tracking). */
@@ -319,17 +336,51 @@ public:
     /** Returns the adaptive envelope tracking amount. */
     [[nodiscard]] float getAdaptiveEnvelopeAmount() const;
 
+protected:
+    //==============================================================================
+    /**
+     * Overrides noteAdded to set up our custom voice state when MPESynthesiser
+     * assigns a new note to a voice.
+     */
+    void noteAdded(MPENote newNote) override;
+
+    /**
+     * Overrides noteReleased to initiate voice release when a note ends.
+     */
+    void noteReleased(MPENote finishedNote) override;
+
+    /**
+     * Overrides renderNextSubBlock to clear the buffer before summing voices.
+     */
+    void renderNextSubBlock(juce::AudioBuffer<float>& outputAudio,
+                            int startSample,
+                            int numSamples) override;
+
+    //==============================================================================
+    /**
+     * Overrides findFreeVoice to use our custom allocation algorithm
+     * (free -> idle -> steal with the configured AllocationMode).
+     */
+    MPESynthesiserVoice* findFreeVoice(MPENote noteToFindVoiceFor,
+                                        bool stealIfNoneAvailable) const override;
+
+    /**
+     * Overrides findVoiceToSteal to use our priority-based stealing:
+     * sustain > release > decay > attack, then oldest.
+     */
+    MPESynthesiserVoice* findVoiceToSteal(MPENote noteToStealVoiceFor) const override;
+
 private:
     //==============================================================================
-    /** Allocates a voice slot using the current allocation mode. */
-    int allocateVoice();
+    /** Allocates a voice slot using the current allocation mode. Returns index or -1. */
+    int allocateVoice() const;
 
     /**
      * Steals a voice when no free or idle voices are available.
      * Prefers stealing voices in this order: sustain > release > decay > attack.
      * Within the same state, the oldest voice (lowest noteOnIndex) is stolen.
      */
-    int stealVoice();
+    int stealVoice() const;
 
     /**
      * Initialises a voice slot for a new note. Resets envelope state,
@@ -338,34 +389,12 @@ private:
     void startVoice(int voiceIndex, int note, float velocity);
 
     /**
-     * Advances the envelope of the given voice by one audio sample.
-     * Handles state transitions: attack -> decay -> sustain, and release -> idle.
-     *
-     * @param voiceIndex  Index of the voice to update.
-     * @param dt          Time delta for one sample (1.0 / sampleRate).
+     * Initialises a voice for the given MPE note, applying velocity curve,
+     * adaptive envelope, and portamento setup.  In Legato mode the envelope
+     * state is preserved (no retrigger).  In Mono mode the voice is forcibly
+     * restarted.
      */
-    void updateEnvelope(int voiceIndex, float dt);
-
-    /**
-     * Generates a single audio sample for the given voice.
-     * Output = sin(phase) * envelopeLevel * amplitude.
-     */
-    float generateSample(int voiceIndex);
-
-    /**
-     * Applies a state-variable filter to the given voice sample.
-     * The cutoff is modulated by the voice's timbre value.
-     *
-     * @param voiceIndex  Index of the voice to filter.
-     * @param sample      Input sample to filter.
-     * @return            Filtered output sample.
-     */
-    float applyFilter(int voiceIndex, float sample);
-
-    /**
-     * Resets the state-variable filter states for a voice.
-     */
-    void resetFilter(int voiceIndex);
+    void anaVoiceInit(MPESynthesiserVoice* voice, const MPENote& newNote, VoiceMode mode);
 
     /** Applies the velocity curve mapping to a raw velocity value. */
     float applyVelocityCurve(float velocity) const;
@@ -373,25 +402,40 @@ private:
     /** Converts a MIDI note number to frequency in Hz. */
     static float noteToFrequency(int note);
 
+    /** Generates a single audio sample for the given voice. */
+    float generateSample(int voiceIndex) const;
+
+    /**
+     * Applies a state-variable filter to the given voice sample.
+     */
+    float applyFilter(int voiceIndex, float sample, float nyquist, float minCutoff, float maxCutoff) const;
+
+    /** Resets the state-variable filter states for a voice. */
+    void resetFilter(int voiceIndex) const;
+
     //==============================================================================
-    Voice voices[maxVoices];
+    double                    sampleRate_       = 44100.0;
+    std::atomic<AllocationMode> allocationMode_{ AllocationMode::roundRobin };
+    mutable std::atomic<int>  nextVoiceIndex_{0};
+    mutable std::atomic<uint64_t> globalNoteCounter_{0};
 
-    double                    sampleRate     = 44100.0;
-    std::atomic<AllocationMode> allocationMode{ AllocationMode::roundRobin };
-    std::atomic<int> nextVoiceIndex{0};
-    std::atomic<uint64_t> globalNoteCounter{0};
+    float defaultAttack_   = 0.01f;
+    float defaultDecay_    = 0.2f;
+    float defaultSustain_  = 0.7f;
+    float defaultRelease_  = 0.3f;
 
-    float defaultAttack   = 0.01f;
-    float defaultDecay    = 0.2f;
-    float defaultSustain  = 0.7f;
-    float defaultRelease  = 0.3f;
+    float velocityCurveAmount_      = 0.0f;
+    float adaptiveEnvelopeAmount_   = 0.0f;
 
-    float velocityCurveAmount = 0.0f;  /**< Velocity curve mapping [0, 1]. 0 = linear, 1 = exponential. */
-    float adaptiveEnvelopeAmount = 0.0f; /**< Adaptive envelope tracking [0, 1]. */
+    // --- Voice mode / portamento ---
+    std::atomic<VoiceMode>       voiceMode_{ VoiceMode::Poly };
+    float                        portamentoTime_    = 0.0f;
+    PortamentoCurve              portamentoCurve_{ PortamentoCurve::Linear };
+    std::atomic<int>             heldKeys_{ 0 };
 
     // --- MPE state ---
-    bool mpeEnabled     = false; /**< Whether MPE mode is active. */
-    int  mpeMasterChannel = 0;  /**< Master MPE channel (0-15). Per-note channels are master+1 to 15. */
+    std::atomic<bool> mpeEnabled_       { false };
+    std::atomic<int>  mpeMasterChannel_ { 0 };
 };
 
 } // namespace ana

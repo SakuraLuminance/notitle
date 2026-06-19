@@ -28,6 +28,8 @@ void UnisonEngine::reset()
     {
         v.phase = 0.0f;
         v.initialPhase = 0.0f;
+        v.phasorRe = 1.0f;
+        v.phasorIm = 0.0f;
     }
 }
 
@@ -40,6 +42,8 @@ void UnisonEngine::noteOn()
         v.initialPhase = maxOffset > 0.0f
                              ? random_.nextFloat() * maxOffset
                              : 0.0f;
+        v.phasorRe = std::cos(v.initialPhase);
+        v.phasorIm = std::sin(v.initialPhase);
     }
 }
 
@@ -99,6 +103,11 @@ void UnisonEngine::updateVoices()
             const float pos = static_cast<float>(i) / static_cast<float>(voiceCount_ - 1); // [0, 1]
             voices_[i].detuneCents = (pos * 2.0f - 1.0f) * maxDetune;
             voices_[i].pan = (pos * 2.0f - 1.0f) * spreadNorm;
+
+            // Precompute expensive per-voice terms (pow, sqrt) — no longer done per-block
+            voices_[i].detuneRatio = std::pow(2.0f, voices_[i].detuneCents / 1200.0f);
+            voices_[i].leftGain = std::sqrt(0.5f * (1.0f - voices_[i].pan));
+            voices_[i].rightGain = std::sqrt(0.5f * (1.0f + voices_[i].pan));
         }
     }
 
@@ -123,56 +132,56 @@ void UnisonEngine::process(juce::AudioBuffer<float>& buffer)
 
     const bool isStereo = buffer.getNumChannels() >= 2;
 
+    // Hoist write pointers (Fix B: replaces per-sample buffer.addSample)
+    float* const outL = buffer.getWritePointer(0);
+    float* const outR = isStereo ? buffer.getWritePointer(1) : nullptr;
+
     for (int v = 0; v < voiceCount_; ++v)
     {
-        const auto& voice = voices_[v];
+        auto& voice = voices_[v];
 
-        // Frequency shift for this voice (cents -> ratio)
-        const float detuneRatio = std::pow(2.0f, voice.detuneCents / 1200.0f);
-        const float voiceFreq = frequency_ * detuneRatio;
+        // Frequency shift from precomputed detune ratio (Fix C: pow hoisted to updateVoices)
+        const float voiceFreq = frequency_ * voice.detuneRatio;
 
-        // Phase increment per sample
+        // Phase increment delta — compute cos/sin once per voice per block
         const float phaseDelta = juce::MathConstants<float>::twoPi * voiceFreq
                                  / static_cast<float>(sampleRate_);
+        voice.cosDelta = std::cos(phaseDelta);
+        voice.sinDelta = std::sin(phaseDelta);
 
-        // Pan gains (constant-power law)
-        float leftGain = 1.0f;
-        float rightGain = 1.0f;
+        // Generate samples via recursive phasor rotation (Fix A: replaces std::sin)
         if (isStereo)
         {
-            leftGain = std::sqrt(0.5f * (1.0f - voice.pan));
-            rightGain = std::sqrt(0.5f * (1.0f + voice.pan));
-        }
-
-        // Retrieve per-voice mutable state
-        auto& phase = const_cast<UnisonVoice&>(voice).phase;
-        const float phaseInit = voice.initialPhase;
-
-        // Generate samples for this voice across the entire buffer
-        int s = 0;
-        if (isStereo)
-        {
-            for (; s < numSamples; ++s)
+            for (int s = 0; s < numSamples; ++s)
             {
-                const float sample = std::sin(phase + phaseInit);
-                phase += phaseDelta;
-                if (phase >= juce::MathConstants<float>::twoPi)
-                    phase -= juce::MathConstants<float>::twoPi;
+                const float sample = voice.phasorIm;
 
-                buffer.addSample(0, s, sample * leftGain);
-                buffer.addSample(1, s, sample * rightGain);
+                // z(n+1) = z(n) * e^(j*delta)
+                const float re = voice.phasorRe * voice.cosDelta
+                               - voice.phasorIm * voice.sinDelta;
+                const float im = voice.phasorRe * voice.sinDelta
+                               + voice.phasorIm * voice.cosDelta;
+                voice.phasorRe = re;
+                voice.phasorIm = im;
+
+                outL[s] += sample * voice.leftGain;
+                outR[s] += sample * voice.rightGain;
             }
         }
         else
         {
-            for (; s < numSamples; ++s)
+            for (int s = 0; s < numSamples; ++s)
             {
-                const float sample = std::sin(phase + phaseInit);
-                phase += phaseDelta;
-                if (phase >= juce::MathConstants<float>::twoPi)
-                    phase -= juce::MathConstants<float>::twoPi;
+                const float sample = voice.phasorIm;
 
-                buffer.addSample(0, s, sample);
+                const float re = voice.phasorRe * voice.cosDelta
+                               - voice.phasorIm * voice.sinDelta;
+                const float im = voice.phasorRe * voice.sinDelta
+                               + voice.phasorIm * voice.cosDelta;
+                voice.phasorRe = re;
+                voice.phasorIm = im;
+
+                outL[s] += sample;
             }
         }
     }

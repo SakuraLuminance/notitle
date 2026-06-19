@@ -46,7 +46,8 @@ TEST_CASE("WavetableEngine - load from raw audio", "[wavetable]")
     CHECK(wte.getNumFrames() > 1);
 
     // getCurrentFrame should return a valid frame
-    auto frame = wte.getCurrentFrame();
+    PartialDataSIMD frame;
+    wte.getCurrentFrame(frame);
     CHECK(frame.activeCount > 0);
     CHECK(frame.sampleRate == sr);
 
@@ -72,11 +73,13 @@ TEST_CASE("WavetableEngine - position 0 and 1 differ", "[wavetable]")
 
     // Position 0
     wte.setPosition(0.0f);
-    auto frame0 = wte.getCurrentFrame();
+    PartialDataSIMD frame0;
+    wte.getCurrentFrame(frame0);
 
     // Position 1
     wte.setPosition(1.0f);
-    auto frame1 = wte.getCurrentFrame();
+    PartialDataSIMD frame1;
+    wte.getCurrentFrame(frame1);
 
     // The spectrum should differ at beginning vs end of sweep
     // Check that some frequency bins differ meaningfully
@@ -109,11 +112,13 @@ TEST_CASE("WavetableEngine - interpolation between frames", "[wavetable]")
 
     // Get frame at position 0 → pure first frame
     wte.setPosition(0.0f);
-    auto frame0 = wte.getCurrentFrame();
+    PartialDataSIMD frame0;
+    wte.getCurrentFrame(frame0);
 
     // Get frame at position 0.5 → should be halfway between two adjacent frames
     wte.setPosition(0.5f);
-    auto frameMid = wte.getCurrentFrame();
+    PartialDataSIMD frameMid;
+    wte.getCurrentFrame(frameMid);
 
     // The mid frame should be different from the first frame
     bool differsFrom0 = false;
@@ -150,21 +155,24 @@ TEST_CASE("WavetableEngine - interpolation between frames", "[wavetable]")
 
         // Position 0 → pure frame A
         wte.setPosition(0.0f);
-        auto pureA = wte.getCurrentFrame();
+        PartialDataSIMD pureA;
+        wte.getCurrentFrame(pureA);
         CHECK(pureA.frequency[0] == Catch::Approx(100.0f));
         CHECK(pureA.amplitude[0] == Catch::Approx(0.5f));
         CHECK(pureA.phase[0] == Catch::Approx(0.0f));
 
         // Position 1 → pure frame B
         wte.setPosition(1.0f);
-        auto pureB = wte.getCurrentFrame();
+        PartialDataSIMD pureB;
+        wte.getCurrentFrame(pureB);
         CHECK(pureB.frequency[0] == Catch::Approx(300.0f));
         CHECK(pureB.amplitude[0] == Catch::Approx(1.0f));
         CHECK(pureB.phase[0] == Catch::Approx(1.0f));
 
         // Position 0.5 → 50/50 blend
         wte.setPosition(0.5f);
-        auto half = wte.getCurrentFrame();
+        PartialDataSIMD half;
+        wte.getCurrentFrame(half);
         CHECK(half.frequency[0] == Catch::Approx(200.0f).margin(0.1f));
         CHECK(half.amplitude[0] == Catch::Approx(0.75f).margin(0.01f));
         CHECK(half.phase[0] == Catch::Approx(0.5f).margin(0.01f));
@@ -189,7 +197,8 @@ TEST_CASE("WavetableEngine - clear resets state", "[wavetable]")
     CHECK(wte.getPosition() == Catch::Approx(0.0f));
 
     // getCurrentFrame on cleared engine returns empty
-    auto frame = wte.getCurrentFrame();
+    PartialDataSIMD frame;
+    wte.getCurrentFrame(frame);
     CHECK(frame.activeCount == 0);
 }
 
@@ -269,7 +278,8 @@ TEST_CASE("WavetableEngine - setPosition clamps", "[wavetable]")
 TEST_CASE("WavetableEngine - getCurrentFrame on empty engine", "[wavetable]")
 {
     WavetableEngine wte;
-    auto frame = wte.getCurrentFrame();
+    PartialDataSIMD frame;
+    wte.getCurrentFrame(frame);
     CHECK(frame.activeCount == 0);
     CHECK(frame.sampleRate == 44100.0);
 }
@@ -292,11 +302,14 @@ TEST_CASE("WavetableEngine - single frame at any position", "[wavetable]")
     CHECK(wte.getNumFrames() == 1);
 
     wte.setPosition(0.0f);
-    auto f0 = wte.getCurrentFrame();
+    PartialDataSIMD f0;
+    wte.getCurrentFrame(f0);
     wte.setPosition(0.7f);
-    auto f1 = wte.getCurrentFrame();
+    PartialDataSIMD f1;
+    wte.getCurrentFrame(f1);
     wte.setPosition(1.0f);
-    auto f2 = wte.getCurrentFrame();
+    PartialDataSIMD f2;
+    wte.getCurrentFrame(f2);
 
     CHECK(f0.frequency[0] == Catch::Approx(440.0f));
     CHECK(f1.amplitude[0] == Catch::Approx(0.9f));

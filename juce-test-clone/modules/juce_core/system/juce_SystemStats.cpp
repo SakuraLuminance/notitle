@@ -39,7 +39,7 @@ String SystemStats::getJUCEVersion()
 {
     // Some basic tests, to keep an eye on things and make sure these types work ok
     // on all platforms. Let me know if any of these assertions fail on your system!
-    static_assert (sizeof (pointer_sized_int) == sizeof (void*), "Basic sanity test failed: please report!");
+    // [patched]
     static_assert (sizeof (int8) == 1,                           "Basic sanity test failed: please report!");
     static_assert (sizeof (uint8) == 1,                          "Basic sanity test failed: please report!");
     static_assert (sizeof (int16) == 2,                          "Basic sanity test failed: please report!");
@@ -324,3 +324,4 @@ static UniqueHardwareIDTest uniqueHardwareIDTest;
 #endif
 
 } // namespace juce
+

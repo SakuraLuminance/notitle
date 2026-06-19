@@ -165,6 +165,28 @@ public:
     bool getSyncMode() const noexcept;
 
     //==============================================================================
+    // --- ADSR convenience API ---
+    /** Sets the attack time (seconds). Rebuilds breakpoints to standard ADSR shape. */
+    void setAttack(float time);
+    /** Returns the current attack time in seconds. */
+    float getAttack() const noexcept { return attack_; }
+
+    /** Sets the decay time (seconds). Rebuilds breakpoints to standard ADSR shape. */
+    void setDecay(float time);
+    /** Returns the current decay time in seconds. */
+    float getDecay() const noexcept { return decay_; }
+
+    /** Sets the sustain level (0.0-1.0). Rebuilds breakpoints to standard ADSR shape. */
+    void setSustain(float level);
+    /** Returns the current sustain level. */
+    float getSustain() const noexcept { return sustain_; }
+
+    /** Sets the release time (seconds). Rebuilds breakpoints to standard ADSR shape. */
+    void setRelease(float time);
+    /** Returns the current release time in seconds. */
+    float getRelease() const noexcept { return release_; }
+
+    //==============================================================================
     /** Starts the envelope from the beginning.
         If already active, resets to the start.
     */
@@ -219,6 +241,18 @@ private:
     LoopMode loopMode = LoopMode::None;
     int loopStartIndex = 0;
     int loopEndIndex = -1;
+
+    // ADSR convenience state (defaults match UI slider initial values)
+    float attack_  = 0.01f;
+    float decay_   = 0.5f;
+    float sustain_ = 0.7f;
+    float release_ = 1.0f;
+
+    /** Rebuilds breakpoints from the current ADSR parameters
+        using a standard 4-point envelope:
+          (0,0) → (attack, 1.0) → (attack+decay, sustain) → (attack+decay+release, 0)
+    */
+    void rebuildADSR();
 
     double tempo = 120.0;
     double beatDiv = 1.0;

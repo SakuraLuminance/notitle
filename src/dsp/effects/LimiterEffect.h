@@ -22,6 +22,32 @@ public:
     void setGain(float g);
     void setOversampling(int factor); // 1, 2, or 4
 
+    juce::ValueTree getState() const override
+    {
+        juce::ValueTree tree("LimiterEffect");
+        tree.setProperty("threshold", thresholdDb, nullptr);
+        tree.setProperty("attack", attackMs, nullptr);
+        tree.setProperty("release", releaseMs, nullptr);
+        tree.setProperty("lookahead", lookaheadMs, nullptr);
+        tree.setProperty("mix", mixVal, nullptr);
+        tree.setProperty("bypass", bypassed, nullptr);
+        tree.setProperty("gain", gainVal, nullptr);
+        tree.setProperty("oversampling", oversamplingFactor, nullptr);
+        return tree;
+    }
+
+    void setState(const juce::ValueTree& tree) override
+    {
+        setThreshold(tree.getProperty("threshold", -6.0f));
+        setAttack(tree.getProperty("attack", 0.1f));
+        setRelease(tree.getProperty("release", 20.0f));
+        setLookahead(tree.getProperty("lookahead", 2.0f));
+        setMix(tree.getProperty("mix", 1.0f));
+        setBypass(tree.getProperty("bypass", false));
+        setGain(tree.getProperty("gain", 1.0f));
+        setOversampling(tree.getProperty("oversampling", 1));
+    }
+
 private:
     void processLimiter(juce::AudioBuffer<float>& buffer);
 
@@ -47,6 +73,10 @@ private:
 
     // Oversampling buffers
     juce::AudioBuffer<float> osBuffer;
+
+    // Pre-allocated dry/wet buffers
+    juce::AudioBuffer<float> dryBuffer_;
+    juce::AudioBuffer<float> wetBuffer_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LimiterEffect)
 };

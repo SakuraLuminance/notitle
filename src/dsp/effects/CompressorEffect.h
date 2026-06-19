@@ -25,6 +25,38 @@ public:
     void setRMSMode(bool rms);
     void setAutoMakeup(bool autoOn);
 
+    juce::ValueTree getState() const override
+    {
+        juce::ValueTree tree("CompressorEffect");
+        tree.setProperty("threshold", thresholdDb, nullptr);
+        tree.setProperty("ratio", ratio, nullptr);
+        tree.setProperty("attack", attackMs, nullptr);
+        tree.setProperty("release", releaseMs, nullptr);
+        tree.setProperty("knee", kneeDb, nullptr);
+        tree.setProperty("makeupGain", makeupGainDb, nullptr);
+        tree.setProperty("mix", mixVal, nullptr);
+        tree.setProperty("bypass", bypassed, nullptr);
+        tree.setProperty("gain", gainVal, nullptr);
+        tree.setProperty("rmsMode", rmsMode, nullptr);
+        tree.setProperty("autoMakeup", autoMakeup, nullptr);
+        return tree;
+    }
+
+    void setState(const juce::ValueTree& tree) override
+    {
+        setThreshold(tree.getProperty("threshold", -24.0f));
+        setRatio(tree.getProperty("ratio", 4.0f));
+        setAttack(tree.getProperty("attack", 10.0f));
+        setRelease(tree.getProperty("release", 100.0f));
+        setKnee(tree.getProperty("knee", 6.0f));
+        setMakeupGain(tree.getProperty("makeupGain", 0.0f));
+        setMix(tree.getProperty("mix", 1.0f));
+        setBypass(tree.getProperty("bypass", false));
+        setGain(tree.getProperty("gain", 1.0f));
+        setRMSMode(tree.getProperty("rmsMode", true));
+        setAutoMakeup(tree.getProperty("autoMakeup", false));
+    }
+
 private:
     float computeGainReduction(float levelDb);
 
@@ -54,6 +86,10 @@ private:
     // Attack/release coefficients
     float attackCoeff = 0.0f;
     float releaseCoeff = 0.0f;
+
+    // Pre-allocated buffers
+    juce::AudioBuffer<float> dryBuffer_;
+    std::vector<float> gainReduction_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorEffect)
 };

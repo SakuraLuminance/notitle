@@ -4,7 +4,9 @@
 #include <complex>
 #include <cstdint>
 #include <cmath>
+#include <memory>
 #include <juce_core/juce_core.h>
+#include <juce_dsp/juce_dsp.h>
 #include "PartialDataSIMD.h"
 #include "SIMDSupport.h"
 
@@ -198,6 +200,13 @@ private:
     float                   measurementBias_        = 0.5f;
     int                     numSuperpositionStates_ = 4;
     double                  sampleRate_             = 44100.0;
+
+    //==============================================================================
+    // Pre-allocated FFT buffers (zero heap allocs in processAudio hot path)
+    std::unique_ptr<juce::dsp::FFT> fft_;
+    std::vector<float>              fftBuf_;
+    std::vector<float>              hannWindow_;
+    int                             currentFftOrder_    = -1;
 
     juce::Random rng_;
 

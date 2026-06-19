@@ -1,4 +1,5 @@
 #include "PresetFactory.h"
+#include "effects/SpaceModule.h"
 
 namespace ana {
 
@@ -929,16 +930,1056 @@ p.lfoWaveform="Sine";p.lfoRateHz=0.6f;p.lfoDepth=45;p.lfoBipolar=true;
 p.voiceCount=5;p.detune=16;p.stereoSpread=70;r.emplace_back("Neural Dream",buildPreset(p));
 return r;}
 //==============================================================================
+// Vocal presets (5)
+//==============================================================================
+std::vector<std::pair<juce::String,juce::ValueTree>> PresetFactory::createVocalPresets(){
+std::vector<std::pair<juce::String,juce::ValueTree>> r; PresetParams p;
+//1 Pop Lead: SoloistChain(presence+3dB,air+2dB,compRatio=4:1,satDrive=0.3,reverbWet=30%,width=60%)
+p=PresetParams();p.fftSize=4096;p.hopSize=1024;p.windowType="BlackmanHarris";p.threshold=-65;p.maxPartials=384;
+p.slot1.type="BandPass";p.slot1.cutoff=2000;p.slot1.resonance=0.4f;p.slot1.drive=0.2f;
+p.attack=0.02f;p.decay=0.25f;p.sustain=0.8f;p.release=0.4f;
+p.lfoWaveform="Sine";p.lfoRateHz=4;p.lfoDepth=20;p.lfoBipolar=true;
+p.voiceCount=3;p.detune=8;p.stereoSpread=60;
+{auto vc=juce::ValueTree("VocalConfig");
+vc.setProperty("VocalCharacter",static_cast<int>(VocalCharacter::Breathy),nullptr);
+vc.setProperty("PresenceDb",3.0,nullptr);vc.setProperty("AirDb",2.0,nullptr);
+vc.setProperty("CompRatio",4.0,nullptr);vc.setProperty("SatDrive",0.3f,nullptr);
+vc.setProperty("ReverbWet",0.3f,nullptr);vc.setProperty("Width",0.6f,nullptr);
+auto pTree=buildPreset(p);pTree.addChild(vc,-1,nullptr);r.emplace_back("Pop Lead",pTree);}
+//2 Breathy Ballad: VocalCharacter=Breathy, SpaceModule(Plate,decay=2.5s), SubHarmonicGenerator(level0.2)
+p=PresetParams();p.fftSize=8192;p.hopSize=2048;p.windowType="Hamming";p.threshold=-70;p.maxPartials=512;
+p.slot1.type="HighPass";p.slot1.cutoff=400;p.slot1.resonance=0.2f;p.slot1.drive=0.05f;
+p.attack=0.05f;p.decay=0.3f;p.sustain=0.7f;p.release=1.0f;
+p.lfoWaveform="Sine";p.lfoRateHz=2;p.lfoDepth=15;
+p.voiceCount=2;p.detune=5;p.stereoSpread=40;
+{auto vc=juce::ValueTree("VocalConfig");
+vc.setProperty("VocalCharacter",static_cast<int>(VocalCharacter::Breathy),nullptr);
+vc.setProperty("SpaceMode",static_cast<int>(SpaceMode::Plate),nullptr);
+vc.setProperty("SpaceDecay",2.5,nullptr);vc.setProperty("SubLevel",0.2f,nullptr);
+auto pTree=buildPreset(p);pTree.addChild(vc,-1,nullptr);r.emplace_back("Breathy Ballad",pTree);}
+//3 Chest Warm: VocalCharacter=Chest, FormantTuner(shift=-2,spread=0.8), Compressor(ratio=2:1)
+p=PresetParams();p.fftSize=4096;p.hopSize=1024;p.windowType="BlackmanHarris";p.threshold=-65;p.maxPartials=256;
+p.slot1.type="LowPass";p.slot1.cutoff=800;p.slot1.resonance=0.3f;p.slot1.drive=0.1f;
+p.attack=0.03f;p.decay=0.3f;p.sustain=0.85f;p.release=0.5f;
+p.lfoWaveform="Sine";p.lfoRateHz=3;p.lfoDepth=10;
+p.voiceCount=2;p.detune=4;p.stereoSpread=30;
+{auto vc=juce::ValueTree("VocalConfig");
+vc.setProperty("VocalCharacter",static_cast<int>(VocalCharacter::Chest),nullptr);
+vc.setProperty("FormantShift",-2.0,nullptr);vc.setProperty("FormantSpread",0.8,nullptr);
+vc.setProperty("CompRatio",2.0,nullptr);
+auto pTree=buildPreset(p);pTree.addChild(vc,-1,nullptr);r.emplace_back("Chest Warm",pTree);}
+//4 Telephone Effect: VocalCharacter=Telephone, SpaceModule(Room,decay=0.3s), distortion
+p=PresetParams();p.fftSize=4096;p.hopSize=1024;p.threshold=-55;p.maxPartials=256;
+p.slot1.type="BandPass";p.slot1.cutoff=300;p.slot1.resonance=0.7f;p.slot1.drive=0.3f;
+p.slot2.type="LowPass";p.slot2.cutoff=3400;p.slot2.resonance=0.5f;p.slot2.drive=0.1f;p.slot2.mix=1.0f;
+p.numSlots=2;p.routingMode="Serial";
+p.attack=0.005f;p.decay=0.2f;p.sustain=0.5f;p.release=0.3f;
+p.voiceCount=1;
+{auto vc=juce::ValueTree("VocalConfig");
+vc.setProperty("VocalCharacter",static_cast<int>(VocalCharacter::Telephone),nullptr);
+vc.setProperty("SpaceMode",static_cast<int>(SpaceMode::Room),nullptr);
+vc.setProperty("SpaceDecay",0.3,nullptr);vc.setProperty("DistortionDrive",0.4f,nullptr);
+auto pTree=buildPreset(p);pTree.addChild(vc,-1,nullptr);r.emplace_back("Telephone Effect",pTree);}
+//5 Choir Ensemble: VocalCharacter=Choir, Reverb(Hall,decay=3s), UnisonEngine(8voices)
+p=PresetParams();p.fftSize=8192;p.hopSize=2048;p.windowType="Hamming";p.threshold=-72;p.maxPartials=768;
+p.slot1.type="BandPass";p.slot1.cutoff=1500;p.slot1.resonance=0.4f;p.slot1.drive=0.1f;p.masterGain=0.85f;
+p.attack=0.2f;p.decay=0.5f;p.sustain=0.9f;p.release=2.0f;
+p.lfoWaveform="Sine";p.lfoRateHz=1.5f;p.lfoDepth=20;
+p.voiceCount=8;p.detune=15;p.stereoSpread=80;
+{auto vc=juce::ValueTree("VocalConfig");
+vc.setProperty("VocalCharacter",static_cast<int>(VocalCharacter::Choir),nullptr);
+vc.setProperty("ReverbMode",static_cast<int>(SpaceMode::Hall),nullptr);
+vc.setProperty("ReverbDecay",3.0,nullptr);
+auto pTree=buildPreset(p);pTree.addChild(vc,-1,nullptr);r.emplace_back("Choir Ensemble",pTree);}
+return r;}
+
+//==============================================================================
 // Create all presets (100+)
 //==============================================================================
 std::vector<std::pair<juce::String,juce::ValueTree>> PresetFactory::createAllPresets(){
 std::vector<std::pair<juce::String,juce::ValueTree>> all;
-auto b=createBassPresets(),l=createLeadPresets(),p=createPadPresets(),f=createFXPresets(),e=createExperimentalPresets();
+auto b=createBassPresets(),l=createLeadPresets(),p=createPadPresets(),f=createFXPresets(),e=createExperimentalPresets(),v=createVocalPresets();
 all.insert(all.end(),b.begin(),b.end());
 all.insert(all.end(),l.begin(),l.end());
 all.insert(all.end(),p.begin(),p.end());
 all.insert(all.end(),f.begin(),f.end());
 all.insert(all.end(),e.begin(),e.end());
+all.insert(all.end(),v.begin(),v.end());
 return all;}
+
+//==============================================================================
+// Effect factory presets (Delay, Reverb, Chorus, Distortion, etc.)
+//==============================================================================
+namespace {
+
+static juce::ValueTree buildSimpleTree(const char* typeName, std::initializer_list<std::pair<const char*, double>> params)
+{
+    juce::ValueTree tree(typeName);
+    for (auto& p : params)
+        tree.setProperty(p.first, p.second, nullptr);
+    return tree;
+}
+
+static juce::ValueTree buildEQPreset(const juce::String& presetName)
+{
+    auto tree = juce::ValueTree("EQEffect");
+
+    auto lowBand  = juce::ValueTree("Band");
+    lowBand.setProperty("index", 0, nullptr);
+    lowBand.setProperty("frequency", 200.0, nullptr);
+    lowBand.setProperty("q", 0.707, nullptr);
+    lowBand.setProperty("type", 0, nullptr); // LowShelf
+
+    auto midBand  = juce::ValueTree("Band");
+    midBand.setProperty("index", 1, nullptr);
+    midBand.setProperty("frequency", 1000.0, nullptr);
+    midBand.setProperty("q", 0.707, nullptr);
+    midBand.setProperty("type", 1, nullptr); // Peaking
+
+    auto highBand = juce::ValueTree("Band");
+    highBand.setProperty("index", 2, nullptr);
+    highBand.setProperty("frequency", 8000.0, nullptr);
+    highBand.setProperty("q", 0.707, nullptr);
+    highBand.setProperty("type", 2, nullptr); // HighShelf
+
+    if (presetName == "Scoop")
+    {
+        lowBand.setProperty("gain", 3.0, nullptr);
+        midBand.setProperty("gain", -4.0, nullptr);
+        highBand.setProperty("gain", 2.0, nullptr);
+    }
+    else if (presetName == "Bright")
+    {
+        lowBand.setProperty("gain", 0.0, nullptr);
+        midBand.setProperty("gain", 2.0, nullptr);
+        highBand.setProperty("gain", 4.0, nullptr);
+    }
+
+    tree.addChild(lowBand, -1, nullptr);
+    tree.addChild(midBand, -1, nullptr);
+    tree.addChild(highBand, -1, nullptr);
+    return tree;
+}
+
+static const char* effectPresetNames[][8] = {
+    { "Delay",       "Slapback", "Dub", nullptr },
+    { "Reverb",      "Small Room", "Large Hall", "Plate", nullptr },
+    { "Chorus",      "Subtle", "Wide Ensemble", nullptr },
+    { "Distortion",  "Warm Overdrive", "Heavy Fuzz", nullptr },
+    { "Saturation",  "Tape Warmth", "Tube Drive", nullptr },
+    { "RingMod",     "Tremolo", "Bell Tones", nullptr },
+    { "StereoWidener", "Natural Width", "Extreme Wide", nullptr },
+    { "Bitcrusher",  "8-bit Lo-Fi", "Voice", nullptr },
+    { "Phaser",      "Sweep", "Jet", nullptr },
+    { "Flanger",     "Slow Sweep", "Through Zero", nullptr },
+    { "Compressor",  "Gentle", "Squash", nullptr },
+    { "Limiter",     "Transparent", "Brick Wall", nullptr },
+    { "AutoTune",    "Natural", "Hard Tune", nullptr },
+    { "EQ",          "Scoop", "Bright", nullptr },
+};
+
+} // anonymous namespace
+
+juce::StringArray PresetFactory::getFactoryPresets(const juce::String& effectType)
+{
+    for (auto& entry : effectPresetNames)
+    {
+        if (effectType != entry[0])
+            continue;
+
+        juce::StringArray names;
+        for (int i = 1; entry[i] != nullptr; ++i)
+            names.add(juce::String(entry[i]));
+        return names;
+    }
+    return {};
+}
+
+juce::ValueTree PresetFactory::getFactoryPreset(const juce::String& effectType, const juce::String& presetName)
+{
+    // EQ uses a different tree structure (child bands), handle separately
+    if (effectType == "EQ")
+    {
+        if (presetName == "Scoop" || presetName == "Bright")
+            return buildEQPreset(presetName);
+        return {};
+    }
+
+    // Simple parameter-based presets
+    if (effectType == "Delay")
+    {
+        if (presetName == "Slapback") return buildSimpleTree("DelayEffect",         {{"delayMs", 80.0},    {"feedback", 0.2},   {"mix", 0.3}});
+        if (presetName == "Dub")      return buildSimpleTree("DelayEffect",         {{"delayMs", 500.0},   {"feedback", 0.7},   {"mix", 0.5},  {"wetHighCut", 8000.0}});
+    }
+
+    if (effectType == "Reverb")
+    {
+        if (presetName == "Small Room") return buildSimpleTree("ReverbEffect",      {{"roomSize", 0.3},    {"damping", 0.5},    {"wetLevel", 0.3}});
+        if (presetName == "Large Hall") return buildSimpleTree("ReverbEffect",      {{"roomSize", 0.9},    {"damping", 0.2},    {"wetLevel", 0.4}});
+        if (presetName == "Plate")      return buildSimpleTree("ReverbEffect",      {{"roomSize", 0.6},    {"damping", 0.7},    {"wetLevel", 0.4}});
+    }
+
+    if (effectType == "Chorus")
+    {
+        if (presetName == "Subtle")        return buildSimpleTree("ChorusEffect",   {{"rate", 0.5},        {"depth", 0.2},      {"mix", 0.3}});
+        if (presetName == "Wide Ensemble") return buildSimpleTree("ChorusEffect",   {{"rate", 1.5},        {"depth", 0.7},      {"mix", 0.6}});
+    }
+
+    if (effectType == "Distortion")
+    {
+        // type: 0=SoftClip, 1=HardClip, 2=Tube, 3=WaveFolder, 4=BitCrush
+        // drive/range/blend stored as percent (0-100) matching setState defaults
+        if (presetName == "Warm Overdrive") return buildSimpleTree("DistortionEffect", {{"type", 2.0}, {"drive", 40.0}, {"range", 60.0}, {"blend", 50.0}});
+        if (presetName == "Heavy Fuzz")     return buildSimpleTree("DistortionEffect", {{"type", 1.0}, {"drive", 90.0}, {"range", 30.0}, {"blend", 70.0}});
+    }
+
+    if (effectType == "Saturation")
+    {
+        // mode: 0=Soft, 1=Tube, 2=Tape; drive/mix stored as percent (0-100)
+        if (presetName == "Tape Warmth") return buildSimpleTree("SaturationEffect", {{"mode", 2.0}, {"drive", 30.0}, {"mix", 40.0}});
+        if (presetName == "Tube Drive")  return buildSimpleTree("SaturationEffect", {{"mode", 1.0}, {"drive", 60.0}, {"mix", 60.0}});
+    }
+
+    if (effectType == "RingMod")
+    {
+        // waveform: 0=Sine, 1=Triangle, 2=Square
+        if (presetName == "Tremolo")    return buildSimpleTree("RingModulatorEffect", {{"frequency", 2.0},    {"waveform", 0.0}, {"mix", 0.5}});
+        if (presetName == "Bell Tones") return buildSimpleTree("RingModulatorEffect", {{"frequency", 1200.0}, {"waveform", 0.0}, {"mix", 0.3}});
+    }
+
+    if (effectType == "StereoWidener")
+    {
+        // width: 0.0=0%, 0.5=100%, 1.0=200%
+        if (presetName == "Natural Width") return buildSimpleTree("StereoWidenerEffect", {{"width", 0.6}});
+        if (presetName == "Extreme Wide")  return buildSimpleTree("StereoWidenerEffect", {{"width", 0.9}});
+    }
+
+    if (effectType == "Bitcrusher")
+    {
+        if (presetName == "8-bit Lo-Fi") return buildSimpleTree("BitcrusherEffect", {{"bitDepth", 8.0},  {"downsample", 4.0}, {"mix", 0.5}});
+        if (presetName == "Voice")       return buildSimpleTree("BitcrusherEffect", {{"bitDepth", 4.0},  {"downsample", 8.0}, {"mix", 0.7}});
+    }
+
+    if (effectType == "Phaser")
+    {
+        if (presetName == "Sweep") return buildSimpleTree("PhaserEffect", {{"rate", 0.5}, {"depth", 0.7}, {"feedback", 0.4}});
+        if (presetName == "Jet")   return buildSimpleTree("PhaserEffect", {{"rate", 4.0}, {"depth", 0.5}, {"feedback", 0.6}});
+    }
+
+    if (effectType == "Flanger")
+    {
+        if (presetName == "Slow Sweep")   return buildSimpleTree("FlangerEffect", {{"rate", 0.3}, {"depth", 0.6}, {"feedback", 0.4}});
+        if (presetName == "Through Zero") return buildSimpleTree("FlangerEffect", {{"rate", 1.0}, {"depth", 0.8}, {"feedback", -0.3}});
+    }
+
+    if (effectType == "Compressor")
+    {
+        if (presetName == "Gentle") return buildSimpleTree("CompressorEffect", {{"threshold", -12.0}, {"ratio", 2.0}, {"mix", 0.4}});
+        if (presetName == "Squash") return buildSimpleTree("CompressorEffect", {{"threshold", -24.0}, {"ratio", 8.0}, {"mix", 0.7}});
+    }
+
+    if (effectType == "Limiter")
+    {
+        if (presetName == "Transparent") return buildSimpleTree("LimiterEffect", {{"threshold", -3.0}, {"ceiling", -0.5}});
+        if (presetName == "Brick Wall")  return buildSimpleTree("LimiterEffect", {{"threshold", -6.0}, {"ceiling", -1.0}});
+    }
+
+    if (effectType == "AutoTune")
+    {
+        if (presetName == "Natural")  return buildSimpleTree("AutoTuneEffect", {{"retuneSpeed", 0.3}, {"amount", 0.5}});
+        if (presetName == "Hard Tune") return buildSimpleTree("AutoTuneEffect", {{"retuneSpeed", 0.9}, {"amount", 1.0}});
+    }
+
+    return {};
+}
+
+//==============================================================================
+// Consolidated module factory presets
+//==============================================================================
+namespace {
+
+static const char* modulePresetNames[][32] = {
+    { "ConsolidatedDelay",
+      "Simple Mono",       "Slapback Mono",     // Mono (0)
+      "Stereo Spread",     "Dual Delay",         // Stereo (1)
+      "Ping Pong",         "Bouncing Echo",      // PingPong (2)
+      "Reverse Swell",     "Backward Riser",     // Reverse (3)
+      "Tape Echo",         "Worn Tape",          // Tape (4)
+      "Ducked Delay",      "Rhythm Echo",        // Ducking (5)
+      nullptr },
+    { "DriveModule",
+      "Warm Drive",        "Edge Of Breakup",    // Soft (0)
+      "Tube Scream",       "British Plexi",      // Tube (1)
+      "Tape Saturate",     "Console Drive",      // Tape (2)
+      "Hard Clipper",      "Fuzz Face",          // Hard (3)
+      "Fold Synth",        "Octa Fold",          // Fold (4)
+      "Lo-Fi Crush",       "8 Bit",              // Crush (5)
+      "Tremolo Ring",      "Bell Tone",          // Ring (6)
+      nullptr },
+    { "DynamicsModule",
+      "Gentle Comp",       "Vocal Leveler",      // Compressor (0)
+      "Transparent Limit", "Brick Wall",         // Limiter (1)
+      "Tight Gate",        "Noise Gate",         // Gate (2)
+      nullptr },
+    { "EQModule",
+      "Scoop",             "Smile EQ",           // Band3 (0)
+      "Full Mix",          "Mastering 5",        // Band5 (1)
+      "Bright Tilt",       "Dark Tilt",          // Tilt (2)
+      "Surgical Mid",      "Wide Q Cut",         // Para (3)
+      nullptr },
+    { "ModulationModule",
+      "Subtle Chorus",     "Wide Ensemble",      // Chorus (0)
+      "Slow Flange",       "Jet Flange",         // Flanger (1)
+      "Phase Sweep",       "Phase Bubble",       // Phaser (2)
+      nullptr },
+    { "SpaceModule",
+      "Small Room",        "Live Room",          // Room (0)
+      "Concert Hall",      "Cathedral",          // Hall (1)
+      "Plate Reverb",      "Vintage Plate",      // Plate (2)
+      "Shimmer Pad",       "Celestial",          // Shimmer (3)
+      "Natural Width",     "Extreme Wide",       // Widener (4)
+      nullptr },
+    { "PitchModule",
+      "Soft Tune",         "Hard Tune",          // AutoTune (0)
+      "Octave Up",         "Fifth Up",           // PitchShift (1)
+      "Third Harmony",     "Fifth Harmony",      // Harmonize (2)
+      "Vocal Formant",     "Robot Formant",      // Formant (3)
+      nullptr },
+};
+
+} // anonymous namespace
+
+juce::StringArray PresetFactory::getModuleFactoryPresets(const juce::String& moduleType)
+{
+    for (auto& entry : modulePresetNames)
+    {
+        if (moduleType != entry[0])
+            continue;
+
+        juce::StringArray names;
+        for (int i = 1; entry[i] != nullptr; ++i)
+            names.add(juce::String(entry[i]));
+        return names;
+    }
+    return {};
+}
+
+juce::ValueTree PresetFactory::getModuleFactoryPreset(const juce::String& moduleType, const juce::String& presetName)
+{
+    //==========================================================================
+    // ConsolidatedDelay (6 modes × 2 presets = 12)
+    //==========================================================================
+    if (moduleType == "ConsolidatedDelay")
+    {
+        auto tree = juce::ValueTree("ConsolidatedDelay");
+        // Common defaults
+        tree.setProperty("wetHPF", 20.0, nullptr);
+        tree.setProperty("wetLPF", 20000.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+
+        // Mono mode presets (mode=0)
+        if (presetName == "Simple Mono") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("timeMs", 250.0, nullptr);
+            tree.setProperty("feedback", 0.3, nullptr);
+            tree.setProperty("mix", 0.35, nullptr);
+        }
+        else if (presetName == "Slapback Mono") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("timeMs", 80.0, nullptr);
+            tree.setProperty("feedback", 0.15, nullptr);
+            tree.setProperty("mix", 0.3, nullptr);
+        }
+        // Stereo mode presets (mode=1)
+        else if (presetName == "Stereo Spread") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("timeMs", 300.0, nullptr);
+            tree.setProperty("feedback", 0.4, nullptr);
+            tree.setProperty("mix", 0.45, nullptr);
+        }
+        else if (presetName == "Dual Delay") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("timeMs", 500.0, nullptr);
+            tree.setProperty("feedback", 0.25, nullptr);
+            tree.setProperty("mix", 0.3, nullptr);
+        }
+        // PingPong mode presets (mode=2)
+        else if (presetName == "Ping Pong") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("timeMs", 200.0, nullptr);
+            tree.setProperty("feedback", 0.5, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Bouncing Echo") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("timeMs", 350.0, nullptr);
+            tree.setProperty("feedback", 0.65, nullptr);
+            tree.setProperty("mix", 0.6, nullptr);
+        }
+        // Reverse mode presets (mode=3)
+        else if (presetName == "Reverse Swell") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("timeMs", 250.0, nullptr);
+            tree.setProperty("feedback", 0.4, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+            tree.setProperty("windowLen", 300.0, nullptr);
+        }
+        else if (presetName == "Backward Riser") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("timeMs", 200.0, nullptr);
+            tree.setProperty("feedback", 0.6, nullptr);
+            tree.setProperty("mix", 0.7, nullptr);
+            tree.setProperty("windowLen", 500.0, nullptr);
+        }
+        // Tape mode presets (mode=4)
+        else if (presetName == "Tape Echo") {
+            tree.setProperty("mode", 4, nullptr);
+            tree.setProperty("timeMs", 180.0, nullptr);
+            tree.setProperty("feedback", 0.3, nullptr);
+            tree.setProperty("mix", 0.4, nullptr);
+            tree.setProperty("wowFlut", 0.3, nullptr);
+            tree.setProperty("tone", 0.6, nullptr);
+        }
+        else if (presetName == "Worn Tape") {
+            tree.setProperty("mode", 4, nullptr);
+            tree.setProperty("timeMs", 120.0, nullptr);
+            tree.setProperty("feedback", 0.2, nullptr);
+            tree.setProperty("mix", 0.3, nullptr);
+            tree.setProperty("wowFlut", 0.6, nullptr);
+            tree.setProperty("tone", 0.3, nullptr);
+        }
+        // Ducking mode presets (mode=5)
+        else if (presetName == "Ducked Delay") {
+            tree.setProperty("mode", 5, nullptr);
+            tree.setProperty("timeMs", 250.0, nullptr);
+            tree.setProperty("feedback", 0.3, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+            tree.setProperty("threshold", -30.0, nullptr);
+            tree.setProperty("duckRel", 150.0, nullptr);
+        }
+        else if (presetName == "Rhythm Echo") {
+            tree.setProperty("mode", 5, nullptr);
+            tree.setProperty("timeMs", 150.0, nullptr);
+            tree.setProperty("feedback", 0.2, nullptr);
+            tree.setProperty("mix", 0.4, nullptr);
+            tree.setProperty("threshold", -20.0, nullptr);
+            tree.setProperty("duckRel", 50.0, nullptr);
+        }
+        else return {};
+        return tree;
+    }
+
+    //==========================================================================
+    // DriveModule (7 modes × 2 presets = 14)
+    //==========================================================================
+    if (moduleType == "DriveModule")
+    {
+        auto tree = juce::ValueTree("DriveModule");
+        tree.setProperty("tone", 1.0, nullptr);
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("wetHPF", 20.0, nullptr);
+        tree.setProperty("wetLPF", 20000.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        tree.setProperty("gain", 1.0, nullptr);
+
+        // Soft mode (mode=0)
+        if (presetName == "Warm Drive") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("drive", 0.35, nullptr);
+            tree.setProperty("tone", 0.7, nullptr);
+        }
+        else if (presetName == "Edge Of Breakup") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("drive", 0.6, nullptr);
+            tree.setProperty("tone", 0.8, nullptr);
+        }
+        // Tube mode (mode=1)
+        else if (presetName == "Tube Scream") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("drive", 0.5, nullptr);
+            tree.setProperty("tone", 0.5, nullptr);
+        }
+        else if (presetName == "British Plexi") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("drive", 0.75, nullptr);
+            tree.setProperty("tone", 0.4, nullptr);
+        }
+        // Tape mode (mode=2)
+        else if (presetName == "Tape Saturate") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("drive", 0.4, nullptr);
+            tree.setProperty("tone", 0.6, nullptr);
+        }
+        else if (presetName == "Console Drive") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("drive", 0.55, nullptr);
+            tree.setProperty("tone", 0.7, nullptr);
+        }
+        // Hard mode (mode=3)
+        else if (presetName == "Hard Clipper") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("drive", 0.8, nullptr);
+        }
+        else if (presetName == "Fuzz Face") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("drive", 1.0, nullptr);
+            tree.setProperty("tone", 0.3, nullptr);
+        }
+        // Fold mode (mode=4)
+        else if (presetName == "Fold Synth") {
+            tree.setProperty("mode", 4, nullptr);
+            tree.setProperty("drive", 0.5, nullptr);
+            tree.setProperty("mix", 0.7, nullptr);
+        }
+        else if (presetName == "Octa Fold") {
+            tree.setProperty("mode", 4, nullptr);
+            tree.setProperty("drive", 0.8, nullptr);
+            tree.setProperty("mix", 0.6, nullptr);
+        }
+        // Crush mode (mode=5)
+        else if (presetName == "Lo-Fi Crush") {
+            tree.setProperty("mode", 5, nullptr);
+            tree.setProperty("drive", 0.6, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "8 Bit") {
+            tree.setProperty("mode", 5, nullptr);
+            tree.setProperty("drive", 0.3, nullptr);
+            tree.setProperty("mix", 0.7, nullptr);
+        }
+        // Ring mode (mode=6)
+        else if (presetName == "Tremolo Ring") {
+            tree.setProperty("mode", 6, nullptr);
+            tree.setProperty("drive", 0.15, nullptr);
+            tree.setProperty("mix", 0.4, nullptr);
+        }
+        else if (presetName == "Bell Tone") {
+            tree.setProperty("mode", 6, nullptr);
+            tree.setProperty("drive", 0.5, nullptr);
+            tree.setProperty("mix", 0.3, nullptr);
+        }
+        else return {};
+        return tree;
+    }
+
+    //==========================================================================
+    // DynamicsModule (3 modes × 2 presets = 6)
+    //==========================================================================
+    if (moduleType == "DynamicsModule")
+    {
+        auto tree = juce::ValueTree("DynamicsModule");
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+
+        // Compressor mode (mode=0)
+        if (presetName == "Gentle Comp") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("compRatio", 2.0, nullptr);
+            tree.setProperty("compThreshold", -12.0, nullptr);
+            tree.setProperty("compAttack", 15.0, nullptr);
+            tree.setProperty("compRelease", 80.0, nullptr);
+        }
+        else if (presetName == "Vocal Leveler") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("compRatio", 4.0, nullptr);
+            tree.setProperty("compThreshold", -18.0, nullptr);
+            tree.setProperty("compAttack", 5.0, nullptr);
+            tree.setProperty("compRelease", 50.0, nullptr);
+        }
+        // Limiter mode (mode=1)
+        else if (presetName == "Transparent Limit") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("limThreshold", -3.0, nullptr);
+            tree.setProperty("limRelease", 20.0, nullptr);
+            tree.setProperty("limCeiling", -0.5, nullptr);
+        }
+        else if (presetName == "Brick Wall") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("limThreshold", -6.0, nullptr);
+            tree.setProperty("limRelease", 5.0, nullptr);
+            tree.setProperty("limCeiling", -1.0, nullptr);
+        }
+        // Gate mode (mode=2)
+        else if (presetName == "Tight Gate") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("gateThreshold", -40.0, nullptr);
+            tree.setProperty("gateHold", 5.0, nullptr);
+            tree.setProperty("gateRelease", 30.0, nullptr);
+        }
+        else if (presetName == "Noise Gate") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("gateThreshold", -60.0, nullptr);
+            tree.setProperty("gateHold", 20.0, nullptr);
+            tree.setProperty("gateRelease", 80.0, nullptr);
+        }
+        else return {};
+        return tree;
+    }
+
+    //==========================================================================
+    // EQModule (4 modes × 2 presets = 8)
+    //==========================================================================
+    if (moduleType == "EQModule")
+    {
+        auto tree = juce::ValueTree("EQModule");
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("wetLowCut", 20.0, nullptr);
+        tree.setProperty("wetHighCut", 20000.0, nullptr);
+
+        // Band3 mode (mode=0)
+        if (presetName == "Scoop") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("lowGain", 3.0, nullptr);
+            tree.setProperty("midGain", -4.0, nullptr);
+            tree.setProperty("highGain", 2.0, nullptr);
+            tree.setProperty("midFreq", 800.0, nullptr);
+        }
+        else if (presetName == "Smile EQ") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("lowGain", 4.0, nullptr);
+            tree.setProperty("midGain", -6.0, nullptr);
+            tree.setProperty("highGain", 4.0, nullptr);
+            tree.setProperty("midFreq", 1000.0, nullptr);
+        }
+        // Band5 mode (mode=1)
+        else if (presetName == "Full Mix") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("subGain", 1.0, nullptr);
+            tree.setProperty("lowGain5", 0.5, nullptr);
+            tree.setProperty("midGain5", -1.0, nullptr);
+            tree.setProperty("highGain5", 1.5, nullptr);
+            tree.setProperty("airGain", 2.0, nullptr);
+        }
+        else if (presetName == "Mastering 5") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("subGain", -0.5, nullptr);
+            tree.setProperty("lowGain5", 0.0, nullptr);
+            tree.setProperty("midGain5", 0.0, nullptr);
+            tree.setProperty("highGain5", 0.5, nullptr);
+            tree.setProperty("airGain", 1.0, nullptr);
+            tree.setProperty("subFreq", 50.0, nullptr);
+        }
+        // Tilt mode (mode=2)
+        else if (presetName == "Bright Tilt") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("tiltAmount", 6.0, nullptr);
+            tree.setProperty("centerFreq", 1000.0, nullptr);
+        }
+        else if (presetName == "Dark Tilt") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("tiltAmount", -6.0, nullptr);
+            tree.setProperty("centerFreq", 1000.0, nullptr);
+        }
+        // Para mode (mode=3)
+        else if (presetName == "Surgical Mid") {
+            tree.setProperty("mode", 3, nullptr);
+            {
+                auto band = juce::ValueTree("ParaBand");
+                band.setProperty("index", 0, nullptr);
+                band.setProperty("frequency", 400.0, nullptr);
+                band.setProperty("gain", -6.0, nullptr);
+                band.setProperty("q", 4.0, nullptr);
+                band.setProperty("type", 1, nullptr); // Peaking
+                tree.addChild(band, -1, nullptr);
+            }
+        }
+        else if (presetName == "Wide Q Cut") {
+            tree.setProperty("mode", 3, nullptr);
+            {
+                auto band = juce::ValueTree("ParaBand");
+                band.setProperty("index", 0, nullptr);
+                band.setProperty("frequency", 300.0, nullptr);
+                band.setProperty("gain", -3.0, nullptr);
+                band.setProperty("q", 0.5, nullptr);
+                band.setProperty("type", 1, nullptr); // Peaking
+                tree.addChild(band, -1, nullptr);
+            }
+        }
+        else return {};
+        return tree;
+    }
+
+    //==========================================================================
+    // ModulationModule (3 modes × 2 presets = 6)
+    //==========================================================================
+    if (moduleType == "ModulationModule")
+    {
+        auto tree = juce::ValueTree("ModulationModule");
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+
+        // Chorus mode (mode=0)
+        if (presetName == "Subtle Chorus") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("chorusRate", 0.5, nullptr);
+            tree.setProperty("chorusDepth", 0.25, nullptr);
+            tree.setProperty("chorusCentreDelay", 12.0, nullptr);
+            tree.setProperty("mix", 0.35, nullptr);
+        }
+        else if (presetName == "Wide Ensemble") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("chorusRate", 1.5, nullptr);
+            tree.setProperty("chorusDepth", 0.7, nullptr);
+            tree.setProperty("chorusCentreDelay", 8.0, nullptr);
+            tree.setProperty("mix", 0.55, nullptr);
+        }
+        // Flanger mode (mode=1)
+        else if (presetName == "Slow Flange") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("flangerRate", 0.2, nullptr);
+            tree.setProperty("flangerDepth", 0.5, nullptr);
+            tree.setProperty("flangerFeedback", 0.3, nullptr);
+            tree.setProperty("flangerDelay", 3.0, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Jet Flange") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("flangerRate", 1.5, nullptr);
+            tree.setProperty("flangerDepth", 0.8, nullptr);
+            tree.setProperty("flangerFeedback", 0.6, nullptr);
+            tree.setProperty("flangerDelay", 1.5, nullptr);
+            tree.setProperty("mix", 0.6, nullptr);
+        }
+        // Phaser mode (mode=2)
+        else if (presetName == "Phase Sweep") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("phaserRate", 0.4, nullptr);
+            tree.setProperty("phaserDepth", 0.6, nullptr);
+            tree.setProperty("phaserFeedback", 0.3, nullptr);
+            tree.setProperty("phaserStages", 6, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Phase Bubble") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("phaserRate", 2.0, nullptr);
+            tree.setProperty("phaserDepth", 0.4, nullptr);
+            tree.setProperty("phaserFeedback", 0.5, nullptr);
+            tree.setProperty("phaserStages", 4, nullptr);
+            tree.setProperty("mix", 0.6, nullptr);
+        }
+        else return {};
+        return tree;
+    }
+
+    //==========================================================================
+    // SpaceModule (5 modes × 2 presets = 10)
+    //==========================================================================
+    if (moduleType == "SpaceModule")
+    {
+        auto tree = juce::ValueTree("SpaceModule");
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+
+        // Room mode (mode=0)
+        if (presetName == "Small Room") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("reverbSize", 0.2, nullptr);
+            tree.setProperty("reverbDamping", 0.6, nullptr);
+            tree.setProperty("reverbWidth", 0.4, nullptr);
+            tree.setProperty("mix", 0.25, nullptr);
+        }
+        else if (presetName == "Live Room") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("reverbSize", 0.4, nullptr);
+            tree.setProperty("reverbDamping", 0.3, nullptr);
+            tree.setProperty("reverbWidth", 0.6, nullptr);
+            tree.setProperty("mix", 0.35, nullptr);
+        }
+        // Hall mode (mode=1)
+        else if (presetName == "Concert Hall") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("reverbSize", 0.8, nullptr);
+            tree.setProperty("reverbDamping", 0.3, nullptr);
+            tree.setProperty("reverbWidth", 0.8, nullptr);
+            tree.setProperty("mix", 0.35, nullptr);
+        }
+        else if (presetName == "Cathedral") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("reverbSize", 1.0, nullptr);
+            tree.setProperty("reverbDamping", 0.15, nullptr);
+            tree.setProperty("reverbWidth", 1.0, nullptr);
+            tree.setProperty("mix", 0.4, nullptr);
+        }
+        // Plate mode (mode=2)
+        else if (presetName == "Plate Reverb") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("reverbSize", 0.65, nullptr);
+            tree.setProperty("reverbDamping", 0.7, nullptr);
+            tree.setProperty("reverbWidth", 0.7, nullptr);
+            tree.setProperty("mix", 0.35, nullptr);
+        }
+        else if (presetName == "Vintage Plate") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("reverbSize", 0.55, nullptr);
+            tree.setProperty("reverbDamping", 0.8, nullptr);
+            tree.setProperty("reverbWidth", 0.65, nullptr);
+            tree.setProperty("mix", 0.3, nullptr);
+        }
+        // Shimmer mode (mode=3)
+        else if (presetName == "Shimmer Pad") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("reverbSize", 0.7, nullptr);
+            tree.setProperty("reverbDamping", 0.3, nullptr);
+            tree.setProperty("reverbWidth", 0.8, nullptr);
+            tree.setProperty("shimmerShift", 12.0, nullptr);
+            tree.setProperty("shimmerFeedback", 0.4, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Celestial") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("reverbSize", 0.9, nullptr);
+            tree.setProperty("reverbDamping", 0.1, nullptr);
+            tree.setProperty("reverbWidth", 1.0, nullptr);
+            tree.setProperty("shimmerShift", 7.0, nullptr);
+            tree.setProperty("shimmerFeedback", 0.6, nullptr);
+            tree.setProperty("mix", 0.6, nullptr);
+        }
+        // Widener mode (mode=4)
+        else if (presetName == "Natural Width") {
+            tree.setProperty("mode", 4, nullptr);
+            tree.setProperty("widenerWidth", 0.4, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Extreme Wide") {
+            tree.setProperty("mode", 4, nullptr);
+            tree.setProperty("widenerWidth", 0.9, nullptr);
+            tree.setProperty("mix", 0.7, nullptr);
+        }
+        else return {};
+        return tree;
+    }
+
+    //==========================================================================
+    // PitchModule (4 modes × 2 presets = 8)
+    //==========================================================================
+    if (moduleType == "PitchModule")
+    {
+        auto tree = juce::ValueTree("PitchModule");
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("wetLowCut", 20.0, nullptr);
+        tree.setProperty("wetHighCut", 20000.0, nullptr);
+        tree.setProperty("scaleMask", 0x0FFF, nullptr); // chromatic
+
+        // AutoTune mode (mode=0)
+        if (presetName == "Soft Tune") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("retuneSpeed", 30.0, nullptr);
+            tree.setProperty("amount", 0.4, nullptr);
+        }
+        else if (presetName == "Hard Tune") {
+            tree.setProperty("mode", 0, nullptr);
+            tree.setProperty("retuneSpeed", 5.0, nullptr);
+            tree.setProperty("amount", 1.0, nullptr);
+        }
+        // PitchShift mode (mode=1)
+        else if (presetName == "Octave Up") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("semitones", 12.0, nullptr);
+            tree.setProperty("cents", 0.0, nullptr);
+            tree.setProperty("window", 2048, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Fifth Up") {
+            tree.setProperty("mode", 1, nullptr);
+            tree.setProperty("semitones", 7.0, nullptr);
+            tree.setProperty("cents", 0.0, nullptr);
+            tree.setProperty("window", 2048, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        // Harmonize mode (mode=2)
+        else if (presetName == "Third Harmony") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("interval", 4.0, nullptr);
+            tree.setProperty("harmonyMix", 0.5, nullptr);
+            tree.setProperty("voices", 2, nullptr);
+            tree.setProperty("mix", 0.6, nullptr);
+        }
+        else if (presetName == "Fifth Harmony") {
+            tree.setProperty("mode", 2, nullptr);
+            tree.setProperty("interval", 7.0, nullptr);
+            tree.setProperty("harmonyMix", 0.6, nullptr);
+            tree.setProperty("voices", 2, nullptr);
+            tree.setProperty("mix", 0.7, nullptr);
+        }
+        // Formant mode (mode=3)
+        else if (presetName == "Vocal Formant") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("formantShift", 0.0, nullptr);
+            tree.setProperty("formantPreserve", 1.0, nullptr);
+            tree.setProperty("mix", 0.5, nullptr);
+        }
+        else if (presetName == "Robot Formant") {
+            tree.setProperty("mode", 3, nullptr);
+            tree.setProperty("formantShift", 5.0, nullptr);
+            tree.setProperty("formantPreserve", 0.2, nullptr);
+            tree.setProperty("mix", 0.7, nullptr);
+        }
+        else return {};
+        return tree;
+    }
+
+    return {};
+}
+
+//==============================================================================
+// Factory rack presets
+//==============================================================================
+
+juce::ValueTree PresetFactory::createCleanRackPreset()
+{
+    juce::ValueTree root("AnaPlugPreset");
+    root.setProperty("Name", "Clean Rack", nullptr);
+    root.setProperty("Category", "Effects", nullptr);
+    root.setProperty("Version", "2.0", nullptr);
+
+    // Ordered effect chain: Delay → Reverb → EQ → Limiter
+    // Uses the new format where child tag IS the type name
+    {
+        auto tree = juce::ValueTree("ConsolidatedDelay");
+        tree.setProperty("mode", 0, nullptr);           // Mono
+        tree.setProperty("timeMs", 120.0, nullptr);
+        tree.setProperty("feedback", 0.2, nullptr);
+        tree.setProperty("mix", 0.3, nullptr);
+        tree.setProperty("wetHPF", 20.0, nullptr);
+        tree.setProperty("wetLPF", 20000.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        tree.setProperty("windowLen", 200.0, nullptr);
+        tree.setProperty("wowFlut", 0.0, nullptr);
+        tree.setProperty("tone", 0.5, nullptr);
+        tree.setProperty("threshold", -24.0, nullptr);
+        tree.setProperty("duckRel", 200.0, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+    {
+        auto tree = juce::ValueTree("SpaceModule");
+        tree.setProperty("mode", 0, nullptr);           // Room
+        tree.setProperty("reverbSize", 0.3, nullptr);
+        tree.setProperty("reverbDamping", 0.5, nullptr);
+        tree.setProperty("reverbWidth", 0.5, nullptr);
+        tree.setProperty("shimmerShift", 12.0, nullptr);
+        tree.setProperty("shimmerFeedback", 0.4, nullptr);
+        tree.setProperty("widenerWidth", 0.5, nullptr);
+        tree.setProperty("mix", 0.25, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+    {
+        auto tree = juce::ValueTree("EQModule");
+        tree.setProperty("mode", 0, nullptr);           // Band3
+        tree.setProperty("lowGain", 0.0, nullptr);
+        tree.setProperty("midGain", 0.0, nullptr);
+        tree.setProperty("highGain", 0.0, nullptr);
+        tree.setProperty("midFreq", 1000.0, nullptr);
+        tree.setProperty("subGain", 0.0, nullptr);
+        tree.setProperty("subFreq", 60.0, nullptr);
+        tree.setProperty("lowGain5", 0.0, nullptr);
+        tree.setProperty("lowFreq5", 250.0, nullptr);
+        tree.setProperty("midGain5", 0.0, nullptr);
+        tree.setProperty("midFreq5", 1000.0, nullptr);
+        tree.setProperty("highGain5", 0.0, nullptr);
+        tree.setProperty("highFreq5", 5000.0, nullptr);
+        tree.setProperty("airGain", 0.0, nullptr);
+        tree.setProperty("airFreq", 12000.0, nullptr);
+        tree.setProperty("tiltAmount", 0.0, nullptr);
+        tree.setProperty("centerFreq", 1000.0, nullptr);
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("wetLowCut", 20.0, nullptr);
+        tree.setProperty("wetHighCut", 20000.0, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+    {
+        auto tree = juce::ValueTree("DynamicsModule");
+        tree.setProperty("mode", 1, nullptr);           // Limiter
+        tree.setProperty("compRatio", 4.0, nullptr);
+        tree.setProperty("compThreshold", -24.0, nullptr);
+        tree.setProperty("compAttack", 10.0, nullptr);
+        tree.setProperty("compRelease", 100.0, nullptr);
+        tree.setProperty("limThreshold", -3.0, nullptr);
+        tree.setProperty("limRelease", 20.0, nullptr);
+        tree.setProperty("limCeiling", -0.5, nullptr);
+        tree.setProperty("gateThreshold", -60.0, nullptr);
+        tree.setProperty("gateHold", 20.0, nullptr);
+        tree.setProperty("gateRelease", 50.0, nullptr);
+        tree.setProperty("mix", 1.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+
+    return root;
+}
+
+juce::ValueTree PresetFactory::createCreativeRackPreset()
+{
+    juce::ValueTree root("AnaPlugPreset");
+    root.setProperty("Name", "Creative Rack", nullptr);
+    root.setProperty("Category", "Effects", nullptr);
+    root.setProperty("Version", "2.0", nullptr);
+
+    // Ordered effect chain: DriveModule → ModulationModule → SpaceModule → PitchModule
+    {
+        auto tree = juce::ValueTree("DriveModule");
+        tree.setProperty("mode", 1, nullptr);           // Tube
+        tree.setProperty("drive", 0.4, nullptr);
+        tree.setProperty("tone", 0.6, nullptr);
+        tree.setProperty("mix", 0.7, nullptr);
+        tree.setProperty("wetHPF", 20.0, nullptr);
+        tree.setProperty("wetLPF", 20000.0, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        tree.setProperty("gain", 1.0, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+    {
+        auto tree = juce::ValueTree("ModulationModule");
+        tree.setProperty("mode", 0, nullptr);           // Chorus
+        tree.setProperty("chorusRate", 1.0, nullptr);
+        tree.setProperty("chorusDepth", 0.5, nullptr);
+        tree.setProperty("chorusCentreDelay", 10.0, nullptr);
+        tree.setProperty("flangerRate", 0.5, nullptr);
+        tree.setProperty("flangerDepth", 0.5, nullptr);
+        tree.setProperty("flangerFeedback", 0.3, nullptr);
+        tree.setProperty("flangerDelay", 3.0, nullptr);
+        tree.setProperty("phaserRate", 1.0, nullptr);
+        tree.setProperty("phaserDepth", 0.5, nullptr);
+        tree.setProperty("phaserFeedback", 0.3, nullptr);
+        tree.setProperty("phaserStages", 6, nullptr);
+        tree.setProperty("mix", 0.4, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+    {
+        auto tree = juce::ValueTree("SpaceModule");
+        tree.setProperty("mode", 2, nullptr);           // Plate
+        tree.setProperty("reverbSize", 0.65, nullptr);
+        tree.setProperty("reverbDamping", 0.6, nullptr);
+        tree.setProperty("reverbWidth", 0.7, nullptr);
+        tree.setProperty("shimmerShift", 12.0, nullptr);
+        tree.setProperty("shimmerFeedback", 0.4, nullptr);
+        tree.setProperty("widenerWidth", 0.5, nullptr);
+        tree.setProperty("mix", 0.3, nullptr);
+        tree.setProperty("bypass", false, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+    {
+        auto tree = juce::ValueTree("PitchModule");
+        tree.setProperty("mode", 1, nullptr);           // PitchShift
+        tree.setProperty("retuneSpeed", 50.0, nullptr);
+        tree.setProperty("amount", 1.0, nullptr);
+        tree.setProperty("scaleMask", 0x0FFF, nullptr);
+        tree.setProperty("semitones", 7.0, nullptr);
+        tree.setProperty("cents", 0.0, nullptr);
+        tree.setProperty("window", 2048, nullptr);
+        tree.setProperty("interval", 7.0, nullptr);
+        tree.setProperty("harmonyMix", 0.5, nullptr);
+        tree.setProperty("voices", 2, nullptr);
+        tree.setProperty("formantShift", 0.0, nullptr);
+        tree.setProperty("formantPreserve", 1.0, nullptr);
+        tree.setProperty("mix", 0.5, nullptr);
+        tree.setProperty("wetLowCut", 20.0, nullptr);
+        tree.setProperty("wetHighCut", 20000.0, nullptr);
+        root.addChild(tree, -1, nullptr);
+    }
+
+    return root;
+}
 
 } // namespace ana

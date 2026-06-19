@@ -1,4 +1,4 @@
-﻿#include "DelayEffect.h"
+#include "DelayEffect.h"
 #include <cmath>
 
 namespace ana {
@@ -9,17 +9,19 @@ void DelayEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     sr = spec.sampleRate;
     lines.resize(spec.numChannels);
     for (auto& l : lines) l.prepare(spec);
+
+    dryBuffer_.setSize(static_cast<int>(spec.numChannels), static_cast<int>(spec.maximumBlockSize), false, false, true);
 }
 
 void DelayEffect::reset() { for (auto& l : lines) l.reset(); }
 
 void DelayEffect::process(juce::AudioBuffer<float>& buffer) {
+    if (bypassed_) return;
     float delaySamples = syncMode ? (float)(60.0 / bpm * beats * sr) : (delayMs * sr / 1000.0f);
     int numSamples = buffer.getNumSamples();
     int numCh = buffer.getNumChannels();
 
-    juce::AudioBuffer<float> dry(numCh, numSamples);
-    dry.makeCopyOf(buffer);
+    dryBuffer_.makeCopyOf(buffer, true);
 
     for (int s = 0; s < numSamples; ++s) {
         for (int ch = 0; ch < numCh; ++ch) {
@@ -38,11 +40,11 @@ void DelayEffect::process(juce::AudioBuffer<float>& buffer) {
 
     for (int ch = 0; ch < numCh; ++ch)
         for (int s = 0; s < numSamples; ++s)
-            buffer.setSample(ch, s, dry.getSample(ch, s) * (1.0f - mixVal) + buffer.getSample(ch, s) * mixVal);
+            buffer.setSample(ch, s, dryBuffer_.getSample(ch, s) * (1.0f - mixVal) + buffer.getSample(ch, s) * mixVal);
 }
 
 void DelayEffect::setDelayTime(float ms) { delayMs = std::max(1.0f, std::min(2000.0f, ms)); }
-void DelayEffect::setDelayBeats(float b) { beats = b; }
+void DelayEffect::setDelayBeats(float b) { beats = juce::jlimit(0.0078125f, 4.0f, b); }
 void DelayEffect::setFeedback(float p) { feedback = std::max(0.0f, std::min(1.0f, p / 100.0f)); }
 void DelayEffect::setMix(float p) { mixVal = std::max(0.0f, std::min(1.0f, p / 100.0f)); }
 void DelayEffect::setTempo(double b) { bpm = b; }

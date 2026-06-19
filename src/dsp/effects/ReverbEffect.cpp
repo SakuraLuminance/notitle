@@ -7,16 +7,17 @@ void ReverbEffect::prepare(const juce::dsp::ProcessSpec&) { reverb.reset(); }
 void ReverbEffect::reset() { reverb.reset(); }
 
 void ReverbEffect::process(juce::AudioBuffer<float>& buffer) {
+    if (bypassed) return;
     reverb.setParameters({roomSize, damping, wetLevel, dryLevel, width});
     juce::dsp::AudioBlock<float> block(buffer);
     reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 }
 
-void ReverbEffect::setRoomSize(float v) { roomSize = v; }
-void ReverbEffect::setDamping(float v) { damping = v; }
-void ReverbEffect::setWetLevel(float v) { wetLevel = v; }
-void ReverbEffect::setDryLevel(float v) { dryLevel = v; }
-void ReverbEffect::setWidth(float v) { width = v; }
+void ReverbEffect::setRoomSize(float v) { roomSize = juce::jlimit(0.0f, 1.0f, v); }
+void ReverbEffect::setDamping(float v) { damping = juce::jlimit(0.0f, 1.0f, v); }
+void ReverbEffect::setWetLevel(float v) { wetLevel = juce::jlimit(0.0f, 1.0f, v); }
+void ReverbEffect::setDryLevel(float v) { dryLevel = juce::jlimit(0.0f, 1.0f, v); }
+void ReverbEffect::setWidth(float v) { width = juce::jlimit(0.0f, 1.0f, v); }
 
 void ReverbEffect::setPreset(ReverbPreset p) {
     switch (p) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_core/juce_core.h>
+#include <array>
 #include "STFTConfig.h"
 #include "SpectralMorpher.h"
 #include "MultiFilter.h"
@@ -10,8 +11,13 @@
 #include "GranularSynthesizer.h"
 #include "VoiceManager.h"
 #include "FilterModulation.h"
+#include "EffectsChain.h"
+#include "ModulationEngine.h"
 
 namespace ana {
+
+class Randomizer; // forward declaration
+class MidiLearn;  // forward declaration
 
 //==============================================================================
 /**
@@ -22,7 +28,7 @@ namespace ana {
     envelope breakpoints, LFO settings, effect/voice parameters, and modulation
     routing.
 
-    Factory presets ship with 5 categories: Bass, Lead, Pad, Pluck, FX.
+    Factory presets ship with 6 categories: Bass, Lead, Pad, Pluck, FX, Vocal.
 
     File format: .anaplug (XML/ValueTree)
 
@@ -39,11 +45,12 @@ public:
         "Lead",
         "Pad",
         "Pluck",
-        "FX"
+        "FX",
+        "Vocal"
     };
 
     /** Number of built-in categories. */
-    static constexpr int numCategories = 5;
+    static constexpr int numCategories = 6;
 
     /** Factory preset names (one per category). */
     static constexpr const char* factoryPresetNames[] =
@@ -52,7 +59,8 @@ public:
         "Resonant Lead",
         "Ambient Pad",
         "Percussive Pluck",
-        "Warped FX"
+        "Warped FX",
+        "Pop Lead"
     };
 
     //==============================================================================
@@ -168,6 +176,40 @@ public:
 
     /** Returns the cached partial data for morphPresets' presetB. */
     const PartialDataSIMD& getMorphCacheB() const { return morphCacheB_; }
+    //==============================================================================
+    /** Returns the current list of favorited preset names. */
+    const juce::Array<juce::String>& getFavorites() const noexcept { return favoriteNames_; }
+
+    /** Sets the entire favorites list. */
+    void setFavorites(const juce::Array<juce::String>& names) { favoriteNames_ = names; }
+
+    /** Adds a preset name to favorites (no-op if already present). */
+    void addFavorite(const juce::String& name);
+
+    /** Removes a preset name from favorites (no-op if not present). */
+    void removeFavorite(const juce::String& name);
+
+    /** Returns true if the preset name is in the favorites list. */
+    bool isFavorite(const juce::String& name) const;
+
+    /** Persists the current favorites list to a file in the preset directory. */
+    void saveFavoritesToFile();
+
+    /** Loads the favorites list from the file in the preset directory. */
+    void loadFavoritesFromFile();
+
+    //==============================================================================
+    /** Returns a list of names of saved effect-only presets. */
+    juce::StringArray getEffectPresetNames() const;
+
+    /** Saves the current effects chain state as a named effect preset. */
+    bool saveEffectPreset(const juce::String& name);
+
+    /** Loads an effect preset by name, restoring only the effects chain. */
+    bool loadEffectPreset(const juce::String& name);
+
+    /** Deletes a saved effect preset by name. */
+    bool deleteEffectPreset(const juce::String& name);
 
     //==============================================================================
     /**
@@ -181,7 +223,28 @@ public:
                              GranularSynthesizer* granular,
                              UnisonEngine* unison,
                              VoiceManager* voiceManager,
-                             FilterModulationSystem* filterMod);
+                              FilterModulationSystem* filterMod);
+
+    /** Sets the EffectsChain reference for serialisation. */
+    void setEffectsChain(EffectsChain* chain) { effectsChain_ = chain; }
+
+    /** Sets the modulation slots array reference (16 slots from the processor). */
+    void setModulationSlotsRef(std::array<ModulationSlot, 16>* slots) { modSlotsRef_ = slots; }
+
+    /** Sets the LFO pool array reference (4 LFOs from the processor). */
+    void setLfoPoolRef(std::array<LFOSystem, 4>* pool) { lfoPoolRef_ = pool; }
+
+    /** Sets the envelope pool array reference (3 ENVs from the processor). */
+    void setEnvPoolRef(std::array<MultiPointEnvelope, 3>* pool) { envPoolRef_ = pool; }
+
+    /** Sets the Volume ADSR reference. */
+    void setVolumeAdsrRef(MultiPointEnvelope* adsr) { volumeAdsrRef_ = adsr; }
+
+    /** Sets the Randomizer reference for seed serialisation. */
+    void setRandomizerRef(Randomizer* r) { randomizerRef_ = r; }
+
+    /** Sets the MidiLearn reference for per-preset MIDI mapping persistence. */
+    void setMidiLearnRef(MidiLearn* ref) { midiLearnRef_ = ref; }
 
     //==============================================================================
     /**
@@ -205,7 +268,7 @@ public:
     static constexpr const char* presetExtension = ".anaplug";
 
     /** Current preset format version. */
-    static constexpr const char* presetVersion = "1.0";
+    static constexpr const char* presetVersion = "1.2";
 
     /** XML root element name. */
     static constexpr const char* xmlRootTag = "AnaPlugPreset";
@@ -260,6 +323,36 @@ private:
     /** Deserialises filter modulation routing. */
     bool deserialiseModulation(const juce::ValueTree& tree);
 
+    /** Serialises effects chain state. */
+    juce::ValueTree serialiseEffects() const;
+
+    /** Deserialises effects chain state. */
+    bool deserialiseEffects(const juce::ValueTree& tree);
+
+    /** Serialises per-parameter modulation routing (16 modulation slots). */
+    juce::ValueTree serialiseModulationRouting() const;
+
+    /** Deserialises per-parameter modulation routing. */
+    bool deserialiseModulationRouting(const juce::ValueTree& tree);
+
+    /** Serialises per-LFO configurations (4 LFOs). */
+    juce::ValueTree serialiseLFOConfig() const;
+
+    /** Deserialises per-LFO configurations. */
+    bool deserialiseLFOConfig(const juce::ValueTree& tree);
+
+    /** Serialises per-ENV configurations (3 ENVs). */
+    juce::ValueTree serialiseENVConfig() const;
+
+    /** Deserialises per-ENV configurations. */
+    bool deserialiseENVConfig(const juce::ValueTree& tree);
+
+    /** Serialises Volume ADSR parameters. */
+    juce::ValueTree serialiseVolumeADSR() const;
+
+    /** Deserialises Volume ADSR parameters. */
+    bool deserialiseVolumeADSR(const juce::ValueTree& tree);
+
     //==============================================================================
     /** Writes factory presets to disk. */
     void writeFactoryPreset(const juce::String& name, const juce::String& category);
@@ -283,12 +376,23 @@ private:
     UnisonEngine*            unisonRef           = nullptr;
     VoiceManager*            voiceManagerRef     = nullptr;
     FilterModulationSystem*  filterModRef        = nullptr;
+    EffectsChain*            effectsChain_       = nullptr;
+    std::array<ModulationSlot, 16>* modSlotsRef_  = nullptr;
+    std::array<LFOSystem, 4>*        lfoPoolRef_  = nullptr;
+    std::array<MultiPointEnvelope, 3>* envPoolRef_ = nullptr;
+    MultiPointEnvelope*       volumeAdsrRef_     = nullptr;
+    Randomizer*               randomizerRef_     = nullptr;
+    MidiLearn*                midiLearnRef_      = nullptr;
 
     //==============================================================================
     // Internal state
     juce::String             currentPresetName;
     juce::StringArray        cachedCategories;
     juce::StringPairArray    cachedPresets;  // name -> category mapping
+
+    //==============================================================================
+    // Global user preferences
+    juce::Array<juce::String> favoriteNames_;
 
     //==============================================================================
     // Morphing state (pre-loaded partial data for audio-thread-safe morph)

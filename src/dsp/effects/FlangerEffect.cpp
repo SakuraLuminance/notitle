@@ -17,6 +17,9 @@ void FlangerEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     lfoPhase.resize(numChannels, 0.0f);
     for (int ch = 1; ch < numChannels; ++ch)
         lfoPhase[ch] = 0.5f;
+
+    // Pre-allocate dry buffer
+    dryBuffer_.setSize(static_cast<int>(spec.numChannels), static_cast<int>(spec.maximumBlockSize), false, false, true);
 }
 
 void FlangerEffect::reset() {
@@ -33,9 +36,8 @@ void FlangerEffect::process(juce::AudioBuffer<float>& buffer) {
     int numSamples = buffer.getNumSamples();
     int numCh = juce::jmin(numChannels, buffer.getNumChannels());
 
-    // Dry buffer for mixing
-    juce::AudioBuffer<float> dry(numCh, numSamples);
-    dry.makeCopyOf(buffer);
+    // Dry buffer for mixing (pre-allocated)
+    dryBuffer_.makeCopyOf(buffer, true);
 
     for (int ch = 0; ch < numCh; ++ch) {
         auto* data = buffer.getWritePointer(ch);
@@ -65,10 +67,10 @@ void FlangerEffect::process(juce::AudioBuffer<float>& buffer) {
 
     // Dry/wet mix with gain
     for (int ch = 0; ch < numCh; ++ch) {
-        const auto* dryData = dry.getReadPointer(ch);
+        const auto* dryData = dryBuffer_.getReadPointer(ch);
         auto* outData = buffer.getWritePointer(ch);
         for (int s = 0; s < numSamples; ++s) {
-            outData[s] = dryData[s] * (1.0f - mixVal) + outData[s] * mixVal * gainVal;
+            outData[s] = juce::jlimit(-1.0f, 1.0f, dryData[s] * (1.0f - mixVal) + outData[s] * mixVal * gainVal);
         }
     }
 }

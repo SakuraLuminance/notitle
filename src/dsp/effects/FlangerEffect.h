@@ -21,6 +21,30 @@ public:
     void setBypass(bool b);
     void setGain(float g);
 
+    juce::ValueTree getState() const override
+    {
+        juce::ValueTree tree("FlangerEffect");
+        tree.setProperty("rate", rate, nullptr);
+        tree.setProperty("depth", depth, nullptr);
+        tree.setProperty("delay", delayMs, nullptr);
+        tree.setProperty("feedback", feedback, nullptr);
+        tree.setProperty("mix", mixVal, nullptr);
+        tree.setProperty("bypass", bypassed, nullptr);
+        tree.setProperty("gain", gainVal, nullptr);
+        return tree;
+    }
+
+    void setState(const juce::ValueTree& tree) override
+    {
+        setRate(tree.getProperty("rate", 0.5f));
+        setDepth(tree.getProperty("depth", 0.5f));
+        setDelay(tree.getProperty("delay", 3.0f));
+        setFeedback(tree.getProperty("feedback", 0.3f));
+        setMix(tree.getProperty("mix", 0.5f));
+        setBypass(tree.getProperty("bypass", false));
+        setGain(tree.getProperty("gain", 1.0f));
+    }
+
 private:
     float rate = 0.5f;
     float depth = 0.5f;
@@ -38,6 +62,9 @@ private:
 
     // LFO phase per channel (right channel gets inverted phase)
     std::vector<float> lfoPhase;
+
+    // Pre-allocated dry buffer
+    juce::AudioBuffer<float> dryBuffer_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FlangerEffect)
 };

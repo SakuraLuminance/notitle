@@ -17,6 +17,7 @@ struct MidiMapping {
     float minValue = 0.0f;
     float maxValue = 1.0f;
     std::atomic<float>* targetParam = nullptr;
+    bool isGlobal = false;  // true = survives preset changes
 };
 
 /**
@@ -38,6 +39,7 @@ public:
                     std::atomic<float>* target, float min, float max);
     void removeMapping(int cc);
     void removeAllMappings();
+    void setMappingGlobal(const juce::String& paramId, bool isGlobal);
 
     // --- MIDI processing (audio thread) ---
     void processMidi(const juce::MidiMessage& msg);
@@ -55,8 +57,17 @@ public:
     const std::vector<MidiMapping>& getMappings() const { return mappings_; }
 
     // --- Persistence ---
-    juce::ValueTree saveState() const;
-    void loadState(const juce::ValueTree& state);
+    // Full processor state: saves/loads ALL mappings (global + per-preset)
+    juce::ValueTree saveProcessorState() const;
+    void loadProcessorState(const juce::ValueTree& state);
+
+    // Preset state: saves/loads only non-global (per-preset) mappings
+    juce::ValueTree savePresetState() const;
+    void loadPresetState(const juce::ValueTree& state);
+
+    // Backward-compatible aliases
+    juce::ValueTree saveState() const { return saveProcessorState(); }
+    void loadState(const juce::ValueTree& state) { loadProcessorState(state); }
 
 private:
     std::vector<MidiMapping> mappings_;

@@ -16,11 +16,15 @@ public:
     void resized() override;
     void timerCallback() override;
 
-    // Set filter coefficients for display
+    // Set filter coefficients for display (biquad mode)
     void setNumFilters(int num);
     void setFilterCoefficients(int filterIndex,
                                 const std::array<double, 5>& coeffs,
                                 double sampleRate);
+
+    // Set pre-computed frequency response (from MultiFilter::getFrequencyResponse)
+    void setFrequencyResponse(const std::vector<float>& frequencies,
+                               const std::vector<float>& magnitudes);
 
     void clear();
 
@@ -33,6 +37,10 @@ private:
     };
 
     std::vector<FilterState> filterStates;
+
+    // Pre-computed frequency response data (from MultiFilter)
+    std::vector<float> responseFrequencies_;
+    std::vector<float> responseMagnitudes_;
 
     float getMagnitudeAtFrequency(double frequency, const FilterState& state) const;
     static constexpr float minFreq = 20.0f;

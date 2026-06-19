@@ -17,9 +17,20 @@ void AutoTuneEffect::setSampleRate(double sr)
     pitchCorrector_.setSampleRate(sr);
 }
 
+void AutoTuneEffect::prepare(const juce::dsp::ProcessSpec& spec)
+{
+    sampleRate_ = spec.sampleRate;
+    pitchCorrector_.setSampleRate(spec.sampleRate);
+    pitchCorrector_.prepare(static_cast<int>(spec.numChannels),
+                            static_cast<int>(spec.maximumBlockSize));
+    
+    // Pre-allocate mono buffer for worst-case block size (grow-only)
+    monoBuffer_.resize(static_cast<size_t>(spec.maximumBlockSize));
+}
+
 void AutoTuneEffect::setRetuneSpeed(float ms)
 {
-    retuneSpeed_ = std::max(0.0f, ms);
+    retuneSpeed_ = juce::jlimit(0.01f, 20.0f, ms);
 }
 
 void AutoTuneEffect::setScale(const std::vector<bool>& activeNotesInOctave)
@@ -97,9 +108,10 @@ void AutoTuneEffect::processBlock(juce::AudioBuffer<float>& buffer)
 
     const int numSamples = buffer.getNumSamples();
     
-    // Extract mono mix for pitch detection
-    monoBuffer_.resize(static_cast<size_t>(numSamples));
-    std::fill(monoBuffer_.begin(), monoBuffer_.end(), 0.0f);
+    // Extract mono mix for pitch detection (grow-only, pre-allocated in prepare())
+    if (monoBuffer_.size() < static_cast<size_t>(numSamples))
+        monoBuffer_.resize(static_cast<size_t>(numSamples));
+    std::fill(monoBuffer_.begin(), monoBuffer_.begin() + static_cast<ptrdiff_t>(numSamples), 0.0f);
     
     const int numChannels = buffer.getNumChannels();
     float invChannels = 1.0f / static_cast<float>(numChannels);

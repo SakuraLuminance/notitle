@@ -115,14 +115,20 @@ float WavetableEngine::getPosition() const
 }
 
 //==============================================================================
-PartialDataSIMD WavetableEngine::getCurrentFrame() const
+void WavetableEngine::getCurrentFrame(PartialDataSIMD& out) const
 {
     // Return empty frame if no data loaded
     if (frames_.empty())
-        return PartialDataSIMD{};
+    {
+        out = PartialDataSIMD{};
+        return;
+    }
 
     if (frames_.size() == 1)
-        return frames_[0];
+    {
+        out = frames_[0];
+        return;
+    }
 
     // Map position [0, 1] to continuous frame index
     const float pos = position_.load();
@@ -133,9 +139,7 @@ PartialDataSIMD WavetableEngine::getCurrentFrame() const
     const float frac = frameIdx - static_cast<float>(idxA);
 
     // Use SIMD-optimized linear morph via SpectralMorpher
-    PartialDataSIMD result;
-    SpectralMorpher::morphLinear(result, frames_[idxA], frames_[idxB], frac);
-    return result;
+    SpectralMorpher::morphLinear(out, frames_[idxA], frames_[idxB], frac);
 }
 
 PartialDataSIMD WavetableEngine::getFrame(int index) const

@@ -32,6 +32,18 @@ void MidiLearn::removeAllMappings()
     mappings_.clear();
 }
 
+void MidiLearn::setMappingGlobal(const juce::String& paramId, bool isGlobal)
+{
+    for (auto& m : mappings_)
+    {
+        if (m.parameterId == paramId)
+        {
+            m.isGlobal = isGlobal;
+            return;
+        }
+    }
+}
+
 //==============================================================================
 void MidiLearn::processMidi(const juce::MidiMessage& msg)
 {
@@ -51,7 +63,7 @@ void MidiLearn::processMidi(const juce::MidiMessage& msg)
         if (learnTarget_ != nullptr)
         {
             const float scaled = learnMin_ + value * (learnMax_ - learnMin_);
-            learnTarget_->store(scaled);
+            learnTarget_->store(scaled, std::memory_order_relaxed);
         }
 
         stopLearn();
@@ -67,7 +79,7 @@ void MidiLearn::processMidi(const juce::MidiMessage& msg)
             {
                 const float scaled = mapping.minValue
                                    + value * (mapping.maxValue - mapping.minValue);
-                mapping.targetParam->store(scaled);
+                mapping.targetParam->store(scaled, std::memory_order_relaxed);
             }
             return; // first match wins (one CC → one mapping)
         }
@@ -108,7 +120,8 @@ void MidiLearn::reconnectTarget(const juce::String& paramId, std::atomic<float>*
 }
 
 //==============================================================================
-juce::ValueTree MidiLearn::saveState() const
+// Processor state: save/load ALL mappings (global + per-preset)
+juce::ValueTree MidiLearn::saveProcessorState() const
 {
     juce::ValueTree state("MidiLearn");
 
@@ -119,6 +132,7 @@ juce::ValueTree MidiLearn::saveState() const
         child.setProperty("paramId", m.parameterId,  nullptr);
         child.setProperty("min",     m.minValue,      nullptr);
         child.setProperty("max",     m.maxValue,      nullptr);
+        child.setProperty("global",  m.isGlobal,      nullptr);
         // targetParam is NOT serialised – it is a runtime pointer
         state.addChild(child, -1, nullptr);
     }
@@ -126,7 +140,7 @@ juce::ValueTree MidiLearn::saveState() const
     return state;
 }
 
-void MidiLearn::loadState(const juce::ValueTree& state)
+void MidiLearn::loadProcessorState(const juce::ValueTree& state)
 {
     if (!state.isValid() || !state.hasType("MidiLearn"))
         return;
@@ -144,6 +158,57 @@ void MidiLearn::loadState(const juce::ValueTree& state)
         mapping.parameterId = child.getProperty("paramId", {});
         mapping.minValue    = child.getProperty("min",     0.0f);
         mapping.maxValue    = child.getProperty("max",     1.0f);
+        mapping.isGlobal    = child.getProperty("global",  false);
+        mapping.targetParam = nullptr; // reconnected by the editor after load
+        mappings_.push_back(std::move(mapping));
+    }
+}
+
+//==============================================================================
+// Preset state: save/load only per-preset (non-global) mappings
+juce::ValueTree MidiLearn::savePresetState() const
+{
+    juce::ValueTree state("MidiLearnPreset");
+
+    for (const auto& m : mappings_)
+    {
+        if (m.isGlobal)
+            continue; // skip global mappings — they survive presets
+
+        auto child = juce::ValueTree("Mapping");
+        child.setProperty("cc",      m.ccNumber,     nullptr);
+        child.setProperty("paramId", m.parameterId,  nullptr);
+        child.setProperty("min",     m.minValue,      nullptr);
+        child.setProperty("max",     m.maxValue,      nullptr);
+        state.addChild(child, -1, nullptr);
+    }
+
+    return state;
+}
+
+void MidiLearn::loadPresetState(const juce::ValueTree& state)
+{
+    if (!state.isValid() || !state.hasType("MidiLearnPreset"))
+        return;
+
+    // Remove all non-global mappings (global ones survive)
+    mappings_.erase(std::remove_if(mappings_.begin(), mappings_.end(),
+        [](const MidiMapping& m) { return !m.isGlobal; }),
+        mappings_.end());
+
+    // Load the per-preset mappings
+    for (int i = 0; i < state.getNumChildren(); ++i)
+    {
+        const auto child = state.getChild(i);
+        if (!child.hasType("Mapping"))
+            continue;
+
+        MidiMapping mapping;
+        mapping.ccNumber    = child.getProperty("cc",     -1);
+        mapping.parameterId = child.getProperty("paramId", {});
+        mapping.minValue    = child.getProperty("min",     0.0f);
+        mapping.maxValue    = child.getProperty("max",     1.0f);
+        mapping.isGlobal    = false; // loaded mappings are always per-preset
         mapping.targetParam = nullptr; // reconnected by the editor after load
         mappings_.push_back(std::move(mapping));
     }

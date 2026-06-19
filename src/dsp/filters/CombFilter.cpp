@@ -60,17 +60,17 @@ void CombFilter::process(juce::dsp::AudioBlock<float>& block)
                 case CombMode::Feedback:
                 {
                     // Apply damping on feedback path
-                    float damped = lastOutput[ch] * damping + delayed * (1.0f - damping);
+                    float damped = lastOutput[ch] * damping + delayed * (1.0f - damping) + 1e-30f;
                     output = input + damped * feedback;
-                    lastOutput[ch] = output;
+                    lastOutput[ch] = output + 1e-30f;
                     break;
                 }
 
                 case CombMode::Dual:
                 {
-                    float damped = lastOutput[ch] * damping + delayed * (1.0f - damping);
+                    float damped = lastOutput[ch] * damping + delayed * (1.0f - damping) + 1e-30f;
                     output = input + (delayed + damped) * feedback * 0.5f;
-                    lastOutput[ch] = output;
+                    lastOutput[ch] = output + 1e-30f;
                     break;
                 }
             }

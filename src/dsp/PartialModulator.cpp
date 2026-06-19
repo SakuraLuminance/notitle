@@ -11,19 +11,30 @@ void PartialModulator::prepare(double sampleRate)
 }
 
 //==============================================================================
-void PartialModulator::process(PartialDataSIMD& partials, const Config& config)
+void PartialModulator::process(PartialDataSIMD& partials, const Config& config, int numSamples)
 {
     const double invSampleRate = 1.0 / sampleRate_;
     const float  twoPi         = 6.283185307179586f;
     const float  lfoIncrement  = static_cast<float>(config.lfoRate * invSampleRate);
 
-    // Pre-compute envelope time constants (seconds -> per-sample increment)
-    const float attackRate  = (config.attack  > 0.0f) ? (1.0f / (static_cast<float>(sampleRate_) * config.attack))  : 1.0f;
-    const float decayRate   = (config.decay   > 0.0f) ? (1.0f / (static_cast<float>(sampleRate_) * config.decay))   : 1.0f;
-    const float releaseRate = (config.release > 0.0f) ? (1.0f / (static_cast<float>(sampleRate_) * config.release)) : 1.0f;
+    const float sampleRate_f = static_cast<float>(sampleRate_);
+
+    // Pre-compute envelope time constants (seconds -> per-block increment)
+    // Scaled by numSamples since this method is called once per block
+    const float attackRate  = (config.attack  > 0.0f) ? (static_cast<float>(numSamples) / (sampleRate_f * config.attack))  : 1.0f;
+    const float decayRate   = (config.decay   > 0.0f) ? (static_cast<float>(numSamples) / (sampleRate_f * config.decay))   : 1.0f;
+    const float releaseRate = (config.release > 0.0f) ? (static_cast<float>(numSamples) / (sampleRate_f * config.release)) : 1.0f;
 
     const float lfoDepth = config.lfoDepth;
     const float sustain  = config.sustain;
+
+    // Early exit via activeMask: if no partials are active, fast-path to release
+    if (partials.activeCount == 0)
+    {
+        for (auto& s : states_)
+            if (s.envState < 3) s.envState = 3;
+        return;
+    }
 
     // Shared-phase advancement: when !perPartialPhase we advance partial 0's
     // phase once and all partials read from it.  If no partials are active we

@@ -602,29 +602,39 @@ void QuantumSpectralProcessor::processAudio(juce::AudioBuffer<float>& buffer,
     if (fftSize < 8)
         return;
 
-    juce::dsp::FFT fft(fftOrder);
     const int halfBins = fftSize / 2;
+
+    // Recreate FFT / buffers only when fftOrder changes
+    if (currentFftOrder_ != fftOrder)
+    {
+        currentFftOrder_ = fftOrder;
+        fft_ = std::make_unique<juce::dsp::FFT>(fftOrder);
+
+        // Pre-compute Hann window
+        hannWindow_.resize(static_cast<size_t>(fftSize));
+        for (int i = 0; i < fftSize; ++i)
+            hannWindow_[static_cast<size_t>(i)] = 0.5f * (1.0f - std::cos(
+                juce::float_Pi * 2.0f * static_cast<float>(i)
+                / static_cast<float>(fftSize - 1)));
+    }
+
+    // Ensure FFT buffer is large enough (grow-only, never shrink)
+    const size_t fftBufNeeded = static_cast<size_t>(fftSize) * 2;
+    if (fftBuf_.size() < fftBufNeeded)
+        fftBuf_.resize(fftBufNeeded, 0.0f);
 
     for (int ch = 0; ch < numChannels; ++ch)
     {
         const auto* input = buffer.getReadPointer(ch);
         auto*       output = buffer.getWritePointer(ch);
 
-        // Interleaved FFT buffer: [r0, i0, r1, i1, ...]
-        // JUCE's real-only FFT requires 2x fftSize floats
-        std::vector<float> fftBuf(static_cast<size_t>(fftSize) * 2, 0.0f);
-
-        // Copy and window with Hann
+        // Copy and window with Hann, zero imaginary parts
+        std::memset(fftBuf_.data(), 0, fftBufNeeded * sizeof(float));
         for (int i = 0; i < fftSize; ++i)
-        {
-            const float hann = 0.5f * (1.0f - std::cos(
-                juce::float_Pi * 2.0f * static_cast<float>(i)
-                / static_cast<float>(fftSize - 1)));
-            fftBuf[static_cast<size_t>(i) * 2] = input[i] * hann;
-        }
+            fftBuf_[static_cast<size_t>(i) * 2] = input[i] * hannWindow_[static_cast<size_t>(i)];
 
         // Forward transform
-        fft.performRealOnlyForwardTransform(fftBuf.data());
+        fft_->performRealOnlyForwardTransform(fftBuf_.data());
 
         // Apply qubit modulation per frequency bin
         for (int bin = 0; bin < halfBins; ++bin)
@@ -640,26 +650,26 @@ void QuantumSpectralProcessor::processAudio(juce::AudioBuffer<float>& buffer,
             // Scale with interference strength for additional character
             const float effectiveGain = 0.5f + gain * interferenceStrength_;
 
-            fftBuf[idx]     *= effectiveGain;
-            fftBuf[idx + 1] *= effectiveGain;
+            fftBuf_[idx]     *= effectiveGain;
+            fftBuf_[idx + 1] *= effectiveGain;
 
             // Decoherence noise in spectral domain
             if (decoherence_ > 0.0f)
             {
                 const float noise = (rng_.nextFloat() * 2.0f - 1.0f)
                                     * decoherence_ * 0.2f;
-                fftBuf[idx]     += noise;
-                fftBuf[idx + 1] += noise;
+                fftBuf_[idx]     += noise;
+                fftBuf_[idx + 1] += noise;
             }
         }
 
         // Inverse transform
-        fft.performRealOnlyInverseTransform(fftBuf.data());
+        fft_->performRealOnlyInverseTransform(fftBuf_.data());
 
         // Overlap-add / copy back (normalised by FFT size)
         const float norm = 1.0f / static_cast<float>(fftSize);
         for (int i = 0; i < std::min(numSamples, fftSize); ++i)
-            output[i] = fftBuf[static_cast<size_t>(i) * 2] * norm;
+            output[i] = fftBuf_[static_cast<size_t>(i) * 2] * norm;
     }
 }
 

@@ -1,4 +1,5 @@
 #include "PresetManager.h"
+#include "ProcessorStore.h"
 
 namespace ana {
 
@@ -216,6 +217,38 @@ static ModulationTarget stringToModTarget(const juce::String& s)
     return ModulationTarget::Cutoff;
 }
 
+//==============================================================================
+// ModSource (ModulationEngine.h) string conversion — used by ModulationRouting
+//==============================================================================
+
+static juce::String modSourceNewToString(ModSource src)
+{
+    switch (src)
+    {
+        case ModSource::OFF:  return "Off";
+        case ModSource::LFO1: return "LFO1";
+        case ModSource::LFO2: return "LFO2";
+        case ModSource::LFO3: return "LFO3";
+        case ModSource::LFO4: return "LFO4";
+        case ModSource::ENV1: return "ENV1";
+        case ModSource::ENV2: return "ENV2";
+        case ModSource::ENV3: return "ENV3";
+        default:              return "Off";
+    }
+}
+
+static ModSource stringToModSourceNew(const juce::String& s)
+{
+    if (s == "LFO1") return ModSource::LFO1;
+    if (s == "LFO2") return ModSource::LFO2;
+    if (s == "LFO3") return ModSource::LFO3;
+    if (s == "LFO4") return ModSource::LFO4;
+    if (s == "ENV1") return ModSource::ENV1;
+    if (s == "ENV2") return ModSource::ENV2;
+    if (s == "ENV3") return ModSource::ENV3;
+    return ModSource::OFF;
+}
+
 static juce::String allocModeToString(AllocationMode am)
 {
     switch (am)
@@ -240,6 +273,9 @@ static AllocationMode stringToAllocMode(const juce::String& s)
 
 PresetManager::PresetManager()
 {
+    // Ensure the ProcessorStore is populated with all built-in effect types
+    ProcessorStore::registerAll();
+
     auto dir = getPresetDirectory();
     dir.createDirectory();
 
@@ -266,9 +302,29 @@ void PresetManager::initialiseFactoryPresets()
     rebuildCache();
 }
 
+static juce::String sanitizePresetName(const juce::String& name)
+{
+    auto s = name.trim();
+    if (s.isEmpty())
+        return {};
+
+    // Replace parent-directory references
+    s = s.replace("..", "_");
+
+    // Replace path separators
+    s = s.replaceCharacter('/', '_');
+    s = s.replaceCharacter('\\', '_');
+
+    // Strip remaining illegal filename characters (: * ? " < > |)
+    s = juce::File::createLegalFileName(s);
+
+    return s;
+}
+
 bool PresetManager::savePreset(const juce::String& name, const juce::String& category)
 {
-    if (name.trim().isEmpty())
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
         return false;
 
     // Validate category
@@ -297,7 +353,7 @@ bool PresetManager::savePreset(const juce::String& name, const juce::String& cat
     auto dir = getPresetDirectory().getChildFile(category);
     dir.createDirectory();
 
-    auto file = dir.getChildFile(name + presetExtension);
+    auto file = dir.getChildFile(safeName + presetExtension);
 
     // Create XML from ValueTree
     auto xml = presetTree.createXml();
@@ -310,14 +366,15 @@ bool PresetManager::savePreset(const juce::String& name, const juce::String& cat
 
     xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
 
-    currentPresetName = name;
+    currentPresetName = safeName;
     rebuildCache();
     return true;
 }
 
 bool PresetManager::loadPreset(const juce::String& name)
 {
-    if (name.trim().isEmpty())
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
         return false;
 
     // Search all categories for matching preset file
@@ -327,7 +384,7 @@ bool PresetManager::loadPreset(const juce::String& name)
         if (!catDir.exists())
             continue;
 
-        auto file = catDir.getChildFile(name + presetExtension);
+        auto file = catDir.getChildFile(safeName + presetExtension);
         if (file.existsAsFile())
             return loadPresetFromFile(file);
     }
@@ -411,7 +468,8 @@ juce::StringArray PresetManager::getCategories() const
 
 bool PresetManager::deletePreset(const juce::String& name)
 {
-    if (name.trim().isEmpty())
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
         return false;
 
     for (int i = 0; i < numCategories; ++i)
@@ -420,13 +478,13 @@ bool PresetManager::deletePreset(const juce::String& name)
         if (!catDir.exists())
             continue;
 
-        auto file = catDir.getChildFile(name + presetExtension);
+        auto file = catDir.getChildFile(safeName + presetExtension);
         if (file.existsAsFile())
         {
             bool ok = file.deleteFile();
             if (ok)
             {
-                if (currentPresetName == name)
+                if (currentPresetName == safeName)
                     currentPresetName = {};
                 rebuildCache();
             }
@@ -501,6 +559,11 @@ void PresetManager::setStateReferences(STFTConfig* stftConfig,
     filterModRef    = filterMod;
 }
 
+void PresetManager::setEffectsChain(EffectsChain* chain)
+{
+    effectsChain_ = chain;
+}
+
 //==============================================================================
 // ValueTree serialization
 //==============================================================================
@@ -517,6 +580,32 @@ juce::ValueTree PresetManager::serialiseState() const
     params.addChild(serialiseUnison(), -1, nullptr);
     params.addChild(serialiseVoiceManager(), -1, nullptr);
     params.addChild(serialiseModulation(), -1, nullptr);
+    params.addChild(serialiseModulationRouting(), -1, nullptr);
+    params.addChild(serialiseLFOConfig(), -1, nullptr);
+    params.addChild(serialiseENVConfig(), -1, nullptr);
+    params.addChild(serialiseVolumeADSR(), -1, nullptr);
+    params.addChild(serialiseEffects(), -1, nullptr);
+
+    // Randomizer seed
+    if (randomizerRef_ != nullptr)
+        params.addChild(randomizerRef_->getState(), -1, nullptr);
+
+    // Favorites (persisted as part of the full state tree)
+    if (!favoriteNames_.isEmpty())
+    {
+        juce::ValueTree favsTree("Favorites");
+        for (const auto& name : favoriteNames_)
+        {
+            juce::ValueTree entry("Preset");
+            entry.setProperty("Name", name, nullptr);
+            favsTree.addChild(entry, -1, nullptr);
+        }
+        params.addChild(favsTree, -1, nullptr);
+    }
+
+    // Per-preset MIDI Learn mappings (non-global only)
+    if (midiLearnRef_ != nullptr)
+        params.addChild(midiLearnRef_->savePresetState(), -1, nullptr);
 
     return params;
 }
@@ -552,6 +641,45 @@ bool PresetManager::deserialiseState(const juce::ValueTree& tree)
     auto mod = tree.getChildWithName("Modulation");
     if (mod.isValid()) ok &= deserialiseModulation(mod);
 
+    // New sections (v1.2+) — gracefully absent in old presets
+    auto modRouting = tree.getChildWithName("ModulationRouting");
+    if (modRouting.isValid()) ok &= deserialiseModulationRouting(modRouting);
+    // If no ModulationRouting, slots remain at default (source=OFF)
+
+    auto lfoCfg = tree.getChildWithName("LFOConfig");
+    if (lfoCfg.isValid()) ok &= deserialiseLFOConfig(lfoCfg);
+
+    auto envCfg = tree.getChildWithName("ENVConfig");
+    if (envCfg.isValid()) ok &= deserialiseENVConfig(envCfg);
+
+    auto volAdsr = tree.getChildWithName("VolumeADSR");
+    if (volAdsr.isValid()) ok &= deserialiseVolumeADSR(volAdsr);
+
+    auto effects = tree.getChildWithName("Effects");
+    if (effects.isValid()) ok &= deserialiseEffects(effects);
+
+    auto randomizer = tree.getChildWithName("Randomizer");
+    if (randomizer.isValid() && randomizerRef_ != nullptr)
+        randomizerRef_->setState(randomizer);
+
+    // Favorites
+    auto favs = tree.getChildWithName("Favorites");
+    if (favs.isValid())
+    {
+        favoriteNames_.clear();
+        for (int i = 0; i < favs.getNumChildren(); ++i)
+        {
+            if (favs.getChild(i).hasType("Preset"))
+                favoriteNames_.add(favs.getChild(i).getProperty("Name").toString());
+        }
+    }
+
+    // Per-preset MIDI Learn mappings (non-global only)
+    // Per-preset MIDI Learn mappings (non-global only)
+    auto midiLearnTree = tree.getChildWithName("MidiLearnPreset");
+    if (midiLearnTree.isValid() && midiLearnRef_ != nullptr)
+        midiLearnRef_->loadPresetState(midiLearnTree);
+
     return ok;
 }
 
@@ -580,11 +708,11 @@ bool PresetManager::deserialiseSTFTConfig(const juce::ValueTree& tree)
     if (stftConfigRef == nullptr || !tree.isValid())
         return false;
 
-    stftConfigRef->fftSize         = tree.getProperty("FFTSize", 2048);
-    stftConfigRef->hopSize         = tree.getProperty("HopSize", 512);
+    stftConfigRef->fftSize         = juce::jlimit(256, 65536, (int)tree.getProperty("FFTSize", 2048));
+    stftConfigRef->hopSize         = juce::jlimit(64, 8192, (int)tree.getProperty("HopSize", 512));
     stftConfigRef->windowType      = stringToWindowType(tree.getProperty("WindowType", "Hann").toString());
-    stftConfigRef->peakThresholdDB = tree.getProperty("Threshold", -60.0f);
-    stftConfigRef->maxPartials     = tree.getProperty("MaxPartials", 512);
+    stftConfigRef->peakThresholdDB = juce::jlimit(-120.0f, 0.0f, (float)tree.getProperty("Threshold", -60.0f));
+    stftConfigRef->maxPartials     = juce::jlimit(32, 2048, (int)tree.getProperty("MaxPartials", 512));
 
     return true;
 }
@@ -643,12 +771,12 @@ bool PresetManager::deserialiseFilters(const juce::ValueTree& tree)
             continue;
 
         FilterParams params;
-        params.cutoff        = slotTree.getProperty("Cutoff", 1000.0);
-        params.resonance     = slotTree.getProperty("Resonance", 0.0f);
-        params.drive         = slotTree.getProperty("Drive", 0.0f);
-        params.mix           = slotTree.getProperty("Mix", 1.0f);
-        params.crossoverLow  = slotTree.getProperty("CrossoverLow", 200.0);
-        params.crossoverHigh = slotTree.getProperty("CrossoverHigh", 2000.0);
+        params.cutoff        = juce::jlimit(20.0, 20000.0, (double)slotTree.getProperty("Cutoff", 1000.0));
+        params.resonance     = juce::jlimit(0.0f, 1.0f, (float)slotTree.getProperty("Resonance", 0.0f));
+        params.drive         = juce::jlimit(0.0f, 1.0f, (float)slotTree.getProperty("Drive", 0.0f));
+        params.mix           = juce::jlimit(0.0f, 1.0f, (float)slotTree.getProperty("Mix", 1.0f));
+        params.crossoverLow  = juce::jlimit(20.0, 20000.0, (double)slotTree.getProperty("CrossoverLow", 200.0));
+        params.crossoverHigh = juce::jlimit(20.0, 20000.0, (double)slotTree.getProperty("CrossoverHigh", 2000.0));
         params.morphSource   = stringToFilterType(slotTree.getProperty("MorphSource", "LowPass").toString());
         params.morphTarget   = stringToFilterType(slotTree.getProperty("MorphTarget", "HighPass").toString());
         params.morphAmount   = slotTree.getProperty("MorphAmount", 0.0f);
@@ -839,7 +967,7 @@ bool PresetManager::deserialiseUnison(const juce::ValueTree& tree)
     if (unisonRef == nullptr || !tree.isValid())
         return false;
 
-    unisonRef->setVoiceCount(tree.getProperty("VoiceCount", 1));
+    unisonRef->setVoiceCount(juce::jlimit(1, 64, (int)tree.getProperty("VoiceCount", 1)));
     unisonRef->setDetune(tree.getProperty("Detune", 0.0f));
     unisonRef->setStereoSpread(tree.getProperty("StereoSpread", 0.0f));
     unisonRef->setPhaseOffset(tree.getProperty("PhaseOffset", 0.0f));
@@ -857,10 +985,10 @@ juce::ValueTree PresetManager::serialiseVoiceManager() const
 
     if (voiceManagerRef != nullptr)
     {
-        tree.setProperty("Attack",         voiceManagerRef->getVoice(0).attackSeconds, nullptr);
-        tree.setProperty("Decay",          voiceManagerRef->getVoice(0).decaySeconds, nullptr);
-        tree.setProperty("Sustain",        voiceManagerRef->getVoice(0).sustainLevel, nullptr);
-        tree.setProperty("Release",        voiceManagerRef->getVoice(0).releaseSeconds, nullptr);
+        tree.setProperty("Attack",         voiceManagerRef->getVoice(0)->attackSeconds, nullptr);
+        tree.setProperty("Decay",          voiceManagerRef->getVoice(0)->decaySeconds, nullptr);
+        tree.setProperty("Sustain",        voiceManagerRef->getVoice(0)->sustainLevel, nullptr);
+        tree.setProperty("Release",        voiceManagerRef->getVoice(0)->releaseSeconds, nullptr);
         tree.setProperty("AllocationMode", allocModeToString(voiceManagerRef->getAllocationMode()), nullptr);
     }
 
@@ -872,10 +1000,10 @@ bool PresetManager::deserialiseVoiceManager(const juce::ValueTree& tree)
     if (voiceManagerRef == nullptr || !tree.isValid())
         return false;
 
-    float attack  = tree.getProperty("Attack", 0.01f);
-    float decay   = tree.getProperty("Decay", 0.2f);
-    float sustain = tree.getProperty("Sustain", 0.7f);
-    float release = tree.getProperty("Release", 0.3f);
+    float attack  = juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("Attack", 0.01f));
+    float decay   = juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("Decay", 0.2f));
+    float sustain = juce::jlimit(0.0f, 1.0f, (float)tree.getProperty("Sustain", 0.7f));
+    float release = juce::jlimit(0.0f, 30.0f, (float)tree.getProperty("Release", 0.3f));
 
     voiceManagerRef->setDefaultAttack(attack);
     voiceManagerRef->setDefaultDecay(decay);
@@ -923,7 +1051,7 @@ bool PresetManager::deserialiseModulation(const juce::ValueTree& tree)
 
     filterModRef->clearAll();
 
-    int numFilters = tree.getProperty("NumFilters", 1);
+    int numFilters = juce::jlimit(1, 8, (int)tree.getProperty("NumFilters", 1));
     filterModRef->setNumFilters(numFilters);
 
     for (int i = 0; i < tree.getNumChildren(); ++i)
@@ -945,11 +1073,302 @@ bool PresetManager::deserialiseModulation(const juce::ValueTree& tree)
 }
 
 //==============================================================================
+// Modulation Routing (per-parameter modulation slots)
+//==============================================================================
+
+juce::ValueTree PresetManager::serialiseModulationRouting() const
+{
+    juce::ValueTree tree("ModulationRouting");
+    tree.setProperty("version", 1, nullptr);
+
+    if (modSlotsRef_ != nullptr)
+    {
+        for (const auto& slot : *modSlotsRef_)
+        {
+            juce::ValueTree slotTree("Slot");
+            slotTree.setProperty("paramId", slot.paramId, nullptr);
+            slotTree.setProperty("source",  modSourceNewToString(slot.mod.source), nullptr);
+            slotTree.setProperty("depth",   slot.mod.depth, nullptr);
+            slotTree.setProperty("curve",   slot.mod.curve, nullptr);
+            tree.addChild(slotTree, -1, nullptr);
+        }
+    }
+
+    return tree;
+}
+
+bool PresetManager::deserialiseModulationRouting(const juce::ValueTree& tree)
+{
+    if (modSlotsRef_ == nullptr || !tree.isValid())
+        return false;
+
+    // Reset all slots to OFF before loading
+    for (auto& slot : *modSlotsRef_)
+    {
+        slot.mod.source = ModSource::OFF;
+        slot.mod.depth  = 0.0f;
+        slot.mod.curve  = 1.0f;
+    }
+
+    for (int i = 0; i < tree.getNumChildren(); ++i)
+    {
+        auto slotTree = tree.getChild(i);
+        if (!slotTree.hasType("Slot"))
+            continue;
+
+        juce::String paramId = slotTree.getProperty("paramId").toString();
+        auto source = stringToModSourceNew(slotTree.getProperty("source", "Off").toString());
+        float depth = (float)slotTree.getProperty("depth", 0.0f);
+        float curve = (float)slotTree.getProperty("curve", 1.0f);
+
+        // Find matching slot by paramId
+        for (auto& slot : *modSlotsRef_)
+        {
+            if (slot.paramId == paramId)
+            {
+                slot.mod.source = source;
+                slot.mod.depth  = depth;
+                slot.mod.curve  = curve;
+                break;
+            }
+        }
+    }
+
+    return true;
+}
+
+//==============================================================================
+// LFO Config (per-LFO parameters, 4 LFOs)
+//==============================================================================
+
+juce::ValueTree PresetManager::serialiseLFOConfig() const
+{
+    juce::ValueTree tree("LFOConfig");
+
+    if (lfoPoolRef_ != nullptr)
+    {
+        for (size_t i = 0; i < lfoPoolRef_->size(); ++i)
+        {
+            const auto& lfo = (*lfoPoolRef_)[i];
+            juce::ValueTree lfoTree("LFO");
+            lfoTree.setProperty("index",       (int)i, nullptr);
+            lfoTree.setProperty("waveform",    waveformToString(lfo.getWaveform()), nullptr);
+            lfoTree.setProperty("rate",        lfo.getRate(), nullptr);
+            lfoTree.setProperty("depth",       lfo.getDepth(), nullptr);
+            lfoTree.setProperty("phase",       lfo.getPhase(), nullptr);
+            lfoTree.setProperty("bipolar",     lfo.isBipolar(), nullptr);
+            lfoTree.setProperty("syncEnabled", lfo.isSyncEnabled(), nullptr);
+            lfoTree.setProperty("rateBeats",   lfo.getRateBeats(), nullptr);
+            lfoTree.setProperty("tempo",       lfo.getTempo(), nullptr);
+            tree.addChild(lfoTree, -1, nullptr);
+        }
+    }
+
+    return tree;
+}
+
+bool PresetManager::deserialiseLFOConfig(const juce::ValueTree& tree)
+{
+    if (lfoPoolRef_ == nullptr || !tree.isValid())
+        return false;
+
+    for (int i = 0; i < tree.getNumChildren(); ++i)
+    {
+        auto lfoTree = tree.getChild(i);
+        if (!lfoTree.hasType("LFO"))
+            continue;
+
+        int index = (int)lfoTree.getProperty("index", i);
+        if (index < 0 || index >= (int)lfoPoolRef_->size())
+            continue;
+
+        auto& lfo = (*lfoPoolRef_)[index];
+        lfo.setWaveform(stringToWaveform(lfoTree.getProperty("waveform", "Sine").toString()));
+        lfo.setRate((float)lfoTree.getProperty("rate", 4.0f));
+        lfo.setDepth((float)lfoTree.getProperty("depth", 100.0f));
+        lfo.setPhase((float)lfoTree.getProperty("phase", 0.0f));
+        lfo.setBipolar(lfoTree.getProperty("bipolar", true));
+
+        // Restore sync mode before rateBeats (setRateBeats enables sync)
+        bool syncEnabled = lfoTree.getProperty("syncEnabled", false);
+        if (syncEnabled)
+            lfo.setRateBeats((float)lfoTree.getProperty("rateBeats", 1.0f));
+
+        lfo.setTempo(lfoTree.getProperty("tempo", 120.0));
+    }
+
+    return true;
+}
+
+//==============================================================================
+// ENV Config (per-ENV ADSR parameters, 3 ENVs)
+//==============================================================================
+
+juce::ValueTree PresetManager::serialiseENVConfig() const
+{
+    juce::ValueTree tree("ENVConfig");
+
+    if (envPoolRef_ != nullptr)
+    {
+        for (size_t i = 0; i < envPoolRef_->size(); ++i)
+        {
+            const auto& env = (*envPoolRef_)[i];
+            juce::ValueTree envTree("ENV");
+            envTree.setProperty("index",   (int)i, nullptr);
+            envTree.setProperty("attack",  env.getAttack(), nullptr);
+            envTree.setProperty("decay",   env.getDecay(), nullptr);
+            envTree.setProperty("sustain", env.getSustain(), nullptr);
+            envTree.setProperty("release", env.getRelease(), nullptr);
+            tree.addChild(envTree, -1, nullptr);
+        }
+    }
+
+    return tree;
+}
+
+bool PresetManager::deserialiseENVConfig(const juce::ValueTree& tree)
+{
+    if (envPoolRef_ == nullptr || !tree.isValid())
+        return false;
+
+    for (int i = 0; i < tree.getNumChildren(); ++i)
+    {
+        auto envTree = tree.getChild(i);
+        if (!envTree.hasType("ENV"))
+            continue;
+
+        int index = (int)envTree.getProperty("index", i);
+        if (index < 0 || index >= (int)envPoolRef_->size())
+            continue;
+
+        auto& env = (*envPoolRef_)[index];
+        env.setAttack((float)envTree.getProperty("attack", 0.01f));
+        env.setDecay((float)envTree.getProperty("decay", 0.5f));
+        env.setSustain((float)envTree.getProperty("sustain", 0.7f));
+        env.setRelease((float)envTree.getProperty("release", 1.0f));
+    }
+
+    return true;
+}
+
+//==============================================================================
+// Volume ADSR
+//==============================================================================
+
+juce::ValueTree PresetManager::serialiseVolumeADSR() const
+{
+    juce::ValueTree tree("VolumeADSR");
+
+    if (volumeAdsrRef_ != nullptr)
+    {
+        tree.setProperty("attack",  volumeAdsrRef_->getAttack(), nullptr);
+        tree.setProperty("decay",   volumeAdsrRef_->getDecay(), nullptr);
+        tree.setProperty("sustain", volumeAdsrRef_->getSustain(), nullptr);
+        tree.setProperty("release", volumeAdsrRef_->getRelease(), nullptr);
+    }
+
+    return tree;
+}
+
+bool PresetManager::deserialiseVolumeADSR(const juce::ValueTree& tree)
+{
+    if (volumeAdsrRef_ == nullptr || !tree.isValid())
+        return false;
+
+    volumeAdsrRef_->setAttack(juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("attack", 0.01f)));
+    volumeAdsrRef_->setDecay(juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("decay", 0.2f)));
+    volumeAdsrRef_->setSustain(juce::jlimit(0.0f, 1.0f, (float)tree.getProperty("sustain", 0.7f)));
+    volumeAdsrRef_->setRelease(juce::jlimit(0.0f, 30.0f, (float)tree.getProperty("release", 0.3f)));
+
+    return true;
+}
+
+//==============================================================================
+// Effects chain
+//==============================================================================
+
+juce::ValueTree PresetManager::serialiseEffects() const
+{
+    juce::ValueTree tree("Effects");
+
+    if (effectsChain_ != nullptr)
+    {
+        for (int i = 0; i < effectsChain_->getNumEffects(); ++i)
+        {
+            auto& slot = effectsChain_->getEffect(i);
+            if (slot.effect != nullptr)
+            {
+                // Save the effect's state in order (child 0 = slot 0, etc.)
+                // The ValueTree tag is the effect TYPE name (e.g. "ConsolidatedDelay").
+                auto slotTree = slot.effect->getState();
+                tree.addChild(slotTree, -1, nullptr);
+            }
+        }
+    }
+
+    return tree;
+}
+
+bool PresetManager::deserialiseEffects(const juce::ValueTree& tree)
+{
+    if (effectsChain_ == nullptr || !tree.isValid())
+        return true;
+
+    // Clear the current chain — we will reconstruct from scratch
+    effectsChain_->clear();
+
+    for (int i = 0; i < tree.getNumChildren(); ++i)
+    {
+        auto child = tree.getChild(i);
+
+        // Determine the type name we should look up in ProcessorStore
+        juce::String typeName;
+
+        if (child.hasType("EffectSlot"))
+        {
+            // Old format: <EffectSlot slotIndex="0" name="TypeName" ...>
+            // Read the "name" property — it holds the display/type name
+            typeName = child.getProperty("name").toString();
+        }
+        else
+        {
+            // New format: child tag IS the type name
+            // (e.g. <ConsolidatedDelay>, <FlangerEffect>)
+            typeName = child.getType().toString();
+        }
+
+        if (typeName.isEmpty())
+            continue;
+
+        // Attempt to reconstruct the effect via ProcessorStore
+        auto effect = ProcessorStore::create(typeName);
+        if (effect == nullptr)
+        {
+            // Unrecognised type — skip this child (fallback);
+            // the PluginProcessor will set up its default chain.
+            continue;
+        }
+
+        // Restore the effect's internal parameters
+        effect->setState(child);
+
+        // Add to the chain with the type name as the slot display name
+        effectsChain_->addEffect(std::move(effect), typeName);
+    }
+
+    return true;
+}
+
+//==============================================================================
 // Factory presets
 //==============================================================================
 
 void PresetManager::writeFactoryPreset(const juce::String& name, const juce::String& category)
 {
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
+        return;
+
     juce::ValueTree presetTree(xmlRootTag);
     presetTree.setProperty("Name", name, nullptr);
     presetTree.setProperty("Category", category, nullptr);
@@ -962,6 +1381,13 @@ void PresetManager::writeFactoryPreset(const juce::String& name, const juce::Str
     else if (category == "Pad")   params = PresetFactory::createFactoryPad();
     else if (category == "Pluck") params = PresetFactory::createFactoryPluck();
     else if (category == "FX")    params = PresetFactory::createFactoryFX();
+    else if (category == "Vocal")
+    {
+        // "Pop Lead" — use first preset from createVocalPresets
+        auto vocalPresets = PresetFactory::createVocalPresets();
+        if (!vocalPresets.empty())
+            params = vocalPresets[0].second;
+    }
 
     if (params.isValid())
         presetTree.addChild(params, 0, nullptr);
@@ -973,7 +1399,7 @@ void PresetManager::writeFactoryPreset(const juce::String& name, const juce::Str
     auto dir = getPresetDirectory().getChildFile(category);
     dir.createDirectory();
 
-    auto file = dir.getChildFile(name + presetExtension);
+    auto file = dir.getChildFile(safeName + presetExtension);
     juce::FileOutputStream stream(file);
     if (stream.openedOk())
         xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
@@ -1071,6 +1497,170 @@ void PresetManager::rebuildCache()
     }
 }
 
+//==============================================================================
+// Effect preset management
+//==============================================================================
+
+static juce::File getEffectPresetDirectory()
+{
+    return PresetManager::getPresetDirectory().getChildFile("Effects");
+}
+
+juce::StringArray PresetManager::getEffectPresetNames() const
+{
+    auto dir = getEffectPresetDirectory();
+    if (!dir.exists())
+        return {};
+
+    auto files = dir.findChildFiles(juce::File::findFiles, false, "*.fxpreset");
+    juce::StringArray names;
+    for (const auto& f : files)
+        names.add(f.getFileNameWithoutExtension());
+    names.sort(true);
+    return names;
+}
+
+bool PresetManager::saveEffectPreset(const juce::String& name)
+{
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
+        return false;
+
+    auto dir = getEffectPresetDirectory();
+    dir.createDirectory();
+
+    auto file = dir.getChildFile(safeName + ".fxpreset");
+
+    auto effectsTree = serialiseEffects();
+    if (!effectsTree.isValid())
+        return false;
+
+    juce::ValueTree root("EffectPreset");
+    root.setProperty("Name", name, nullptr);
+    root.setProperty("Version", presetVersion, nullptr);
+    root.addChild(effectsTree, 0, nullptr);
+
+    auto xml = root.createXml();
+    if (xml == nullptr)
+        return false;
+
+    juce::FileOutputStream stream(file);
+    if (!stream.openedOk())
+        return false;
+
+    xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+    return true;
+}
+
+bool PresetManager::loadEffectPreset(const juce::String& name)
+{
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
+        return false;
+
+    auto file = getEffectPresetDirectory().getChildFile(safeName + ".fxpreset");
+    if (!file.existsAsFile())
+        return false;
+
+    auto xml = juce::XmlDocument::parse(file);
+    if (xml == nullptr)
+        return false;
+
+    auto tree = juce::ValueTree::fromXml(*xml);
+    if (!tree.hasType("EffectPreset"))
+        return false;
+
+    if (tree.getNumChildren() > 0)
+        return deserialiseEffects(tree.getChild(0));
+
+    return false;
+}
+
+bool PresetManager::deleteEffectPreset(const juce::String& name)
+{
+    auto safeName = sanitizePresetName(name);
+    if (safeName.isEmpty())
+        return false;
+
+    auto file = getEffectPresetDirectory().getChildFile(safeName + ".fxpreset");
+    if (file.existsAsFile())
+        return file.deleteFile();
+
+    return false;
+}
+
+//==============================================================================
+// Favorites
+//==============================================================================
+
+void PresetManager::addFavorite(const juce::String& name)
+{
+    if (!favoriteNames_.contains(name))
+    {
+        favoriteNames_.add(name);
+        saveFavoritesToFile();
+    }
+}
+
+void PresetManager::removeFavorite(const juce::String& name)
+{
+    favoriteNames_.removeAllInstancesOf(name);
+    saveFavoritesToFile();
+}
+
+bool PresetManager::isFavorite(const juce::String& name) const
+{
+    return favoriteNames_.contains(name);
+}
+
+static juce::File getFavoritesFile()
+{
+    return PresetManager::getPresetDirectory().getChildFile("_favorites.xml");
+}
+
+void PresetManager::saveFavoritesToFile()
+{
+    auto file = getFavoritesFile();
+    juce::ValueTree root("Favorites");
+    for (const auto& name : favoriteNames_)
+    {
+        juce::ValueTree entry("Preset");
+        entry.setProperty("Name", name, nullptr);
+        root.addChild(entry, -1, nullptr);
+    }
+
+    auto xml = root.createXml();
+    if (xml == nullptr)
+        return;
+
+    juce::FileOutputStream stream(file);
+    if (stream.openedOk())
+        xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+}
+
+void PresetManager::loadFavoritesFromFile()
+{
+    auto file = getFavoritesFile();
+    if (!file.existsAsFile())
+        return;
+
+    auto xml = juce::XmlDocument::parse(file);
+    if (xml == nullptr)
+        return;
+
+    auto root = juce::ValueTree::fromXml(*xml);
+    if (!root.hasType("Favorites"))
+        return;
+
+    favoriteNames_.clear();
+    for (int i = 0; i < root.getNumChildren(); ++i)
+    {
+        if (root.getChild(i).hasType("Preset"))
+            favoriteNames_.add(root.getChild(i).getProperty("Name").toString());
+    }
+}
+
+//==============================================================================
 bool PresetManager::validatePresetTree(const juce::ValueTree& tree)
 {
     if (!tree.isValid())

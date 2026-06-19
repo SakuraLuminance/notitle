@@ -9,9 +9,14 @@
 #include "gui/SpectrumEditorCanvas.h"
 #include "gui/PresetBrowserPanel.h"
 #include "gui/EvolutionPanel.h"
+#include "gui/CreditsPanel.h"
 #include "gui/XYPad.h"
+#include "gui/MeteringPanel.h"
 #include "gui/CyberpunkTheme.h"
+#include "gui/ModulationAssignPanel.h"
+#include "gui/EffectRackComponent.h"
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <array>
 #include <map>
 #include <unordered_map>
 
@@ -62,7 +67,7 @@ private:
         juce::Rectangle<int> centerPanel;      // spectrum canvas
 
         juce::Rectangle<int> processArea;      // filter + macros + effects
-        juce::Rectangle<int> modArea;          // LFO + envelope
+        juce::Rectangle<int> modArea;          // modulation assignment panel
         juce::Rectangle<int> bottomArea;       // unison + arp + master
         juce::Rectangle<int> statusBar;        // transport + status
     };
@@ -181,25 +186,20 @@ private:
     MacroKnob macroSliders_[4];
     juce::Label  macroLabels_[4];
 
-    // Process panel — Effects
+    // Process panel — Effects rack (dynamic, replaces hardcoded slider stack)
+    juce::ComboBox effectPresetCombo_;
+    juce::Label    fxPresetLabel_;
     juce::TextButton prismButton_{"PRISM"};
     juce::TextButton blurButton_{"BLUR"};
     juce::TextButton harmButton_{"HARMONIZER"};
+    juce::ComboBox vocalCharacterCombo_;
+    juce::Label    vocalCharacterLabel_;
+    ana::EffectRackComponent effectRack_;
 
     //==============================================================================
-    // Modulation panel
-    juce::ComboBox lfoWaveCombo_;
-    juce::Slider lfoRateSlider_;
-    juce::Slider lfoDepthSlider_;
-    juce::ComboBox lfoTargetCombo_;
-    juce::Label  lfoTitle_;
-
-    juce::ComboBox envTargetCombo_;
-    juce::Slider envAttackSlider_;
-    juce::Slider envDecaySlider_;
-    juce::Slider envSustainSlider_;
-    juce::Slider envReleaseSlider_;
-    juce::Label  envTitle_;
+    // Modulation assignment panel (replaces old LFO/Envelope area)
+    juce::Viewport modViewport_;
+    ana::ModulationAssignPanel modPanel_;
 
     //==============================================================================
     // Bottom area
@@ -211,6 +211,15 @@ private:
     juce::Label  unisonDetuneLabel_;
     juce::Label  unisonSpreadLabel_;
     juce::Label  unisonTitle_;
+
+    // Voice mode / Portamento
+    juce::ComboBox voiceModeCombo_;           // Poly / Mono / Legato
+    juce::Slider   portamentoTimeSlider_;     // 0-2 seconds
+    juce::ComboBox portamentoCurveCombo_;     // Linear / Exponential / Logarithmic
+    juce::Label    voiceModeLabel_;
+    juce::Label    portamentoTimeLabel_;
+    juce::Label    portamentoCurveLabel_;
+    juce::Label    voiceTitle_;
 
     // Arpeggiator
     juce::ComboBox arpPatternCombo_;
@@ -242,6 +251,10 @@ private:
     // Status
     juce::Label statusLabel_;
     juce::TextButton dnaButton_{"DNA EVOLVE"};
+    juce::TextButton creditsButton_{"\u24D8"};
+    juce::TextButton randomizeButton_{"RANDOM"};
+    juce::ComboBox rangeCombo_;
+    ana::MeteringPanel meteringPanel_;
 
     // Evolution panel (lazy-created in callout)
     std::unique_ptr<ana::EvolutionPanel> evolutionPanel;
@@ -257,12 +270,15 @@ private:
     void flattenButtonClicked();
     void presetButtonClicked();
     void dnaButtonClicked();
+    void creditsButtonClicked();
     void updateStatus();
-    void stftParamChanged();
     void updatePitchDisplay(const juce::String& text);
-    void setupTimbreControls();
-    void setupUnisonArp();
     void onViewModeChanged();
+
+    // Effect preset helpers
+    void populateEffectPresets();
+    void onEffectPresetSelected();
+    void effectPresetRightClicked();
 
     static juce::String midiNoteToName(int note);
 
@@ -273,6 +289,43 @@ private:
                       double init, double step,
                       juce::Slider::SliderStyle style = juce::Slider::RotaryVerticalDrag);
     juce::TextButton& addCyberButton(juce::TextButton& btn);
+
+    //==============================================================================
+    // Step Sequencer UI
+    /** A single step cell: gate toggle button + vertical value slider. */
+    class StepCell : public juce::Component
+    {
+    public:
+        StepCell(int index, AnaPlugAudioProcessor& p);
+
+        void resized() override;
+        void paint(juce::Graphics& g) override;
+
+        void setActive(bool active);
+        void setValue(float val);
+        bool isActive() const { return gateButton_.getToggleState(); }
+        float getValue() const { return static_cast<float>(valueSlider_.getValue()); }
+
+        std::function<void(int, bool)> onGateChanged;
+        std::function<void(int, float)> onValueChanged;
+
+    private:
+        int index_;
+        AnaPlugAudioProcessor& processor_;
+        juce::ToggleButton gateButton_;
+        juce::Slider valueSlider_;
+    };
+
+    // Step sequencer controls
+    juce::Label seqTitle_;
+    juce::ComboBox seqPlayModeCombo_;
+    juce::ComboBox seqClockSourceCombo_;
+    juce::Slider seqBpmSlider_;
+    juce::Label  seqBpmLabel_;
+    juce::Slider seqRateSlider_;
+    juce::Label  seqRateLabel_;
+    std::array<std::unique_ptr<StepCell>, 16> stepCells_;
+    juce::Label seqCurrentStepLabel_;
 
     //==============================================================================
     // MIDI Learn helpers

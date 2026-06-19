@@ -68,6 +68,10 @@ public:
     */
     float detectPitch(const std::vector<float>& audio, double sampleRate);
 
+    /** Pre-allocate input copy buffer for worst-case block size.
+        Call after setSampleRate() and before process(). */
+    void prepare(int maxNumChannels, int maxBlockSize);
+
     /** Reset all internal state. Call after seek or when starting new audio. */
     void reset();
 
@@ -149,6 +153,9 @@ private:
     mutable std::vector<double> scratch_lpcR_;
     mutable std::vector<float> scratch_aPrev_;
     mutable std::vector<float> scratch_aCurr_;
+
+    // Pre-allocated input copy — never stack-allocate in process()
+    juce::AudioBuffer<float> inputCopyBuffer_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PitchCorrector)
 };

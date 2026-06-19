@@ -904,9 +904,10 @@ void SpectralDNAEvolver::saveToFile(const juce::File& file)
     juce::FileOutputStream stream(file);
     if (stream.openedOk())
     {
-        juce::XmlElement* xml = state.createXml();
-        xml->writeToStream(stream, {});
-        delete xml;
+        if (auto xml = std::unique_ptr<juce::XmlElement>(state.createXml()))
+        {
+            xml->writeToStream(stream, {});
+        }
     }
 }
 

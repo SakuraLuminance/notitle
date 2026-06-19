@@ -24,8 +24,8 @@ public:
     void setPosition(float pos);
     float getPosition() const;
 
-    // Get the interpolated partial frame at current position
-    PartialDataSIMD getCurrentFrame() const;
+    // Get the interpolated partial frame at current position (out-param avoids return-by-value of large SIMD struct)
+    void getCurrentFrame(PartialDataSIMD& out) const;
 
     // Get raw frame at index (no interpolation)
     PartialDataSIMD getFrame(int index) const;

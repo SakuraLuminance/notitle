@@ -21,6 +21,10 @@ void CompressorEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     // Pre-calculate attack/release coefficients
     attackCoeff = std::exp(-1.0f / (attackMs * sampleRate / 1000.0f));
     releaseCoeff = std::exp(-1.0f / (releaseMs * sampleRate / 1000.0f));
+
+    // Pre-allocate dry buffer and gain reduction vector
+    dryBuffer_.setSize(static_cast<int>(spec.numChannels), static_cast<int>(spec.maximumBlockSize), false, false, true);
+    gainReduction_.resize(spec.maximumBlockSize);
 }
 
 void CompressorEffect::reset() {
@@ -36,17 +40,16 @@ void CompressorEffect::process(juce::AudioBuffer<float>& buffer) {
     int numSamples = buffer.getNumSamples();
     int numCh = buffer.getNumChannels();
 
-    // Dry buffer for mixing
-    juce::AudioBuffer<float> dry(numCh, numSamples);
-    dry.makeCopyOf(buffer);
+    // Dry buffer for mixing (pre-allocated)
+    dryBuffer_.makeCopyOf(buffer, true);
 
     // Update attack/release coefficients (in case parameters changed)
     attackCoeff = std::exp(-1.0f / (attackMs * static_cast<float>(sampleRate) / 1000.0f));
     releaseCoeff = std::exp(-1.0f / (releaseMs * static_cast<float>(sampleRate) / 1000.0f));
 
     // Stereo-linked processing: compute one envelope per sample from the max across all channels
-    // First pass: compute gain reduction per sample
-    std::vector<float> gainReduction(numSamples, 1.0f);
+    // First pass: compute gain reduction per sample (pre-allocated)
+    gainReduction_.assign(numSamples, 1.0f);
 
     for (int s = 0; s < numSamples; ++s) {
         // Find max absolute level across all channels (stereo-linked)
@@ -80,14 +83,14 @@ void CompressorEffect::process(juce::AudioBuffer<float>& buffer) {
         else
             envelope = envelope + (1.0f - releaseCoeff) * (targetGainLinear - envelope);
 
-        gainReduction[s] = envelope;
+        gainReduction_[s] = envelope;
     }
 
     // Second pass: apply gain reduction to each channel
     for (int ch = 0; ch < numCh; ++ch) {
         auto* outData = buffer.getWritePointer(ch);
         for (int s = 0; s < numSamples; ++s)
-            outData[s] = outData[s] * gainReduction[s];
+            outData[s] = outData[s] * gainReduction_[s];
     }
 
     // Compute auto makeup gain if enabled
@@ -99,11 +102,11 @@ void CompressorEffect::process(juce::AudioBuffer<float>& buffer) {
 
     // Dry/wet mix with makeup and output gain
     for (int ch = 0; ch < numCh; ++ch) {
-        const auto* dryData = dry.getReadPointer(ch);
+        const auto* dryData = dryBuffer_.getReadPointer(ch);
         auto* outData = buffer.getWritePointer(ch);
         for (int s = 0; s < numSamples; ++s) {
             float compressed = outData[s] * juce::Decibels::decibelsToGain(finalMakeup);
-            outData[s] = dryData[s] * (1.0f - mixVal) + compressed * mixVal * gainVal;
+            outData[s] = juce::jlimit(-1.0f, 1.0f, dryData[s] * (1.0f - mixVal) + compressed * mixVal * gainVal);
         }
     }
 }

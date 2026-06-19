@@ -125,6 +125,35 @@ void FilterVisualization::paint(juce::Graphics& g)
         g.strokePath(combinedPath, juce::PathStrokeType(3.0f));
     }
 
+    // Draw pre-computed frequency response (from MultiFilter)
+    if (responseMagnitudes_.size() > 1 && responseFrequencies_.size() == responseMagnitudes_.size())
+    {
+        juce::Path responsePath;
+        bool first = true;
+
+        for (size_t i = 0; i < responseMagnitudes_.size(); ++i)
+        {
+            const float freq = responseFrequencies_[i];
+            float mag = responseMagnitudes_[i];
+            float db = 20.0f * std::log10(mag + 1e-10f);
+            db = std::max(minDb, std::min(maxDb, db));
+
+            float x = area.getX() + (std::log10(freq / minFreq) / std::log10(maxFreq / minFreq)) * width;
+            float y = area.getBottom() - ((db - minDb) / (maxDb - minDb)) * height;
+
+            if (first) { responsePath.startNewSubPath(x, y); first = false; }
+            else       { responsePath.lineTo(x, y); }
+        }
+
+        // Draw glow
+        g.setColour(CyberpunkTheme::cyan_.withAlpha(0.2f));
+        g.strokePath(responsePath, juce::PathStrokeType(6.0f));
+
+        // Draw main line
+        g.setColour(CyberpunkTheme::cyan_.withAlpha(0.9f));
+        g.strokePath(responsePath, juce::PathStrokeType(2.5f));
+    }
+
     // Draw frequency labels
     g.setColour(juce::Colours::grey);
     g.setFont(10.0f);
@@ -161,9 +190,18 @@ void FilterVisualization::setFilterCoefficients(int filterIndex,
     }
 }
 
+void FilterVisualization::setFrequencyResponse(const std::vector<float>& frequencies,
+                                                const std::vector<float>& magnitudes)
+{
+    responseFrequencies_ = frequencies;
+    responseMagnitudes_  = magnitudes;
+}
+
 void FilterVisualization::clear()
 {
     filterStates.clear();
+    responseFrequencies_.clear();
+    responseMagnitudes_.clear();
 }
 
 float FilterVisualization::getMagnitudeAtFrequency(double frequency, const FilterState& state) const
