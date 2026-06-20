@@ -1,1 +1,9 @@
 .omo/
+build/
+_artefacts/
+*.user
+*.suo
+.vs/
+Debug/
+Release/
+cmake-build-*/

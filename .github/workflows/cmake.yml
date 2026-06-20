@@ -24,8 +24,17 @@ jobs:
           libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
           libwebkit2gtk-4.1-dev libglu1-mesa-dev mesa-common-dev
 
+    - name: Clean build dir (prevent stale CMakeCache.txt)
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          Remove-Item -Path build -Recurse -Force -ErrorAction SilentlyContinue
+        else
+          rm -rf build
+        fi
+      shell: bash
+
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DTESTING=ON
+      run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DTESTING=ON
 
     - name: Build
       run: cmake --build build --config Release
