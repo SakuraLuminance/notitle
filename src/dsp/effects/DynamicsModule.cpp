@@ -22,8 +22,8 @@ void DynamicsModule::prepare(const juce::dsp::ProcessSpec& spec) {
     gateHoldRemaining = 0.0f;
 
     // Prepare wet filters (start with passthrough range)
-    wetHPF.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 20.0f);
-    wetLPF.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 20000.0f);
+    *wetHPF.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 20.0f);
+    *wetLPF.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 20000.0f);
     wetHPF.prepare(spec);
     wetLPF.prepare(spec);
 
@@ -42,19 +42,30 @@ void DynamicsModule::reset() {
 }
 
 void DynamicsModule::process(juce::AudioBuffer<float>& buffer) {
+    juce::MidiBuffer emptyMidi;
+    process(buffer, emptyMidi, nullptr, 0);
+}
+
+void DynamicsModule::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& /*midi*/, const float* sidechainInput, int sidechainChannels) {
     if (bypassed) return;
 
     const int numSamples = buffer.getNumSamples();
     if (numSamples == 0) return;
 
+    // Determine if sidechain is active
+    usesSidechain_ = (sidechainMode_ == SidechainMode::External && sidechainInput != nullptr && sidechainChannels > 0);
+
     // Save dry signal
     dryBuffer_.makeCopyOf(buffer, true);
 
-    // Process based on active mode
+    // Process based on active mode, passing sidechain data if applicable
+    const float* scInput = usesSidechain_ ? sidechainInput : nullptr;
+    const int scCh = usesSidechain_ ? sidechainChannels : 0;
+
     switch (mode) {
-        case DynamicsMode::Compressor: processCompressor(buffer); break;
-        case DynamicsMode::Limiter:    processLimiter(buffer);    break;
-        case DynamicsMode::Gate:       processGate(buffer);       break;
+        case DynamicsMode::Compressor: processCompressor(buffer, scInput, scCh); break;
+        case DynamicsMode::Limiter:    processLimiter(buffer, scInput, scCh);    break;
+        case DynamicsMode::Gate:       processGate(buffer, scInput, scCh);       break;
     }
 
     // Apply wet filters
@@ -64,9 +75,10 @@ void DynamicsModule::process(juce::AudioBuffer<float>& buffer) {
     applyDryWetMix(buffer);
 }
 
-void DynamicsModule::processCompressor(juce::AudioBuffer<float>& buffer) {
+void DynamicsModule::processCompressor(juce::AudioBuffer<float>& buffer, const float* sidechainInput, int sidechainChannels) {
     const int numSamples = buffer.getNumSamples();
     const int numCh = buffer.getNumChannels();
+    const bool useSidechain = (sidechainInput != nullptr && sidechainChannels > 0);
 
     // Update coefficients (parameters may have changed)
     compAttackCoeff = std::exp(-1.0f / (compAttack * static_cast<float>(sampleRate) / 1000.0f));
@@ -76,11 +88,20 @@ void DynamicsModule::processCompressor(juce::AudioBuffer<float>& buffer) {
     gainReduction_.assign(numSamples, 1.0f);
 
     for (int s = 0; s < numSamples; ++s) {
-        // Stereo-linked: find max absolute level across all channels
+        // Compute envelope from sidechain or main input
         float absMax = 0.0f;
-        for (int ch = 0; ch < numCh; ++ch) {
-            const float sample = std::abs(buffer.getSample(ch, s));
-            if (sample > absMax) absMax = sample;
+        if (useSidechain) {
+            // Read envelope from interleaved sidechain input
+            for (int ch = 0; ch < sidechainChannels; ++ch) {
+                const float sample = std::abs(sidechainInput[s * sidechainChannels + ch]);
+                if (sample > absMax) absMax = sample;
+            }
+        } else {
+            // Original behavior: read from main buffer
+            for (int ch = 0; ch < numCh; ++ch) {
+                const float sample = std::abs(buffer.getSample(ch, s));
+                if (sample > absMax) absMax = sample;
+            }
         }
 
         const float levelDb = 20.0f * std::log10(std::max(absMax, 1e-10f));
@@ -102,7 +123,7 @@ void DynamicsModule::processCompressor(juce::AudioBuffer<float>& buffer) {
         gainReduction_[s] = compEnvelope;
     }
 
-    // Second pass: apply gain reduction to all channels
+    // Second pass: apply gain reduction to all channels (always main signal)
     for (int ch = 0; ch < numCh; ++ch) {
         auto* data = buffer.getWritePointer(ch);
         for (int s = 0; s < numSamples; ++s)
@@ -110,9 +131,10 @@ void DynamicsModule::processCompressor(juce::AudioBuffer<float>& buffer) {
     }
 }
 
-void DynamicsModule::processLimiter(juce::AudioBuffer<float>& buffer) {
+void DynamicsModule::processLimiter(juce::AudioBuffer<float>& buffer, const float* sidechainInput, int sidechainChannels) {
     const int numSamples = buffer.getNumSamples();
     const int numCh = buffer.getNumChannels();
+    const bool useSidechain = (sidechainInput != nullptr && sidechainChannels > 0);
 
     const float thresholdLinear = juce::Decibels::decibelsToGain(limThreshold);
     const float ceilingLinear   = juce::Decibels::decibelsToGain(limCeiling);
@@ -120,11 +142,18 @@ void DynamicsModule::processLimiter(juce::AudioBuffer<float>& buffer) {
     limReleaseCoeff = std::exp(-1.0f / (limRelease * static_cast<float>(sampleRate) / 1000.0f));
 
     for (int s = 0; s < numSamples; ++s) {
-        // Stereo-linked max level
+        // Compute envelope from sidechain or main input
         float absMax = 0.0f;
-        for (int ch = 0; ch < numCh; ++ch) {
-            const float sample = std::abs(buffer.getSample(ch, s));
-            if (sample > absMax) absMax = sample;
+        if (useSidechain) {
+            for (int ch = 0; ch < sidechainChannels; ++ch) {
+                const float sample = std::abs(sidechainInput[s * sidechainChannels + ch]);
+                if (sample > absMax) absMax = sample;
+            }
+        } else {
+            for (int ch = 0; ch < numCh; ++ch) {
+                const float sample = std::abs(buffer.getSample(ch, s));
+                if (sample > absMax) absMax = sample;
+            }
         }
 
         // Compute gain reduction (brickwall style)
@@ -138,7 +167,7 @@ void DynamicsModule::processLimiter(juce::AudioBuffer<float>& buffer) {
         else
             limEnvelope = limEnvelope + (1.0f - limReleaseCoeff) * (targetGain - limEnvelope);
 
-        // Apply gain reduction + hard ceiling
+        // Apply gain reduction + hard ceiling (always to main signal)
         for (int ch = 0; ch < numCh; ++ch) {
             float* data = buffer.getWritePointer(ch);
             data[s] *= limEnvelope;
@@ -152,20 +181,28 @@ void DynamicsModule::processLimiter(juce::AudioBuffer<float>& buffer) {
     }
 }
 
-void DynamicsModule::processGate(juce::AudioBuffer<float>& buffer) {
+void DynamicsModule::processGate(juce::AudioBuffer<float>& buffer, const float* sidechainInput, int sidechainChannels) {
     const int numSamples = buffer.getNumSamples();
     const int numCh = buffer.getNumChannels();
+    const bool useSidechain = (sidechainInput != nullptr && sidechainChannels > 0);
 
     const float thresholdLinear = juce::Decibels::decibelsToGain(gateThreshold);
 
     gateReleaseCoeff = std::exp(-1.0f / (gateRelease * static_cast<float>(sampleRate) / 1000.0f));
 
     for (int s = 0; s < numSamples; ++s) {
-        // Stereo-linked max level
+        // Compute envelope from sidechain or main input
         float absMax = 0.0f;
-        for (int ch = 0; ch < numCh; ++ch) {
-            const float sample = std::abs(buffer.getSample(ch, s));
-            if (sample > absMax) absMax = sample;
+        if (useSidechain) {
+            for (int ch = 0; ch < sidechainChannels; ++ch) {
+                const float sample = std::abs(sidechainInput[s * sidechainChannels + ch]);
+                if (sample > absMax) absMax = sample;
+            }
+        } else {
+            for (int ch = 0; ch < numCh; ++ch) {
+                const float sample = std::abs(buffer.getSample(ch, s));
+                if (sample > absMax) absMax = sample;
+            }
         }
 
         if (absMax >= thresholdLinear) {
@@ -180,7 +217,7 @@ void DynamicsModule::processGate(juce::AudioBuffer<float>& buffer) {
             gateEnvelope += (1.0f - gateReleaseCoeff) * (0.0f - gateEnvelope);
         }
 
-        // Apply gate envelope
+        // Apply gate envelope (always to main signal)
         for (int ch = 0; ch < numCh; ++ch) {
             float* data = buffer.getWritePointer(ch);
             data[s] *= gateEnvelope;
@@ -234,6 +271,7 @@ void DynamicsModule::setGateRelease(float ms)           { gateRelease   = juce::
 
 void DynamicsModule::setMix(float wet)                  { mixVal  = juce::jlimit(0.0f, 1.0f, wet); }
 void DynamicsModule::setBypass(bool b)                  { bypassed = b; }
+void DynamicsModule::setSidechainMode(SidechainMode m)  { sidechainMode_ = m; }
 
 void DynamicsModule::setWetHPF(float hz) {
     hz = juce::jlimit(20.0f, 20000.0f, hz);

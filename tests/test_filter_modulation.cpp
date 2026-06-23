@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/FilterModulation.h"
+#include "dsp/FilterModulation.h"
 
 using namespace ana;
 

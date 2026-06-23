@@ -1,7 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
-#include <juce_undo/juce_undo.h>
+#include <juce_data_structures/juce_data_structures.h>
 #include "../PluginProcessor.h"
 #include "CyberpunkTheme.h"
 

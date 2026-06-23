@@ -876,6 +876,30 @@ float VoiceManager::getAdaptiveEnvelopeAmount() const
 }
 
 //==============================================================================
+// Waveform type
+//==============================================================================
+
+void VoiceManager::setWaveformType(int voiceIndex, AnaVoice::WaveformType type)
+{
+    if (voiceIndex < 0 || voiceIndex >= maxVoices)
+        return;
+    getVoice(voiceIndex)->waveformType_ = type;
+}
+
+AnaVoice::WaveformType VoiceManager::getWaveformType(int voiceIndex) const
+{
+    if (voiceIndex < 0 || voiceIndex >= maxVoices)
+        return AnaVoice::WaveformType::Sine;
+    return getVoice(voiceIndex)->waveformType_;
+}
+
+void VoiceManager::setAllWaveforms(AnaVoice::WaveformType type)
+{
+    for (int i = 0; i < maxVoices; ++i)
+        getVoice(i)->waveformType_ = type;
+}
+
+//==============================================================================
 // Voice mode
 //==============================================================================
 
@@ -922,7 +946,32 @@ PortamentoCurve VoiceManager::getPortamentoCurve() const
 float VoiceManager::generateSample(int voiceIndex) const
 {
     auto& v = *getVoice(voiceIndex);
-    return v.phasorIm * v.envelopeLevel * v.cachedMod;
+
+    float sample;
+    switch (v.waveformType_)
+    {
+        case AnaVoice::WaveformType::Sine:
+            sample = v.phasorIm;
+            break;
+
+        case AnaVoice::WaveformType::Saw:
+            sample = 2.0f * v.phase - 1.0f;
+            break;
+
+        case AnaVoice::WaveformType::Square:
+            sample = v.phase < 0.5f ? 1.0f : -1.0f;
+            break;
+
+        case AnaVoice::WaveformType::Triangle:
+            sample = 4.0f * std::abs(v.phase - 0.5f) - 1.0f;
+            break;
+
+        case AnaVoice::WaveformType::Noise:
+            sample = juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
+            break;
+    }
+
+    return sample * v.envelopeLevel * v.cachedMod;
 }
 
 float VoiceManager::applyFilter(int voiceIndex, float sample, float nyquist, float minCutoff, float maxCutoff) const

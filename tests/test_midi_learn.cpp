@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/MidiLearn.h"
+#include "dsp/MidiLearn.h"
 #include <juce_core/juce_core.h>
 
 using namespace ana;

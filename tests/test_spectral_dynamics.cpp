@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralDynamics.h"
+#include "dsp/SpectralDynamics.h"
 #include <cmath>
 
 using namespace ana;

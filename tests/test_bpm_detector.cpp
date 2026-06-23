@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/BpmDetector.h"
+#include "dsp/BpmDetector.h"
 #include <cmath>
 #include <vector>
 

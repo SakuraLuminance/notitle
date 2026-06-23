@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralReverb.h"
+#include "dsp/SpectralReverb.h"
 #include <cmath>
 
 using namespace ana;

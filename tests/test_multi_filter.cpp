@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/MultiFilter.h"
+#include "dsp/MultiFilter.h"
 #include <cmath>
 
 using namespace ana;

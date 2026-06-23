@@ -1,4 +1,4 @@
-﻿#include "ChorusEffect.h"
+#include "ChorusEffect.h"
 
 namespace ana {
 

@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/ParallelProcessor.h"
+#include "dsp/ParallelProcessor.h"
 #include <cmath>
 
 using namespace ana;

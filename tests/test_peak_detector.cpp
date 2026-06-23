@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PeakDetector.h"
+#include "dsp/PeakDetector.h"
 #include <cmath>
 
 TEST_CASE("PeakDetector - detect single peak", "[peak]")

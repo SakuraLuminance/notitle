@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <juce_dsp/juce_dsp.h>
 #include <juce_data_structures/juce_data_structures.h>
 

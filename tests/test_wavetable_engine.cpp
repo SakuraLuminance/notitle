@@ -2,7 +2,7 @@
 #include <cmath>
 #include <vector>
 
-#include "../src/dsp/WavetableEngine.h"
+#include "dsp/WavetableEngine.h"
 
 using namespace ana;
 

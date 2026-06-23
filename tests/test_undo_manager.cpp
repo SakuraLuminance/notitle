@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/UndoManager.h"
+#include "dsp/UndoManager.h"
 
 using namespace ana;
 

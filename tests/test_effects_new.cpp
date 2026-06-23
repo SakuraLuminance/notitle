@@ -1,8 +1,8 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/effects/PhaserEffect.h"
-#include "../src/dsp/effects/FlangerEffect.h"
-#include "../src/dsp/effects/CompressorEffect.h"
-#include "../src/dsp/effects/LimiterEffect.h"
+#include "dsp/effects/PhaserEffect.h"
+#include "dsp/effects/FlangerEffect.h"
+#include "dsp/effects/CompressorEffect.h"
+#include "dsp/effects/LimiterEffect.h"
 #include <juce_dsp/juce_dsp.h>
 #include <cmath>
 

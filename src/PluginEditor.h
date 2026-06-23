@@ -98,8 +98,10 @@ private:
     //==============================================================================
     // Center — Spectrum / Partial display
     ana::VisualFeedbackPanel feedbackPanel_;
+    ana::WaterfallDisplay waterfallDisplay_;
     ana::SpectrumEditorCanvas spectrumEditorCanvas_;
-    juce::ComboBox viewModeCombo_;   // Bars / Waterfall / Editor / 3D
+    std::unique_ptr<ana::WaveformDisplay> waveformDisplay_;
+    juce::ComboBox viewModeCombo_;   // Bars / Waterfall / Editor / 3D / Scope
 
     //==============================================================================
     // Process panel — Filter

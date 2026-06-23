@@ -1,9 +1,9 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/effects/StereoWidenerEffect.h"
-#include "../src/dsp/effects/SaturationEffect.h"
-#include "../src/dsp/effects/BitcrusherEffect.h"
-#include "../src/dsp/effects/RingModulatorEffect.h"
-#include "../src/dsp/EffectsChain.h"
+#include "dsp/effects/StereoWidenerEffect.h"
+#include "dsp/effects/SaturationEffect.h"
+#include "dsp/effects/BitcrusherEffect.h"
+#include "dsp/effects/RingModulatorEffect.h"
+#include "dsp/EffectsChain.h"
 #include <juce_dsp/juce_dsp.h>
 #include <cmath>
 #include <vector>

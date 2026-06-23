@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PitchCorrector.h"
+#include "dsp/PitchCorrector.h"
 #include <cmath>
 #include <vector>
 #include <juce_audio_basics/juce_audio_basics.h>

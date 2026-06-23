@@ -136,16 +136,24 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     //==============================================================================
     // Center — Visual feedback + view selector
     addAndMakeVisible(feedbackPanel_);
+    addAndMakeVisible(waterfallDisplay_);
+    waterfallDisplay_.setVisible(false);
     addAndMakeVisible(spectrumEditorCanvas_);
     spectrumEditorCanvas_.setVisible(false);
     viewModeCombo_.addItem("PARTIALS", 1);
     viewModeCombo_.addItem("WATERFALL", 2);
     viewModeCombo_.addItem("EDITOR", 3);
     viewModeCombo_.addItem("3D", 4);
+    viewModeCombo_.addItem("SCOPE", 5);
     viewModeCombo_.setSelectedId(1);
     viewModeCombo_.onChange = [this] { onViewModeChanged(); };
-    viewModeCombo_.setTooltip("View mode: PARTIALS/WATERFALL/EDITOR/3D");
+    viewModeCombo_.setTooltip("View mode: PARTIALS/WATERFALL/EDITOR/3D/SCOPE");
     addAndMakeVisible(viewModeCombo_);
+
+    // Oscilloscope view (hidden by default)
+    waveformDisplay_ = std::make_unique<ana::WaveformDisplay>();
+    addAndMakeVisible(waveformDisplay_.get());
+    waveformDisplay_->setVisible(false);
 
     //==============================================================================
     // Filter panel
@@ -839,6 +847,9 @@ void AnaPlugAudioProcessorEditor::resized()
     viewModeCombo_.setBounds(centerArea.removeFromTop(18).reduced(centerArea.getWidth() / 2 - 80, 0));
     auto fbArea = centerArea.removeFromTop(static_cast<int>(centerArea.getHeight() * 0.70f));
     feedbackPanel_.setBounds(fbArea.reduced(2));
+    waterfallDisplay_.setBounds(fbArea.reduced(2));
+    if (waveformDisplay_)
+        waveformDisplay_->setBounds(fbArea.reduced(2));
     spectrumEditorCanvas_.setBounds(fbArea.reduced(2));
     xyPad_->setBounds(centerArea.reduced(2));
 
@@ -1037,7 +1048,21 @@ void AnaPlugAudioProcessorEditor::timerCallback()
             // Update visual feedback panel
             ana::PartialDataSIMD simd = ana::PartialDataSIMD::fromPartialData(partialData);
             feedbackPanel_.updatePartials(simd);
+            waterfallDisplay_.updatePartials(simd);
             spectrumEditorCanvas_.setPartials(simd);
+        }
+
+        // Push scope buffer data to WaveformDisplay when SCOPE mode is active
+        if (waveformDisplay_ && waveformDisplay_->isVisible())
+        {
+            std::vector<float> scopeData;
+            if (audioProcessor.getScopeOutput(scopeData))
+            {
+                waveformDisplay_->setSamples(scopeData);
+                waveformDisplay_->setPlaybackPosition(
+                    static_cast<double>(audioProcessor.getPlaybackPosition()
+                                        % audioProcessor.kScopeBufferSize));
+            }
         }
     }
     if (audioProcessor.flattenPending())
@@ -1136,18 +1161,41 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
 {
     const int mode = viewModeCombo_.getSelectedId();
 
-    // 3D mode uses the SpectrumEditorCanvas; all others use feedbackPanel_
-    if (mode == 4)
+    // Hide all view panels first
+    feedbackPanel_.setVisible(false);
+    waterfallDisplay_.setVisible(false);
+    spectrumEditorCanvas_.setVisible(false);
+    if (waveformDisplay_)
+        waveformDisplay_->setVisible(false);
+
+    switch (mode)
     {
-        feedbackPanel_.setVisible(false);
-        spectrumEditorCanvas_.setVisible(true);
-        spectrumEditorCanvas_.set3DEnabled(true);
-    }
-    else
-    {
-        spectrumEditorCanvas_.setVisible(false);
-        spectrumEditorCanvas_.set3DEnabled(false);
-        feedbackPanel_.setVisible(true);
+        case 1: // PARTIALS — classic bar display
+            feedbackPanel_.setVisible(true);
+            break;
+
+        case 2: // WATERFALL — 3D waterfall spectral view
+            waterfallDisplay_.setVisible(true);
+            break;
+
+        case 3: // EDITOR — 2D spectrum editor canvas
+            spectrumEditorCanvas_.setVisible(true);
+            spectrumEditorCanvas_.set3DEnabled(false);
+            break;
+
+        case 4: // 3D — spectrum editor with OpenGL 3D waterfall
+            spectrumEditorCanvas_.setVisible(true);
+            spectrumEditorCanvas_.set3DEnabled(true);
+            break;
+
+        case 5: // SCOPE — real-time oscilloscope
+            if (waveformDisplay_)
+                waveformDisplay_->setVisible(true);
+            break;
+
+        default: // fallback to partials
+            feedbackPanel_.setVisible(true);
+            break;
     }
 }
 

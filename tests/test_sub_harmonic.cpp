@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SubHarmonicGenerator.h"
+#include "dsp/SubHarmonicGenerator.h"
 #include <cmath>
 #include <vector>
 

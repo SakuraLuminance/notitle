@@ -6,35 +6,29 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+
+    - name: Clean build dir (prevent stale CMakeCache.txt)
+      run: rm -rf build
+      shell: bash
 
     - name: Install Linux Dependencies
       if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libasound2-dev libjack-jackd2-dev \
-          libcurl4-openssl-dev libfreetype6-dev libx11-dev libxcomposite-dev \
-          libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
-          libwebkit2gtk-4.1-dev libglu1-mesa-dev mesa-common-dev
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libjack-jackd2-dev libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libfreetype6-dev libcurl4-openssl-dev libglu1-mesa-dev
 
-    - name: Clean build dir (prevent stale CMakeCache.txt)
-      run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          Remove-Item -Path build -Recurse -Force -ErrorAction SilentlyContinue
-        else
-          rm -rf build
-        fi
-      shell: bash
+    - name: Cache FetchContent dependencies
+      uses: actions/cache@v4
+      with:
+        path: build/_deps/
+        key: ${{ runner.os }}-fetchcontent-${{ hashFiles('CMakeLists.txt') }}
 
     - name: Configure CMake
-      run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DTESTING=ON
+      run: cmake -B build -S . -DTESTING=ON
 
     - name: Build
       run: cmake --build build --config Release
@@ -42,8 +36,17 @@ jobs:
     - name: Test
       run: ctest --test-dir build --output-on-failure
 
+    - name: Run benchmarks (informational)
+      run: ctest --test-dir build -R benchmark --output-on-failure || true
+
     - name: Upload VST3 Artifact
       uses: actions/upload-artifact@v4
       with:
         name: AnaPlug-${{ matrix.os }}
         path: build/*_artefacts/Release/VST3/
+
+    - name: Upload CLAP Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AnaPlug-CLAP-${{ matrix.os }}
+        path: build/*_artefacts/Release/CLAP/

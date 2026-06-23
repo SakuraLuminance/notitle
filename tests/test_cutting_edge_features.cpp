@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/VoiceManager.h"
-#include "../src/dsp/MeteringEngine.h"
-#include "../src/gui/CyberpunkTheme.h"
+#include "dsp/VoiceManager.h"
+#include "dsp/MeteringEngine.h"
+#include "gui/CyberpunkTheme.h"
 
 #include <juce_core/juce_core.h>
 #include <juce_audio_basics/juce_audio_basics.h>

@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/AnaPlugEngine.h"
+#include "dsp/AnaPlugEngine.h"
 
 TEST_CASE("AnaPlugEngine - initial state", "[engine]")
 {

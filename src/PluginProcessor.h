@@ -103,6 +103,7 @@ public:
     AnaPlugAudioProcessor();
     ~AnaPlugAudioProcessor() override;
 
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
@@ -337,6 +338,12 @@ public:
     ana::MeteringEngine& getMeteringEngine() { return meteringEngine_; }
     const ana::MeteringEngine& getMeteringEngine() const { return meteringEngine_; }
 
+    //==============================================================================
+    // --- Oscilloscope scope buffer (captures last N samples of output) ---
+    static constexpr int kScopeBufferSize = 2048;
+    void captureScopeOutput(const juce::AudioBuffer<float>& buffer);
+    bool getScopeOutput(std::vector<float>& dest) const;
+
     // Wavetable engine access
     ana::WavetableEngine& getWavetableEngine() { return wavetableEngine_; }
     std::atomic<float>& getWavetablePositionRef() { return wavetablePosition_; }
@@ -437,6 +444,10 @@ private:
 
     // --- LUFS output metering (read-only, post master gain) ---
     ana::MeteringEngine meteringEngine_;
+
+    // --- Oscilloscope double-buffered output capture ---
+    std::array<float, 2 * kScopeBufferSize> scopeBuffer_[2];  // stereo-capable double buffer
+    std::atomic<int> scopeReadIdx_{0};
 
     // --- Sub-harmonic generator ---
     ana::SubHarmonicGenerator subHarmonicGen_;

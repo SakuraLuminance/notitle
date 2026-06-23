@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralSculptor.h"
+#include "dsp/SpectralSculptor.h"
 #include <cmath>
 #include <vector>
 

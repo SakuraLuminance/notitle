@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralSequencer.h"
+#include "dsp/SpectralSequencer.h"
 #include <cmath>
 
 using namespace ana;

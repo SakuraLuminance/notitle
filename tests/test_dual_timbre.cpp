@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/DualTimbre.h"
+#include "dsp/DualTimbre.h"
 #include <cmath>
 #include <vector>
 

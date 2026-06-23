@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/NeuralUpsampler.h"
+#include "dsp/NeuralUpsampler.h"
 #include <cmath>
 
 using namespace ana;

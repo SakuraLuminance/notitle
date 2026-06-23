@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/BlurEffect.h"
+#include "dsp/BlurEffect.h"
 #include <cmath>
 
 using namespace ana;

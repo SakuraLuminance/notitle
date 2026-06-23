@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/STFTAnalyzer.h"
+#include "dsp/STFTAnalyzer.h"
 #include <cmath>
 
 TEST_CASE("STFTAnalyzer - analyze silence", "[stft]")

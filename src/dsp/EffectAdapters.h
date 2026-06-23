@@ -18,7 +18,7 @@
 #include "effects/AutoTuneEffect.h"
 
 namespace ana {
-namespace {
+namespace effect_adapters {
 
 //==============================================================================
 // DelayEffectAdapter
@@ -133,5 +133,5 @@ public:
     void setState(const juce::ValueTree& s) override  { effect.setState(s); }
 };
 
-} // namespace
+} // namespace effect_adapters
 } // namespace ana

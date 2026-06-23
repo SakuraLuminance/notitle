@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PhysicalModel.h"
+#include "dsp/PhysicalModel.h"
 #include <cmath>
 
 using namespace ana;

@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/AdvancedGranularEngine.h"
+#include "dsp/AdvancedGranularEngine.h"
 #include <cmath>
 
 using namespace ana;

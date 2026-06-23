@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/Harmonizer.h"
+#include "dsp/Harmonizer.h"
 #include <cmath>
 #include <vector>
 

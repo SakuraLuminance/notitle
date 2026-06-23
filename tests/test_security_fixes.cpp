@@ -1,10 +1,10 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/ResynthesisEngine.h"
-#include "../src/dsp/VoiceManager.h"
-#include "../src/dsp/MidiLearn.h"
-#include "../src/dsp/UndoManager.h"
-#include "../src/dsp/PresetManager.h"
-#include "../src/dsp/STFTConfig.h"
+#include "dsp/ResynthesisEngine.h"
+#include "dsp/VoiceManager.h"
+#include "dsp/MidiLearn.h"
+#include "dsp/UndoManager.h"
+#include "dsp/PresetManager.h"
+#include "dsp/STFTConfig.h"
 #include <juce_core/juce_core.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>

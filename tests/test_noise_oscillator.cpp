@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralParticleSystem.h"
-#include "../src/dsp/PartialDataSIMD.h"
+#include "dsp/SpectralParticleSystem.h"
+#include "dsp/PartialDataSIMD.h"
 #include <cmath>
 
 using namespace ana;

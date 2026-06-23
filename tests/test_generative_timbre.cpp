@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/GenerativeTimbreDesigner.h"
+#include "dsp/GenerativeTimbreDesigner.h"
 #include <cmath>
 
 using namespace ana;

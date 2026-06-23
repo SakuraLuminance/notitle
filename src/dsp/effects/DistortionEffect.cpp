@@ -1,4 +1,4 @@
-﻿#include "DistortionEffect.h"
+#include "DistortionEffect.h"
 #include <cmath>
 
 namespace ana {

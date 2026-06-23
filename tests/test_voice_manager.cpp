@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/VoiceManager.h"
+#include "dsp/VoiceManager.h"
 #include <cmath>
 
 using namespace ana;

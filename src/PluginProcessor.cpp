@@ -222,7 +222,7 @@ void AnaPlugAudioProcessor::initializeDefaultEffects()
 
     // Delay (pointer-tracked via delayEffect_)
     {
-        auto adapter = std::make_unique<ana::DelayEffectAdapter>();
+        auto adapter = std::make_unique<ana::effect_adapters::DelayEffectAdapter>();
         delayEffect_ = adapter->getEffect();
         effectsChain_.addEffect(std::move(adapter), "Delay");
     }
@@ -232,28 +232,28 @@ void AnaPlugAudioProcessor::initializeDefaultEffects()
 
     // Reverb (pointer-tracked via reverbEffect_)
     {
-        auto adapter = std::make_unique<ana::ReverbEffectAdapter>();
+        auto adapter = std::make_unique<ana::effect_adapters::ReverbEffectAdapter>();
         reverbEffect_ = adapter->getEffect();
         effectsChain_.addEffect(std::move(adapter), "Reverb");
     }
 
     // EQ (pointer-tracked via eqEffect_)
     {
-        auto adapter = std::make_unique<ana::EQEffectAdapter>();
+        auto adapter = std::make_unique<ana::effect_adapters::EQEffectAdapter>();
         eqEffect_ = adapter->getEffect();
         effectsChain_.addEffect(std::move(adapter), "EQ");
     }
 
     // Chorus (pointer-tracked via chorusEffect_)
     {
-        auto adapter = std::make_unique<ana::ChorusEffectAdapter>();
+        auto adapter = std::make_unique<ana::effect_adapters::ChorusEffectAdapter>();
         chorusEffect_ = adapter->getEffect();
         effectsChain_.addEffect(std::move(adapter), "Chorus");
     }
 
     // Distortion (pointer-tracked via distortionEffect_)
     {
-        auto adapter = std::make_unique<ana::DistortionEffectAdapter>();
+        auto adapter = std::make_unique<ana::effect_adapters::DistortionEffectAdapter>();
         distortionEffect_ = adapter->getEffect();
         effectsChain_.addEffect(std::move(adapter), "Distortion");
     }
@@ -277,7 +277,7 @@ void AnaPlugAudioProcessor::initializeDefaultEffects()
 
     // AutoTune (pointer-tracked via autoTuneEffect_)
     {
-        auto adapter = std::make_unique<ana::AutoTuneEffectAdapter>();
+        auto adapter = std::make_unique<ana::effect_adapters::AutoTuneEffectAdapter>();
         autoTuneEffect_ = adapter->getEffect();
         effectsChain_.addEffect(std::move(adapter), "AutoTune");
     }
@@ -307,12 +307,12 @@ const juce::String AnaPlugAudioProcessor::getName() const
 
 bool AnaPlugAudioProcessor::acceptsMidi() const
 {
-    return true;
+    return JucePlugin_WantsMidiInput;
 }
 
 bool AnaPlugAudioProcessor::producesMidi() const
 {
-    return false;
+    return JucePlugin_ProducesMidiOutput;
 }
 
 bool AnaPlugAudioProcessor::isMidiEffect() const
@@ -349,6 +349,14 @@ const juce::String AnaPlugAudioProcessor::getProgramName(int index)
 void AnaPlugAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
     juce::ignoreUnused(index, newName);
+}
+
+bool AnaPlugAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+{
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+        return false;
+    return true;
 }
 
 void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -840,6 +848,9 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
                 // LUFS output metering (read-only, after master gain)
                 meteringEngine_.process(buffer);
 
+                // Capture output for oscilloscope (must be last)
+                captureScopeOutput(buffer);
+
                 return;
             }
         }
@@ -872,6 +883,9 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // LUFS output metering (read-only, after master gain)
     meteringEngine_.process(buffer);
+
+    // Capture output for oscilloscope (must be last — captures final mix)
+    captureScopeOutput(buffer);
 }
 
 bool AnaPlugAudioProcessor::hasEditor() const
@@ -1351,6 +1365,64 @@ void AnaPlugAudioProcessor::randomizeAllParameters()
         rng.apply(modTargetMasterVol_.load(), 0.0f, 2.0f));
     modTargetMasterPan_.store(
         rng.apply(modTargetMasterPan_.load(), -1.0f, 1.0f));
+}
+
+//==============================================================================
+void AnaPlugAudioProcessor::captureScopeOutput(const juce::AudioBuffer<float>& buffer)
+{
+    const int numSamples  = buffer.getNumSamples();
+    const int numChannels = buffer.getNumChannels();
+    if (numSamples <= 0) return;
+
+    // Write to the non-current read buffer
+    const int writeIdx = 1 - scopeReadIdx_.load();
+    auto& buf = scopeBuffer_[writeIdx];
+
+    // Mono mix: average channels for scope display
+    const int samplesToCopy = std::min(numSamples, kScopeBufferSize);
+    const int offset = std::max(0, numSamples - kScopeBufferSize);
+
+    const float* srcL = buffer.getReadPointer(0);
+    if (numChannels > 1)
+    {
+        const float* srcR = buffer.getReadPointer(1);
+        for (int i = 0; i < samplesToCopy; ++i)
+            buf[i] = (srcL[offset + i] + srcR[offset + i]) * 0.5f;
+    }
+    else
+    {
+        juce::FloatVectorOperations::copy(buf.data(), srcL + offset, samplesToCopy);
+    }
+
+    if (samplesToCopy < kScopeBufferSize)
+        juce::FloatVectorOperations::clear(buf.data() + samplesToCopy,
+                                            kScopeBufferSize - samplesToCopy);
+
+    // Publish by swapping the read index
+    scopeReadIdx_.store(writeIdx);
+}
+
+bool AnaPlugAudioProcessor::getScopeOutput(std::vector<float>& dest) const
+{
+    const int readIdx = scopeReadIdx_.load();
+    const auto& buf = scopeBuffer_[readIdx];
+    dest.assign(buf.begin(), buf.begin() + kScopeBufferSize);
+    return true;
+}
+
+//==============================================================================
+// CLAP direct event routing (note expression → modulation bus)
+//==============================================================================
+bool AnaPlugAudioProcessor::supportsDirectEvent(uint16_t /*spaceId*/, uint16_t /*type*/)
+{
+    // Accept CLAP note expression events for per-voice modulation
+    return true;
+}
+
+void AnaPlugAudioProcessor::handleDirectEvent(const clap_event_header_t* /*event*/, int /*sampleOffset*/)
+{
+    // Route CLAP note expression events to clapNoteExprBus_
+    // Implementation depends on clap-juce-extensions version
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

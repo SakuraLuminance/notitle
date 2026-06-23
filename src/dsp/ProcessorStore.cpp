@@ -9,6 +9,7 @@
 #include "effects/DynamicsModule.h"
 #include "effects/DeEsserModule.h"
 #include "effects/ConsolidatedDelay.h"
+#include "effects/ModulationEffects.h"
 
 // Standalone effects (some EffectBase, some need adapters)
 #include "effects/VocalThickenerEffect.h"
@@ -179,6 +180,12 @@ void ProcessorStore::registerAll()
     });
 
     registerFactory("DynamicsModule", [](UndoManager*) {
+        // NOTE: DynamicsModule supports sidechain input via its overloaded
+        // process(buffer, midi, sidechainInput, sidechainChannels) method.
+        // Use setSidechainMode(SidechainMode::External) to enable sidechain
+        // detection while applying gain reduction to the main signal.
+        // EffectsChain does not yet route sidechain signals automatically;
+        // callers must supply the sidechain audio buffer explicitly.
         return std::make_unique<DynamicsModule>();
     });
 
@@ -188,6 +195,17 @@ void ProcessorStore::registerAll()
 
     registerFactory("ConsolidatedDelay", [](UndoManager*) {
         return std::make_unique<ConsolidatedDelay>();
+    });
+
+    registerFactory("Tremolo", [](UndoManager*) {
+        auto m = std::make_unique<ModulationEffects>();
+        m->setMode(TremoloMode::Tremolo);
+        return m;
+    });
+    registerFactory("AutoPan", [](UndoManager*) {
+        auto m = std::make_unique<ModulationEffects>();
+        m->setMode(TremoloMode::AutoPan);
+        return m;
     });
 
     // --- Consolidated modules (non-EffectBase, adapter-wrapped) ---
@@ -255,27 +273,27 @@ void ProcessorStore::registerAll()
 
     // --- Standalone effects (non-EffectBase, adapter-wrapped) ---
     registerFactory("Delay", [](UndoManager*) {
-        return std::make_unique<DelayEffectAdapter>();
+        return std::make_unique<effect_adapters::DelayEffectAdapter>();
     });
 
     registerFactory("Reverb", [](UndoManager*) {
-        return std::make_unique<ReverbEffectAdapter>();
+        return std::make_unique<effect_adapters::ReverbEffectAdapter>();
     });
 
     registerFactory("Chorus", [](UndoManager*) {
-        return std::make_unique<ChorusEffectAdapter>();
+        return std::make_unique<effect_adapters::ChorusEffectAdapter>();
     });
 
     registerFactory("Distortion", [](UndoManager*) {
-        return std::make_unique<DistortionEffectAdapter>();
+        return std::make_unique<effect_adapters::DistortionEffectAdapter>();
     });
 
     registerFactory("EQ", [](UndoManager*) {
-        return std::make_unique<EQEffectAdapter>();
+        return std::make_unique<effect_adapters::EQEffectAdapter>();
     });
 
     registerFactory("AutoTune", [](UndoManager*) {
-        return std::make_unique<AutoTuneEffectAdapter>();
+        return std::make_unique<effect_adapters::AutoTuneEffectAdapter>();
     });
 
     //==============================================================================
@@ -324,22 +342,22 @@ void ProcessorStore::registerAll()
 
     // Standalone effects (non-EffectBase, adapter-wrapped)
     registerFactory("DelayEffect", [](UndoManager*) {
-        return std::make_unique<DelayEffectAdapter>();
+        return std::make_unique<effect_adapters::DelayEffectAdapter>();
     });
     registerFactory("ReverbEffect", [](UndoManager*) {
-        return std::make_unique<ReverbEffectAdapter>();
+        return std::make_unique<effect_adapters::ReverbEffectAdapter>();
     });
     registerFactory("ChorusEffect", [](UndoManager*) {
-        return std::make_unique<ChorusEffectAdapter>();
+        return std::make_unique<effect_adapters::ChorusEffectAdapter>();
     });
     registerFactory("DistortionEffect", [](UndoManager*) {
-        return std::make_unique<DistortionEffectAdapter>();
+        return std::make_unique<effect_adapters::DistortionEffectAdapter>();
     });
     registerFactory("EQEffect", [](UndoManager*) {
-        return std::make_unique<EQEffectAdapter>();
+        return std::make_unique<effect_adapters::EQEffectAdapter>();
     });
     registerFactory("AutoTuneEffect", [](UndoManager*) {
-        return std::make_unique<AutoTuneEffectAdapter>();
+        return std::make_unique<effect_adapters::AutoTuneEffectAdapter>();
     });
 }
 

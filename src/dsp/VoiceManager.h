@@ -133,6 +133,19 @@ public:
     float      velocity = 0.0f;     /**< Note-on velocity in [0, 1]. */
 
     //==============================================================================
+    // --- Waveform type ---
+    enum class WaveformType : uint8_t
+    {
+        Sine     = 0, /**< Pure sine wave (default). */
+        Saw      = 1, /**< Rising sawtooth (bipolar, DC-corrected). */
+        Square   = 2, /**< Square wave (bipolar). */
+        Triangle = 3, /**< Triangle wave (bipolar). */
+        Noise    = 4  /**< White noise. */
+    };
+
+    WaveformType waveformType_{WaveformType::Sine}; /**< Current waveform shape. */
+
+    //==============================================================================
     // MPESynthesiserVoice overrides
     //==============================================================================
 
@@ -335,6 +348,16 @@ public:
 
     /** Returns the adaptive envelope tracking amount. */
     [[nodiscard]] float getAdaptiveEnvelopeAmount() const;
+
+    //==============================================================================
+    /** Sets the waveform type for a specific voice. */
+    void setWaveformType(int voiceIndex, AnaVoice::WaveformType type);
+
+    /** Returns the waveform type for a specific voice. */
+    [[nodiscard]] AnaVoice::WaveformType getWaveformType(int voiceIndex) const;
+
+    /** Sets the waveform type for all voices (global change). */
+    void setAllWaveforms(AnaVoice::WaveformType type);
 
 protected:
     //==============================================================================

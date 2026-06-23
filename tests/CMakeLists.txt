@@ -53,6 +53,7 @@ add_executable(AnaPlugTests
     test_voice_manager.cpp
     test_wavetable_engine.cpp
     test_wav_loader.cpp
+    test_wired_modules.cpp
     test_spectral_morpher.cpp
     test_midi_learn.cpp
     test_modulation.cpp
@@ -63,6 +64,7 @@ add_executable(AnaPlugTests
     test_effect_presets.cpp
     test_security_v2.cpp
     test_consolidated_effects.cpp
+    test_sidechain.cpp
     test_vocal_effects.cpp
 
     # Engine source files needed by cutting-edge features tests

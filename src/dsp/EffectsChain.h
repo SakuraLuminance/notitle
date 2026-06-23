@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <vector>
 #include <memory>
 #include <juce_audio_basics/juce_audio_basics.h>

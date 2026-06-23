@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/LFOSystem.h"
+#include "dsp/LFOSystem.h"
 #include <cmath>
 
 // ---------------------------------------------------------------------------

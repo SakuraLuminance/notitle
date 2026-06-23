@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/ImageSynthesizer.h"
+#include "dsp/ImageSynthesizer.h"
 #include <cmath>
 
 // ---------------------------------------------------------------------------

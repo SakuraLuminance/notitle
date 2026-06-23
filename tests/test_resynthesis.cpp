@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/ResynthesisEngine.h"
+#include "dsp/ResynthesisEngine.h"
 #include <cmath>
 
 TEST_CASE("ResynthesisEngine - resynthesize empty data", "[resynth]")

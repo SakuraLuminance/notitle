@@ -1,4 +1,4 @@
-﻿#include "ReverbEffect.h"
+#include "ReverbEffect.h"
 
 namespace ana {
 

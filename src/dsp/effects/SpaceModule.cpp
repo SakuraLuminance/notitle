@@ -25,8 +25,8 @@ void SpaceModule::prepare(const juce::dsp::ProcessSpec& spec) {
     shimmerPitchRatio = std::pow(2.0f, shimmerShift / 12.0f);
 
     // Prepare wet filters
-    wetHPF.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 20.0f);
-    wetLPF.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 20000.0f);
+    *wetHPF.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 20.0f);
+    *wetLPF.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 20000.0f);
     wetHPF.prepare(spec);
     wetLPF.prepare(spec);
 

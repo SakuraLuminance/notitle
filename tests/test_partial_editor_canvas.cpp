@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/gui/PartialEditorCanvas.h"
+#include "gui/PartialEditorCanvas.h"
 #include <cmath>
 
 // ============================================================================

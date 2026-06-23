@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/TimeStretchEngine.h"
+#include "dsp/TimeStretchEngine.h"
 #include <cmath>
 #include <vector>
 

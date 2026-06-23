@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PrismEffect.h"
+#include "dsp/PrismEffect.h"
 #include <cmath>
 #include <limits>
 

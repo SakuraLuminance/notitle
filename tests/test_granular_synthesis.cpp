@@ -1,6 +1,9 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/GranularSynthesizer.h"
 #include <cmath>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#include "dsp/GranularSynthesizer.h"
 
 //==============================================================================
 // Helper: accumulate absolute energy in a buffer region

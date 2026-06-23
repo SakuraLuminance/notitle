@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralFreezeEngine.h"
+#include "dsp/SpectralFreezeEngine.h"
 #include <cmath>
 
 using namespace ana;

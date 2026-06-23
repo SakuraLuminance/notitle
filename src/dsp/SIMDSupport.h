@@ -120,7 +120,7 @@ inline void vectorMul(float* dest,
     }
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     for (; i + 4 <= len; i += 4)
     {
         _mm_storeu_ps(dest + i,
@@ -162,7 +162,7 @@ inline void vectorAdd(float* dest,
     }
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     for (; i + 4 <= len; i += 4)
     {
         _mm_storeu_ps(dest + i,
@@ -198,7 +198,7 @@ inline void vectorFill(float* dest, float value, int len) noexcept
     for (; i + 8 <= len; i += 8) { _mm256_storeu_ps(dest + i, v); }
     }
 #endif
-#if defined(__SSE2__) && !defined(__AVX2__)
+#if (defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)) && !defined(__AVX2__)
     {
     auto v = _mm_set1_ps(value);
     for (; i + 4 <= len; i += 4) { _mm_storeu_ps(dest + i, v); }
@@ -242,7 +242,7 @@ inline void vectorLerp(float* dest,
     }
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     {
     auto one_minus_t = _mm_set1_ps(1.0f - t);
     auto vt = _mm_set1_ps(t);
@@ -300,7 +300,7 @@ inline uint32_t vectorCompareMask(const float* src,
     }
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     {
     auto vt = _mm_set1_ps(threshold);
     for (; i + 4 <= len; i += 4)
@@ -361,7 +361,7 @@ inline void vectorSqrtSumSquares(float* dest,
     }
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     for (; i + 4 <= len; i += 4)
     {
         auto r = _mm_loadu_ps(real + i);

@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/FrequencyShaper.h"
+#include "dsp/FrequencyShaper.h"
 #include <cmath>
 #include <vector>
 

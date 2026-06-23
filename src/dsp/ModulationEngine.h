@@ -11,7 +11,7 @@ namespace ana {
     LFO sources 1-4 map to processor lfoPool_[0..3].
     ENV sources 1-3 map to processor envPool_[0..2].
 */
-enum ModSource : int
+enum class ModSource : int
 {
     OFF       = 0,  /**< No modulation. */
     LFO1      = 1,  /**< LFO pool index 0. */
@@ -30,7 +30,7 @@ enum ModSource : int
 */
 struct ModulationConnection
 {
-    ModSource source = OFF;  /**< Modulation source (LFO1-4, ENV1-3, or OFF). */
+    ModSource source = ModSource::OFF;  /**< Modulation source (LFO1-4, ENV1-3, or OFF). */
     float depth   = 0.0f;   /**< Modulation depth in [-1.0, 1.0]. */
     float curve   = 1.0f;   /**< Power response curve (1.0 = linear). */
 };

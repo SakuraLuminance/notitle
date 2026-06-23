@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PartialData.h"
-#include "../src/dsp/STFTConfig.h"
-#include "../src/dsp/AudioFileData.h"
+#include "dsp/PartialData.h"
+#include "dsp/STFTConfig.h"
+#include "dsp/AudioFileData.h"
 
 TEST_CASE("PartialData struct construction", "[data]")
 {

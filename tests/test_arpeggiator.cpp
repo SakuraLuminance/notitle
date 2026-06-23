@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/Arpeggiator.h"
+#include "dsp/Arpeggiator.h"
 
 // ---------------------------------------------------------------------------
 // Helpers

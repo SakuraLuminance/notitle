@@ -34,7 +34,8 @@ FetchContent_Declare(
 FetchContent_Declare(
     clap-juce-extensions
     GIT_REPOSITORY https://github.com/free-audio/clap-juce-extensions.git
-    GIT_TAG main
+    GIT_TAG 51a9359315298de632cf44e9d7524940868441e6
+    GIT_SHALLOW TRUE
 )
 
 set(SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
@@ -92,6 +93,7 @@ target_sources(AnaPlug
         src/dsp/ProcessorStore.cpp
         src/dsp/effects/SpaceModule.cpp
         src/dsp/effects/ModulationModule.cpp
+        src/dsp/effects/ModulationEffects.cpp
         src/dsp/effects/DeEsserModule.cpp
         src/dsp/effects/DynamicsModule.cpp
         src/dsp/effects/EQModule.cpp
@@ -126,6 +128,7 @@ target_sources(AnaPlug
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
         src/dsp/DualTimbre.cpp
+        src/dsp/FMEngine.cpp
         src/dsp/SubHarmonicGenerator.cpp
         src/dsp/BlurEffect.cpp
         src/dsp/Harmonizer.cpp
@@ -144,7 +147,6 @@ target_sources(AnaPlug
         src/dsp/QuantumSpectralProcessor.cpp
         src/dsp/ParallelProcessor.cpp
         src/dsp/MacroController.cpp
-        src/dsp/SpectralMorpher.cpp
         src/dsp/MidiLearn.cpp
         src/dsp/UndoManager.cpp
         src/dsp/PhysicalModel.cpp
@@ -174,7 +176,6 @@ target_sources(AnaPlug
         src/dsp/effects/VocalProcessor.cpp
         src/dsp/effects/VocalThickenerEffect.cpp
         src/dsp/WavetableEngine.cpp
-        src/dsp/MidiLearn.cpp
         src/dsp/MultibandProcessor.cpp
         src/dsp/ModulationBus.cpp
         src/dsp/PartialModulator.cpp
@@ -191,8 +192,9 @@ target_link_libraries(AnaPlug
         juce::juce_core
         juce::juce_gui_basics
         juce::juce_gui_extra
+        juce::juce_opengl
         ebur128
-        -ld2d1 -ld3d11 -ldcomp -ldxstub
+        d2d1 d3d11 dcomp
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -214,12 +216,9 @@ if(MSVC)
     target_compile_options(AnaPlug PRIVATE
         /O2                    # Maximize speed
         /fp:fast               # Fast floating point
-        /GL                    # Whole program optimization
         /arch:AVX2             # For MSVC 64-bit, enable AVX2
     )
-    target_link_options(AnaPlug PRIVATE
-        /LTCG                  # Link-time code generation
-    )
+    # /GL and /LTCG not needed here — already set by juce_recommended_lto_flags (linked PUBLIC above)
     
     if(ENABLE_PGO_GENERATE)
         target_link_options(AnaPlug PRIVATE /GENPROFILE)
@@ -258,16 +257,22 @@ endif()
 
 # ---- Linux Compatibility ----
 if(UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(ALSA REQUIRED alsa)
+    pkg_check_modules(JACK REQUIRED jack)
     find_package(X11 REQUIRED)
-    find_package(ALSA REQUIRED)
+    find_package(Threads REQUIRED)
     target_link_libraries(AnaPlug PRIVATE
         X11::X11
-        ALSA::ALSA
-        jack
+        ${ALSA_LIBRARIES}
+        ${JACK_LIBRARIES}
+        Threads::Threads
     )
-    target_compile_options(AnaPlug PRIVATE
-        -pthread
+    target_include_directories(AnaPlug PRIVATE
+        ${ALSA_INCLUDE_DIRS}
+        ${JACK_INCLUDE_DIRS}
     )
+    target_compile_options(AnaPlug PRIVATE -pthread)
 endif()
 
 # ---- CLAP Extensions (clap-juce-extensions) ----

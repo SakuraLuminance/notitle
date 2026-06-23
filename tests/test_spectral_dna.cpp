@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SpectralDNA.h"
+#include "dsp/SpectralDNA.h"
 #include <algorithm>
 
 using namespace ana;

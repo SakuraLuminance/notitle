@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/WavLoader.h"
+#include "dsp/WavLoader.h"
 #include <juce_core/juce_core.h>
 
 TEST_CASE("WavLoader - load non-existent file", "[wav]")

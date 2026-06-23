@@ -1,4 +1,4 @@
-﻿#include "EffectsChain.h"
+#include "EffectsChain.h"
 #include <algorithm>
 
 namespace ana {

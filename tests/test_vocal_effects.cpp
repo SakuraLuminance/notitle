@@ -1,16 +1,16 @@
 #include <catch2/catch_all.hpp>
 #include <cmath>
 #include <set>
-#include "../src/dsp/effects/DeEsserModule.h"
-#include "../src/dsp/effects/BreathNoiseGenerator.h"
-#include "../src/dsp/effects/FormantTuner.h"
-#include "../src/dsp/effects/VocalThickenerEffect.h"
-#include "../src/dsp/effects/VocalNoiseReducer.h"
-#include "../src/dsp/effects/SoloistVocalChain.h"
-#include "../src/dsp/effects/SpaceModule.h"
-#include "../src/dsp/effects/CompressorEffect.h"
-#include "../src/dsp/PresetFactory.h"
-#include "../src/dsp/PresetManager.h"
+#include "dsp/effects/DeEsserModule.h"
+#include "dsp/effects/BreathNoiseGenerator.h"
+#include "dsp/effects/FormantTuner.h"
+#include "dsp/effects/VocalThickenerEffect.h"
+#include "dsp/effects/VocalNoiseReducer.h"
+#include "dsp/effects/SoloistVocalChain.h"
+#include "dsp/effects/SpaceModule.h"
+#include "dsp/effects/CompressorEffect.h"
+#include "dsp/PresetFactory.h"
+#include "dsp/PresetManager.h"
 
 using namespace ana;
 

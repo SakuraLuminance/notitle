@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PhasePropagation.h"
+#include "dsp/PhasePropagation.h"
 #include <cmath>
 
 TEST_CASE("PhasePropagation - propagate empty data", "[phase]")

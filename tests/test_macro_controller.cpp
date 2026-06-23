@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/MacroController.h"
+#include "dsp/MacroController.h"
 
 using namespace ana;
 

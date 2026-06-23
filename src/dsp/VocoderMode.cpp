@@ -434,11 +434,6 @@ void VocoderMode::analyseFilterBank(const std::vector<float>& modulator,
     }
 }
 
-        energies[band]      = env;
-        bandEnvelopes_[band] = env;
-    }
-}
-
 //==============================================================================
 // Modulator analysis — FFT
 //==============================================================================
@@ -732,7 +727,7 @@ float VocoderMode::channelEnergy(const float* data, int numSamples) noexcept
         for (; i < numSamples; ++i)
             sum += data[i] * data[i];
     }
-#elif defined(__SSE2__)
+#elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     {
         __m128 acc = _mm_setzero_ps();
         int i = 0;

@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/EffectsChain.h"
+#include "dsp/EffectsChain.h"
 #include <juce_dsp/juce_dsp.h>
 
 using namespace ana;

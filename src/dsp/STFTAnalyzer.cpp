@@ -112,7 +112,7 @@ void STFTAnalyzer::extractSpectrum(const float* fftData,
     }
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     // Process 2 complex values at once (4 interleaved floats)
     for (; i + 2 <= halfSize; i += 2)
     {

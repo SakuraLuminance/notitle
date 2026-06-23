@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/SampleProcessor.h"
+#include "dsp/SampleProcessor.h"
 #include <cmath>
 #include <vector>
 

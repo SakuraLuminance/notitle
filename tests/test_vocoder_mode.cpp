@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/VocoderMode.h"
+#include "dsp/VocoderMode.h"
 #include <cmath>
 #include <vector>
 

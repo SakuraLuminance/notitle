@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/PartialTracker.h"
+#include "dsp/PartialTracker.h"
 #include <cmath>
 
 TEST_CASE("PartialTracker - track silence", "[tracker]")

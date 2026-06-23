@@ -5,6 +5,7 @@
 namespace ana {
 
 enum class DynamicsMode { Compressor, Limiter, Gate };
+enum class SidechainMode { Off, External };
 
 class DynamicsModule : public EffectBase {
 public:
@@ -13,9 +14,11 @@ public:
 
     void prepare(const juce::dsp::ProcessSpec& spec) override;
     void process(juce::AudioBuffer<float>& buffer) override;
+    void process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi, const float* sidechainInput = nullptr, int sidechainChannels = 0);
     void reset() override;
 
     void setMode(DynamicsMode m);
+    void setSidechainMode(SidechainMode m);
 
     // Compressor
     void setCompressorRatio(float r);
@@ -43,13 +46,14 @@ public:
     void setState(const juce::ValueTree& tree) override;
 
 private:
-    void processCompressor(juce::AudioBuffer<float>& buffer);
-    void processLimiter(juce::AudioBuffer<float>& buffer);
-    void processGate(juce::AudioBuffer<float>& buffer);
+    void processCompressor(juce::AudioBuffer<float>& buffer, const float* sidechainInput = nullptr, int sidechainChannels = 0);
+    void processLimiter(juce::AudioBuffer<float>& buffer, const float* sidechainInput = nullptr, int sidechainChannels = 0);
+    void processGate(juce::AudioBuffer<float>& buffer, const float* sidechainInput = nullptr, int sidechainChannels = 0);
     void applyWetFilters(juce::AudioBuffer<float>& buffer);
     void applyDryWetMix(juce::AudioBuffer<float>& buffer);
 
     DynamicsMode mode = DynamicsMode::Compressor;
+    SidechainMode sidechainMode_ = SidechainMode::Off;
 
     // --- Compressor ---
     float compRatio = 4.0f;
@@ -90,6 +94,9 @@ private:
 
     // Temporary gain reduction buffer for compressor
     std::vector<float> gainReduction_;
+
+    // Sidechain state
+    bool usesSidechain_ = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DynamicsModule)
 };

@@ -1,4 +1,4 @@
-﻿#include "EQEffect.h"
+#include "EQEffect.h"
 #include <cmath>
 
 namespace ana {

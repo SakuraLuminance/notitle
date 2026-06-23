@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/NeuralStyleTransfer.h"
+#include "dsp/NeuralStyleTransfer.h"
 #include <cmath>
 
 using namespace ana;

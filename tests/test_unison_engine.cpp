@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "../src/dsp/UnisonEngine.h"
+#include "dsp/UnisonEngine.h"
 #include <cmath>
 
 // ---------------------------------------------------------------------------

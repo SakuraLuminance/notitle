@@ -152,7 +152,7 @@ private:
     // Signal-processing utility
 
     /** Wrap phase angle to [-pi, pi] via IEEE remainder. */
-    static inline float princArg(float x) noexcept {
+    inline float princArg(float x) noexcept {
         return std::remainderf(x, 6.2831853071795864769f);
     }
 
