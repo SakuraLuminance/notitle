@@ -24,7 +24,8 @@ jobs:
         key: ${{ runner.os }}-fetchcontent-${{ hashFiles('CMakeLists.txt') }}
 
     - name: Configure CMake
-      run: "cmake -B build -S . -DTESTING=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+      run: cmake -B build -S . -DTESTING=ON
+      shell: bash
 
     - name: Build
       run: cmake --build build --config Release

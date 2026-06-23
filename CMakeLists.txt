@@ -46,6 +46,7 @@ FetchContent_Declare(
 
 set(SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 FetchContent_MakeAvailable(JUCE Catch2 libebur128 clap-juce-extensions)
 set(BUILD_SHARED_LIBS ${SAVED_BUILD_SHARED_LIBS})
 
