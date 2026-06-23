@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -16,10 +16,6 @@ jobs:
     - name: Clean build dir (prevent stale CMakeCache.txt)
       run: rm -rf build
       shell: bash
-
-    - name: Install Linux Dependencies
-      if: runner.os == 'Linux'
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libjack-jackd2-dev libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libfreetype6-dev libcurl4-openssl-dev libglu1-mesa-dev
 
     - name: Cache FetchContent dependencies
       uses: actions/cache@v4
