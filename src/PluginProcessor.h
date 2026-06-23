@@ -16,11 +16,11 @@
                           public clap_juce_extensions::clap_juce_parameter_capabilities
         {
             bool supportsPolyphonicModulation() override { return true; }
-            void applyPolyphonicModulation(int32_t /*noteId*/,
-                                           int16_t /*portIndex*/,
-                                           int16_t /*channel*/,
-                                           int16_t /*key*/,
-                                           double amount) override
+            void applyPolyphonicModulation(int32_t _noteId,
+                                            int16_t _portIndex,
+                                            int16_t _channel,
+                                            int16_t _key,
+                                            double amount) override
             {
                 // route amount to your modulation bus target
             }
