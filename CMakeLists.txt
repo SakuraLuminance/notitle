@@ -7,11 +7,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ---- Dependencies ----
 include(FetchContent)
 
+if(WIN32)
+    set(JUCE_PATCH_COMMAND
+        PATCH_COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/patch_juce_mingw.ps1" -SourceDir "<SOURCE_DIR>"
+    )
+endif()
+
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
     GIT_TAG 8.0.13
-    PATCH_COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/patch_juce_mingw.ps1" -SourceDir "<SOURCE_DIR>"
+    ${JUCE_PATCH_COMMAND}
     GIT_SHALLOW TRUE
 )
 
