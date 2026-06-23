@@ -30,10 +30,10 @@ jobs:
       run: cmake --build build --config Release
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -C Release --output-on-failure
 
     - name: Run benchmarks (informational)
-      run: ctest --test-dir build -R benchmark --output-on-failure || true
+      run: ctest --test-dir build -C Release -R benchmark --output-on-failure || true
 
     - name: Upload VST3 Artifact
       uses: actions/upload-artifact@v4
