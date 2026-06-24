@@ -311,30 +311,67 @@ void XYPad::showContextMenu(const juce::MouseEvent& e)
 
     if (midiLearn.isLearning())
     {
-        menu.addItem("MIDI Learn (in progress...)", false, false);
+        juce::PopupMenu::Item item;
+        item.itemID = 1000;
+        item.text = "MIDI Learn (in progress...)";
+        item.isEnabled = false;
+        item.isTicked = false;
+        menu.addItem(std::move(item));
     }
     else
     {
-        menu.addItem("MIDI Learn X" + (xMapped ? juce::String(" [CC ") + juce::String(xCC) + "]" : ""),
-                     [this]() { startLearnX(); });
+        {
+            juce::PopupMenu::Item item;
+            item.itemID = 1001;
+            item.text = "MIDI Learn X" + (xMapped ? juce::String(" [CC ") + juce::String(xCC) + "]" : "");
+            item.action = [this]() { startLearnX(); };
+            menu.addItem(std::move(item));
+        }
 
-        menu.addItem("MIDI Learn Y" + (yMapped ? juce::String(" [CC ") + juce::String(yCC) + "]" : ""),
-                     [this]() { startLearnY(); });
+        {
+            juce::PopupMenu::Item item;
+            item.itemID = 1002;
+            item.text = "MIDI Learn Y" + (yMapped ? juce::String(" [CC ") + juce::String(yCC) + "]" : "");
+            item.action = [this]() { startLearnY(); };
+            menu.addItem(std::move(item));
+        }
 
         if (xMapped)
         {
-            menu.addItem("Clear X Mapping (CC " + juce::String(xCC) + ")",
-                         [this, xCC]() { processor_.getMidiLearn().removeMapping(xCC); });
-            menu.addItem("Global X (survives presets)", true, xGlobal,
-                         [this, xGlobal]() { processor_.getMidiLearn().setMappingGlobal(getXParamId(), !xGlobal); });
+            {
+                juce::PopupMenu::Item item;
+                item.itemID = 1003;
+                item.text = "Clear X Mapping (CC " + juce::String(xCC) + ")";
+                item.action = [this, xCC]() { processor_.getMidiLearn().removeMapping(xCC); };
+                menu.addItem(std::move(item));
+            }
+            {
+                juce::PopupMenu::Item item;
+                item.itemID = 1004;
+                item.text = "Global X (survives presets)";
+                item.isTicked = xGlobal;
+                item.action = [this, xGlobal]() { processor_.getMidiLearn().setMappingGlobal(getXParamId(), !xGlobal); };
+                menu.addItem(std::move(item));
+            }
         }
 
         if (yMapped)
         {
-            menu.addItem("Clear Y Mapping (CC " + juce::String(yCC) + ")",
-                         [this, yCC]() { processor_.getMidiLearn().removeMapping(yCC); });
-            menu.addItem("Global Y (survives presets)", true, yGlobal,
-                         [this, yGlobal]() { processor_.getMidiLearn().setMappingGlobal(getYParamId(), !yGlobal); });
+            {
+                juce::PopupMenu::Item item;
+                item.itemID = 1005;
+                item.text = "Clear Y Mapping (CC " + juce::String(yCC) + ")";
+                item.action = [this, yCC]() { processor_.getMidiLearn().removeMapping(yCC); };
+                menu.addItem(std::move(item));
+            }
+            {
+                juce::PopupMenu::Item item;
+                item.itemID = 1006;
+                item.text = "Global Y (survives presets)";
+                item.isTicked = yGlobal;
+                item.action = [this, yGlobal]() { processor_.getMidiLearn().setMappingGlobal(getYParamId(), !yGlobal); };
+                menu.addItem(std::move(item));
+            }
         }
     }
 
