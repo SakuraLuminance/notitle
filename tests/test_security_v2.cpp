@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#define ANA_INCLUDE_TEST_ACCESSORS
 #include "dsp/PresetManager.h"
 #include "dsp/PresetFactory.h"
 #include "dsp/effects/DistortionEffect.h"

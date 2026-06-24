@@ -273,7 +273,9 @@ public:
     /** XML root element name. */
     static constexpr const char* xmlRootTag = "AnaPlugPreset";
 
-    friend class ::PresetManagerTestAccess;
+    #ifdef ANA_INCLUDE_TEST_ACCESSORS
+friend class ::PresetManagerTestAccess;
+#endif
 
 private:
     //==============================================================================
