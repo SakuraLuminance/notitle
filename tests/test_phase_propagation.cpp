@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <juce_core/juce_core.h>
 #include "dsp/PhasePropagation.h"
 #include <cmath>
 
@@ -29,7 +30,7 @@ TEST_CASE("PhasePropagation - propagate single frame", "[phase]")
     propagator.propagatePhases(data, config);
 
     // Single frame should not be modified
-    REQUIRE(data.frames[0].partials[0].phase == Approx(0.0f));
+    REQUIRE(data.frames[0].partials[0].phase == Catch::Approx(0.0f));
 }
 
 TEST_CASE("PhasePropagation - phase continuity", "[phase]")

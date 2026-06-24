@@ -259,5 +259,3 @@ TEST_CASE("ImageSynthesizer - loadImage with non-existent file", "[image]")
     REQUIRE_FALSE(synth.loadImage(juce::File::getSpecialLocation(juce::File::tempDirectory)
                                       .getChildFile("__does_not_exist__.png")));
 }
-
-} // namespace

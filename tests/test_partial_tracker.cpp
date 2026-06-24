@@ -40,7 +40,7 @@ TEST_CASE("PartialTracker - frame timestamps", "[tracker]")
     double expectedDuration = config.hopSize / audio.sampleRate;
     for (size_t i = 0; i < result.frames.size(); ++i)
     {
-        REQUIRE(result.frames[i].timestamp == Approx(i * expectedDuration));
+        REQUIRE(result.frames[i].timestamp == Catch::Approx(i * expectedDuration));
     }
 }
 

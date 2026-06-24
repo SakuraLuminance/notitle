@@ -64,8 +64,8 @@ TEST_CASE("PrismEffect - single partial with zero amount does nothing", "[prism]
     prism.setMode(ana::PrismMode::FrequencyShift);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(440.0f));
-    REQUIRE(data.amplitude[0] == Approx(0.5f));
+    REQUIRE(data.frequency[0] == Catch::Approx(440.0f));
+    REQUIRE(data.amplitude[0] == Catch::Approx(0.5f));
 }
 
 TEST_CASE("PrismEffect - reset clears feedback state", "[prism][edge]")
@@ -98,9 +98,9 @@ TEST_CASE("PrismEffect - FrequencyShift shifts all frequencies by offset", "[pri
     prism.setMode(ana::PrismMode::FrequencyShift);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(600.0f));  // 100 + 500
-    REQUIRE(data.frequency[1] == Approx(700.0f));  // 200 + 500
-    REQUIRE(data.frequency[2] == Approx(900.0f));  // 400 + 500
+    REQUIRE(data.frequency[0] == Catch::Approx(600.0f));  // 100 + 500
+    REQUIRE(data.frequency[1] == Catch::Approx(700.0f));  // 200 + 500
+    REQUIRE(data.frequency[2] == Catch::Approx(900.0f));  // 400 + 500
 }
 
 TEST_CASE("PrismEffect - FrequencyShift with zero amount leaves frequencies unchanged", "[prism][freqshift]")
@@ -114,7 +114,7 @@ TEST_CASE("PrismEffect - FrequencyShift with zero amount leaves frequencies unch
     prism.setMode(ana::PrismMode::FrequencyShift);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(440.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(440.0f));
 }
 
 //==============================================================================
@@ -129,11 +129,11 @@ TEST_CASE("PrismEffect - SpectralBlur smooths amplitude peaks", "[prism][blur]")
     prism.setMode(ana::PrismMode::SpectralBlur);
     prism.process(data);
 
-    REQUIRE(data.amplitude[0] == Approx(0.0f));
-    REQUIRE(data.amplitude[1] == Approx(1.0f / 3.0f));
-    REQUIRE(data.amplitude[2] == Approx(1.0f / 3.0f));
-    REQUIRE(data.amplitude[3] == Approx(1.0f / 3.0f));
-    REQUIRE(data.amplitude[4] == Approx(0.0f));
+    REQUIRE(data.amplitude[0] == Catch::Approx(0.0f));
+    REQUIRE(data.amplitude[1] == Catch::Approx(1.0f / 3.0f));
+    REQUIRE(data.amplitude[2] == Catch::Approx(1.0f / 3.0f));
+    REQUIRE(data.amplitude[3] == Catch::Approx(1.0f / 3.0f));
+    REQUIRE(data.amplitude[4] == Catch::Approx(0.0f));
 }
 
 TEST_CASE("PrismEffect - SpectralBlur with zero amount preserves amplitudes", "[prism][blur]")
@@ -146,9 +146,9 @@ TEST_CASE("PrismEffect - SpectralBlur with zero amount preserves amplitudes", "[
     prism.setMode(ana::PrismMode::SpectralBlur);
     prism.process(data);
 
-    REQUIRE(data.amplitude[0] == Approx(0.1f));
-    REQUIRE(data.amplitude[1] == Approx(0.9f));
-    REQUIRE(data.amplitude[2] == Approx(0.1f));
+    REQUIRE(data.amplitude[0] == Catch::Approx(0.1f));
+    REQUIRE(data.amplitude[1] == Catch::Approx(0.9f));
+    REQUIRE(data.amplitude[2] == Catch::Approx(0.1f));
 }
 
 TEST_CASE("PrismEffect - SpectralBlur with single partial does nothing", "[prism][blur]")
@@ -161,7 +161,7 @@ TEST_CASE("PrismEffect - SpectralBlur with single partial does nothing", "[prism
     prism.setMode(ana::PrismMode::SpectralBlur);
     prism.process(data);
 
-    REQUIRE(data.amplitude[0] == Approx(0.8f));
+    REQUIRE(data.amplitude[0] == Catch::Approx(0.8f));
 }
 
 //==============================================================================
@@ -186,14 +186,14 @@ TEST_CASE("PrismEffect - HarmonicRotation rotates partial assignments", "[prism]
     // Index 2 has 200.0, 3.0 -> will get 300.0, 4.0
     // Index 3 has 300.0, 4.0 -> will get 400.0, 1.0
     
-    REQUIRE(data.frequency[0] == Approx(100.0f));
-    REQUIRE(data.amplitude[0] == Approx(2.0f));
-    REQUIRE(data.frequency[1] == Approx(200.0f));
-    REQUIRE(data.amplitude[1] == Approx(3.0f));
-    REQUIRE(data.frequency[2] == Approx(300.0f));
-    REQUIRE(data.amplitude[2] == Approx(4.0f));
-    REQUIRE(data.frequency[3] == Approx(400.0f));
-    REQUIRE(data.amplitude[3] == Approx(1.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(100.0f));
+    REQUIRE(data.amplitude[0] == Catch::Approx(2.0f));
+    REQUIRE(data.frequency[1] == Catch::Approx(200.0f));
+    REQUIRE(data.amplitude[1] == Catch::Approx(3.0f));
+    REQUIRE(data.frequency[2] == Catch::Approx(300.0f));
+    REQUIRE(data.amplitude[2] == Catch::Approx(4.0f));
+    REQUIRE(data.frequency[3] == Catch::Approx(400.0f));
+    REQUIRE(data.amplitude[3] == Catch::Approx(1.0f));
 }
 
 TEST_CASE("PrismEffect - HarmonicRotation with zero amount does nothing", "[prism][rotation]")
@@ -206,10 +206,10 @@ TEST_CASE("PrismEffect - HarmonicRotation with zero amount does nothing", "[pris
     prism.setMode(ana::PrismMode::HarmonicRotation);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(100.0f));
-    REQUIRE(data.amplitude[0] == Approx(0.5f));
-    REQUIRE(data.frequency[1] == Approx(200.0f));
-    REQUIRE(data.amplitude[1] == Approx(0.8f));
+    REQUIRE(data.frequency[0] == Catch::Approx(100.0f));
+    REQUIRE(data.amplitude[0] == Catch::Approx(0.5f));
+    REQUIRE(data.frequency[1] == Catch::Approx(200.0f));
+    REQUIRE(data.amplitude[1] == Catch::Approx(0.8f));
 }
 
 //==============================================================================
@@ -225,9 +225,9 @@ TEST_CASE("PrismEffect - SpectralMirror mirrors frequencies around center", "[pr
     prism.setMode(ana::PrismMode::SpectralMirror);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(1900.0f));
-    REQUIRE(data.frequency[1] == Approx(1500.0f));
-    REQUIRE(data.frequency[2] == Approx(1000.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(1900.0f));
+    REQUIRE(data.frequency[1] == Catch::Approx(1500.0f));
+    REQUIRE(data.frequency[2] == Catch::Approx(1000.0f));
 }
 
 TEST_CASE("PrismEffect - SpectralMirror with zero amount does nothing", "[prism][mirror]")
@@ -241,7 +241,7 @@ TEST_CASE("PrismEffect - SpectralMirror with zero amount does nothing", "[prism]
     prism.setMode(ana::PrismMode::SpectralMirror);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(440.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(440.0f));
 }
 
 TEST_CASE("PrismEffect - SpectralMirror clamps negative frequencies", "[prism][mirror]")
@@ -255,7 +255,7 @@ TEST_CASE("PrismEffect - SpectralMirror clamps negative frequencies", "[prism][m
     prism.setMode(ana::PrismMode::SpectralMirror);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(0.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(0.0f));
 }
 
 //==============================================================================
@@ -280,7 +280,7 @@ TEST_CASE("PrismEffect - CombSweep attenuates amplitudes based on frequency", "[
     prism.setMode(ana::PrismMode::CombSweep);
     prism.process(dataHeavy);
 
-    REQUIRE(dataHeavy.amplitude[0] == Approx(0.0f).margin(1e-4));
+    REQUIRE(dataHeavy.amplitude[0] == Catch::Approx(0.0f).margin(1e-4));
 }
 
 //==============================================================================
@@ -296,9 +296,9 @@ TEST_CASE("PrismEffect - mix=0 preserves original data entirely", "[prism][mix]"
     prism.setMode(ana::PrismMode::FrequencyShift);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(100.0f));
-    REQUIRE(data.frequency[1] == Approx(200.0f));
-    REQUIRE(data.frequency[2] == Approx(300.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(100.0f));
+    REQUIRE(data.frequency[1] == Catch::Approx(200.0f));
+    REQUIRE(data.frequency[2] == Catch::Approx(300.0f));
 }
 
 TEST_CASE("PrismEffect - mix=0.5 blends original and processed equally", "[prism][mix]")
@@ -312,7 +312,7 @@ TEST_CASE("PrismEffect - mix=0.5 blends original and processed equally", "[prism
     prism.setMode(ana::PrismMode::FrequencyShift);
     prism.process(data);
 
-    REQUIRE(data.frequency[0] == Approx(200.0f));
+    REQUIRE(data.frequency[0] == Catch::Approx(200.0f));
 }
 
 //==============================================================================
@@ -355,11 +355,11 @@ TEST_CASE("PrismEffect - feedback blends previous output into current input", "[
     prism.setMode(ana::PrismMode::FrequencyShift);
     prism.process(data1);
 
-    REQUIRE(data1.frequency[0] == Approx(300.0f));
+    REQUIRE(data1.frequency[0] == Catch::Approx(300.0f));
 
     auto data2 = makeTestData({100.0f}, {1.0f});
 
     prism.process(data2);
 
-    REQUIRE(data2.frequency[0] == Approx(400.0f));
+    REQUIRE(data2.frequency[0] == Catch::Approx(400.0f));
 }

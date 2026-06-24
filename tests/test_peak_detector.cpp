@@ -16,7 +16,7 @@ TEST_CASE("PeakDetector - detect single peak", "[peak]")
     auto peaks = detector.detectPeaks(spectrum, config, 44100.0);
 
     REQUIRE(peaks.size() == 1);
-    REQUIRE(peaks[0].amplitude == Approx(1.0f));
+    REQUIRE(peaks[0].amplitude == Catch::Approx(1.0f));
 }
 
 TEST_CASE("PeakDetector - no peaks in silence", "[peak]")

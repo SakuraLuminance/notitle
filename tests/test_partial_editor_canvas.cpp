@@ -79,7 +79,7 @@ TEST_CASE("PartialEditorCanvas round-trip preserves metadata and amplitudes",
                 float actualAmp = outputData.frames[static_cast<size_t>(f)]
                                                    .partials[static_cast<size_t>(p)]
                                                    .amplitude;
-                REQUIRE(actualAmp == Approx(expectedAmp).margin(1e-6f));
+                REQUIRE(actualAmp == Catch::Approx(expectedAmp).margin(1e-6f));
             }
         }
     }
@@ -145,7 +145,7 @@ TEST_CASE("PartialEditorCanvas undo restores previous state",
                 float actual   = afterUndo.frames[f]
                                        .partials[static_cast<size_t>(p)]
                                        .amplitude;
-                REQUIRE(actual == Approx(expected).margin(1e-6f));
+                REQUIRE(actual == Catch::Approx(expected).margin(1e-6f));
             }
         }
     }
@@ -208,7 +208,7 @@ TEST_CASE("PartialEditorCanvas normalize scales correctly",
             for (const auto& partial : frame.partials)
                 maxAmp = std::max(maxAmp, partial.amplitude);
 
-        REQUIRE(maxAmp == Approx(1.0f).margin(1e-6f));
+        REQUIRE(maxAmp == Catch::Approx(1.0f).margin(1e-6f));
     }
 
     SECTION("Relative ratios are preserved")
@@ -237,7 +237,7 @@ TEST_CASE("PartialEditorCanvas normalize scales correctly",
                 float actual   = afterNorm.frames[f]
                                        .partials[static_cast<size_t>(p)]
                                        .amplitude;
-                REQUIRE(actual == Approx(expected).margin(1e-6f));
+                REQUIRE(actual == Catch::Approx(expected).margin(1e-6f));
             }
         }
     }
