@@ -70,6 +70,8 @@ add_executable(AnaPlugTests
     # Engine source files needed by cutting-edge features tests
     ../src/dsp/VoiceManager.cpp
     ../src/dsp/MeteringEngine.cpp
+    ../src/dsp/AdvancedGranularEngine.cpp
+    ../src/dsp/GranularSynthesizer.cpp
 
     # Effect source files needed by effects tests
     ../src/dsp/effects/StereoWidenerEffect.cpp
@@ -94,6 +96,9 @@ add_executable(AnaPlugTests
     ../src/dsp/effects/VocalNoiseReducer.cpp
     ../src/dsp/effects/SoloistVocalChain.cpp
     ../src/dsp/effects/CompressorEffect.cpp
+
+    # GUI source files needed by UI tests
+    ../src/gui/SpectrumDisplay.cpp
 
     # Preset manager source files needed by effect preset tests
     ../src/dsp/PresetManager.cpp
