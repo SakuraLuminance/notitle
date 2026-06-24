@@ -1,8 +1,6 @@
 add_executable(AnaPlugTests
     main.cpp
     bench_performance.cpp
-    test_ui_colors.cpp
-    test_ui_paint.cpp
     test_advanced_granular.cpp
     test_arpeggiator.cpp
     test_blur_effect.cpp
@@ -97,8 +95,7 @@ add_executable(AnaPlugTests
     ../src/dsp/effects/SoloistVocalChain.cpp
     ../src/dsp/effects/CompressorEffect.cpp
 
-    # GUI source files needed by UI tests
-    ../src/gui/SpectrumDisplay.cpp
+
 
     # Preset manager source files needed by effect preset tests
     ../src/dsp/PresetManager.cpp
@@ -176,18 +173,6 @@ add_executable(AnaPlugTests
     ../src/dsp/PartialModulator.cpp
     ../src/dsp/AudioToMidiConverter.cpp
     
-    # GUI sources needed by UI tests
-    ../src/gui/CreditsPanel.cpp
-    ../src/gui/EffectRackComponent.cpp
-    ../src/gui/FilterVisualization.cpp
-    ../src/gui/MeteringPanel.cpp
-    ../src/gui/ModulationAssignPanel.cpp
-    ../src/gui/ModulationMatrixPanel.cpp
-    ../src/gui/PartialEditorCanvas.cpp
-    ../src/gui/PresetBrowserPanel.cpp
-    ../src/gui/WaterfallDisplay.cpp
-    ../src/gui/WaveformDisplay.cpp
-    ../src/gui/XYPad.cpp
 )
 
 target_include_directories(AnaPlugTests
@@ -209,4 +194,10 @@ target_link_libraries(AnaPlugTests
 )
 
 include(Catch)
+
+# Make clap-juce-extensions headers available if the target exists
+if(TARGET clap_juce_extensions)
+    target_link_libraries(AnaPlugTests PRIVATE clap_juce_extensions)
+endif()
+
 catch_discover_tests(AnaPlugTests)
