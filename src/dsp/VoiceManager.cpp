@@ -1038,7 +1038,8 @@ void VoiceManager::noteOn(int note, float velocity)
     if (stealIdx >= 0)
     {
         auto* voice = getVoice(stealIdx);
-        voice->clearCurrentNote();
+        // clearCurrentNote() is protected in juce::SynthesiserVoice — not accessible here.
+        // startVoice() below fully reinitializes the voice, so no explicit clear needed.
         voice->state.store(VoiceState::free, std::memory_order_release);
         startVoice(stealIdx, note, velocity);
         voice->state.store(VoiceState::attack, std::memory_order_release);
