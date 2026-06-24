@@ -15,7 +15,7 @@ TEST_CASE("PartialData struct construction", "[data]")
     partial.phase = 1.57f;
     REQUIRE(partial.frequency == 440.0f);
     REQUIRE(partial.amplitude == 0.5f);
-    REQUIRE(partial.phase == Approx(1.57f));
+    REQUIRE(partial.phase == Catch::Approx(1.57f));
 }
 
 TEST_CASE("PartialFrame struct construction", "[data]")

@@ -75,7 +75,7 @@ TEST_CASE("LFO modulation applied to parameter", "[mod][lfo][routing]")
     // Create a modulation slot for filter_cutoff (slot 0)
     std::atomic<float> baseCutoff{ 1000.0f };
     ModulationSlot slot;
-    slot.mod.source = LFO1;
+    slot.mod.source = ModSource::LFO1;
     slot.mod.depth  = 0.5f;
     slot.baseValuePtr = &baseCutoff;
     slot.paramId = "filter_cutoff";
@@ -177,7 +177,7 @@ TEST_CASE("ENV modulation applied to parameter", "[mod][env][routing]")
     // Create a modulation slot for master_vol (slot 13)
     std::atomic<float> baseVol{ 0.8f };
     ModulationSlot slot;
-    slot.mod.source = ENV1;
+    slot.mod.source = ModSource::ENV1;
     slot.mod.depth  = 0.5f;
     slot.baseValuePtr = &baseVol;
     slot.paramId = "master_vol";
@@ -284,7 +284,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
 
     SECTION("Switch from LFO1 to ENV1 changes modulated value")
     {
-        slot.mod.source = LFO1;
+        slot.mod.source = ModSource::LFO1;
         float lfoVals[4] = {};
         float envVals[3] = {};
 
@@ -296,7 +296,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
         REQUIRE(lfoResult == Catch::Approx(1000.5f).margin(0.01f));
 
         // Switch to ENV1 and trigger
-        slot.mod.source = ENV1;
+        slot.mod.source = ModSource::ENV1;
         envPool[0].trigger();
         const int attackSamples = static_cast<int>(0.01 * TEST_SR);
         runEnvPool(envPool, attackSamples, envVals);
@@ -315,7 +315,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
 
     SECTION("Switch from ENV1 to LFO1 mid-envelope")
     {
-        slot.mod.source = ENV1;
+        slot.mod.source = ModSource::ENV1;
         envPool[0].trigger();
 
         // Advance ENV into sustain
@@ -324,7 +324,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
         float lfoVals[4] = {};
 
         // Switch to LFO1 at non-peak position
-        slot.mod.source = LFO1;
+        slot.mod.source = ModSource::LFO1;
         lfoPool[0].reset();
         // Advance LFO to phase 0.5 (sine = 0)
         runLfoPool(lfoPool, samplesPerCycle(2.0f) / 2, lfoVals);
@@ -340,7 +340,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
 
     SECTION("Switch source twice during playback (no crash)")
     {
-        slot.mod.source = LFO1;
+        slot.mod.source = ModSource::LFO1;
         float lfoVals[4] = {};
         float envVals[3] = {};
 
@@ -349,20 +349,20 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
         REQUIRE_NOTHROW(applyModulation(slot, lfoVals, envVals));
 
         // Switch to ENV1
-        slot.mod.source = ENV1;
+        slot.mod.source = ModSource::ENV1;
         envPool[0].trigger();
         runEnvPool(envPool, 100, envVals);
         REQUIRE_NOTHROW(applyModulation(slot, lfoVals, envVals));
 
         // Switch to ENV2
-        slot.mod.source = ENV2;
+        slot.mod.source = ModSource::ENV2;
         envPool[1].prepare(TEST_SR);
         envPool[1].trigger();
         runEnvPool(envPool, 100, envVals);
         REQUIRE_NOTHROW(applyModulation(slot, lfoVals, envVals));
 
         // Switch back to LFO1
-        slot.mod.source = LFO1;
+        slot.mod.source = ModSource::LFO1;
         lfoPool[0].reset();
         runLfoPool(lfoPool, samplesPerCycle(2.0f) / 4, lfoVals);
         REQUIRE_NOTHROW(applyModulation(slot, lfoVals, envVals));
@@ -370,7 +370,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
 
     SECTION("Switch from OFF to LFO activates modulation cleanly")
     {
-        slot.mod.source = OFF;
+        slot.mod.source = ModSource::OFF;
         float lfoVals[4] = {};
         float envVals[3] = {};
 
@@ -379,7 +379,7 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
         REQUIRE(offResult == Catch::Approx(1000.0f).margin(0.001f));
 
         // Switch to LFO1
-        slot.mod.source = LFO1;
+        slot.mod.source = ModSource::LFO1;
         float lfoResult = applyModulation(slot, lfoVals, envVals);
         // Should now be modulated (LFO is at some non-zero phase)
         REQUIRE(lfoResult != Catch::Approx(1000.0f).margin(0.001f));
@@ -419,7 +419,7 @@ TEST_CASE("Volume ADSR independent", "[mod][volume][adsr]")
 
         std::atomic<float> baseCutoff{ 1000.0f };
         ModulationSlot modSlot;
-        modSlot.mod.source = LFO1;
+        modSlot.mod.source = ModSource::LFO1;
         modSlot.mod.depth = 1.0f; // full depth
         modSlot.baseValuePtr = &baseCutoff;
         modSlot.paramId = "filter_cutoff";
@@ -478,15 +478,15 @@ TEST_CASE("Volume ADSR independent", "[mod][volume][adsr]")
         // Modulation slot - does not touch the volume ADSR
         std::atomic<float> baseCutoff{ 1000.0f };
         ModulationSlot slot;
-        slot.mod.source = LFO1;
+        slot.mod.source = ModSource::LFO1;
         slot.mod.depth = 0.0f;
         slot.baseValuePtr = &baseCutoff;
 
         // Change modulation parameters repeatedly
         slot.mod.depth = 0.5f;
-        slot.mod.source = LFO2;
+        slot.mod.source = ModSource::LFO2;
         slot.mod.depth = -0.3f;
-        slot.mod.source = ENV1;
+        slot.mod.source = ModSource::ENV1;
         slot.mod.depth = 1.0f;
 
         // Volume ADSR should be completely unaffected
@@ -552,7 +552,7 @@ TEST_CASE("OFF source bypass", "[mod][off][routing]")
     SECTION("All slots at OFF produce base values only")
     {
         for (auto& s : slots)
-            s.mod.source = OFF;
+            s.mod.source = ModSource::OFF;
 
         for (auto& s : slots)
         {
@@ -565,10 +565,10 @@ TEST_CASE("OFF source bypass", "[mod][off][routing]")
     SECTION("Switching one slot to LFO while others stay OFF")
     {
         for (auto& s : slots)
-            s.mod.source = OFF;
+            s.mod.source = ModSource::OFF;
 
         // Activate only slot 0 with LFO1
-        slots[0].mod.source = LFO1;
+        slots[0].mod.source = ModSource::LFO1;
         slots[0].mod.depth = 0.5f;
 
         // Slot 0 should show modulation
@@ -589,7 +589,7 @@ TEST_CASE("OFF source bypass", "[mod][off][routing]")
         {
             for (auto& s : slots)
             {
-                s.mod.source = LFO1;
+                s.mod.source = ModSource::LFO1;
                 s.mod.depth = 1.0f;
                 applyModulation(s, lfoVals, envVals);
             }
@@ -597,7 +597,7 @@ TEST_CASE("OFF source bypass", "[mod][off][routing]")
             // Switch all back to OFF
             for (auto& s : slots)
             {
-                s.mod.source = OFF;
+                s.mod.source = ModSource::OFF;
                 float result = applyModulation(s, lfoVals, envVals);
                 float expected = s.baseValuePtr->load(std::memory_order_relaxed);
                 REQUIRE(result == Catch::Approx(expected).margin(0.0001f));
@@ -870,7 +870,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
     {
         // Set up original modulation connection
         ModulationConnection original;
-        original.source = LFO2;
+        original.source = ModSource::LFO2;
         original.depth  = 0.75f;
         original.curve  = 2.0f;
 
@@ -887,7 +887,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
 
         // Clear original
         ModulationConnection restored;
-        restored.source = OFF;
+        restored.source = ModSource::OFF;
         restored.depth  = 0.0f;
         restored.curve  = 1.0f;
 
@@ -903,7 +903,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
 
         // Verify round-trip
         REQUIRE(restored.source == original.source);
-        REQUIRE(restored.source == LFO2);
+        REQUIRE(restored.source == ModSource::LFO2);
         REQUIRE(restored.depth  == Catch::Approx(0.75f));
         REQUIRE(restored.curve  == Catch::Approx(2.0f));
     }
@@ -913,7 +913,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
         // Set up a complete modulation slot
         std::atomic<float> baseVal{ 440.0f };
         ModulationSlot original;
-        original.mod.source = ENV2;
+        original.mod.source = ModSource::ENV2;
         original.mod.depth  = -0.5f;
         original.mod.curve  = 1.5f;
         original.baseValuePtr = &baseVal;
@@ -932,7 +932,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
 
         // Clear and restore
         ModulationSlot restored;
-        restored.mod.source = OFF;
+        restored.mod.source = ModSource::OFF;
         restored.mod.depth  = 0.0f;
         restored.mod.curve  = 1.0f;
         restored.paramId    = {};
@@ -949,7 +949,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
 
         // Verify round-trip
         REQUIRE(restored.mod.source == original.mod.source);
-        REQUIRE(restored.mod.source == ENV2);
+        REQUIRE(restored.mod.source == ModSource::ENV2);
         REQUIRE(restored.mod.depth  == Catch::Approx(-0.5f));
         REQUIRE(restored.mod.curve  == Catch::Approx(1.5f));
         REQUIRE(restored.paramId    == "ring_freq");
@@ -960,10 +960,10 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
         // Save a table of modulation connections
         constexpr int numRoutes = 4;
         ModulationConnection routes[numRoutes];
-        routes[0] = { LFO1,  0.5f, 1.0f };
-        routes[1] = { LFO2, -0.3f, 2.0f };
-        routes[2] = { ENV1,  1.0f, 1.0f };
-        routes[3] = { OFF,   0.0f, 1.0f };
+        routes[0] = { ModSource::LFO1,  0.5f, 1.0f };
+        routes[1] = { ModSource::LFO2, -0.3f, 2.0f };
+        routes[2] = { ModSource::ENV1,  1.0f, 1.0f };
+        routes[3] = { ModSource::OFF,   0.0f, 1.0f };
 
         // Serialize all routes
         juce::MemoryBlock block;
@@ -981,7 +981,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
         // Restore
         ModulationConnection restored[numRoutes];
         for (auto& r : restored)
-            r = { OFF, 0.0f, 1.0f };
+            r = { ModSource::OFF, 0.0f, 1.0f };
 
         {
             juce::MemoryInputStream stream(block, false);
@@ -1010,7 +1010,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
         // Test edge cases of the data range
         std::atomic<float> baseVal{ 1.0f };
         ModulationSlot slot;
-        slot.mod.source = LFO4;
+        slot.mod.source = ModSource::LFO4;
         slot.mod.depth  = -1.0f; // max negative depth
         slot.mod.curve  = 0.1f;  // extreme curve
         slot.baseValuePtr = &baseVal;
@@ -1036,7 +1036,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
             restored.paramId    = stream.readString();
         }
 
-        REQUIRE(restored.mod.source == LFO4);
+        REQUIRE(restored.mod.source == ModSource::LFO4);
         REQUIRE(restored.mod.depth  == Catch::Approx(-1.0f));
         REQUIRE(restored.mod.curve  == Catch::Approx(0.1f));
         REQUIRE(restored.paramId    == "spare");
@@ -1045,7 +1045,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
     SECTION("OFF source with zero depth survives round-trip")
     {
         ModulationConnection original;
-        original.source = OFF;
+        original.source = ModSource::OFF;
         original.depth  = 0.0f;
         original.curve  = 1.0f;
 
@@ -1053,7 +1053,7 @@ TEST_CASE("Modulation serialization round-trip", "[mod][serialize]")
         ModulationConnection restored;
         std::memcpy(&restored, &original, sizeof(ModulationConnection));
 
-        REQUIRE(restored.source == OFF);
+        REQUIRE(restored.source == ModSource::OFF);
         REQUIRE(restored.depth  == Catch::Approx(0.0f));
         REQUIRE(restored.curve  == Catch::Approx(1.0f));
     }

@@ -10,6 +10,8 @@ public:
     void prepare(const juce::dsp::ProcessSpec&) override {}
     void process(juce::AudioBuffer<float>&) override {}
     void reset() override {}
+    juce::ValueTree getState() const override { return {}; }
+    void setState(const juce::ValueTree&) override {}
 };
 
 TEST_CASE("EffectsChain - initial state", "[effects][init]")

@@ -37,12 +37,12 @@ static juce::File createTestWav(double sampleRate, int numSamples, const juce::S
         juce::File::tempDirectory).getChildFile("test_" + suffix + ".wav");
     wavFile.deleteFile();
 
-    auto* fileStream = wavFile.createOutputStream();
+    auto fileStream = wavFile.createOutputStream();
     REQUIRE(fileStream != nullptr);
 
     juce::WavAudioFormat wavFormat;
     auto writer = std::unique_ptr<juce::AudioFormatWriter>(
-        wavFormat.createWriterFor(fileStream, sampleRate, 1, 16, {}, 0));
+        wavFormat.createWriterFor(std::move(fileStream), sampleRate, 1, 16, {}, 0));
     REQUIRE(writer != nullptr);
 
     juce::AudioBuffer<float> buffer(1, numSamples);

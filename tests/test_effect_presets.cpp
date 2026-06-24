@@ -83,15 +83,15 @@ TEST_CASE("Effect state serialization - DelayEffect", "[effects][preset][seriali
 
     auto state = effect.getState();
     REQUIRE(state.hasType("DelayEffect"));
-    REQUIRE(state.getProperty("delayMs") == 150.0f);
+    REQUIRE(static_cast<float>(state.getProperty("delayMs")) == 150.0f);
 
     DelayEffect loaded;
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("delayMs") == 150.0f);
-    REQUIRE(reState.getProperty("feedback") == Catch::Approx(0.45f));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.6f));
+    REQUIRE(static_cast<float>(reState.getProperty("delayMs")) == 150.0f);
+    REQUIRE(static_cast<float>(reState.getProperty("feedback")) == Catch::Approx(0.45f));
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.6f));
 }
 
 TEST_CASE("Effect state serialization - ChorusEffect", "[effects][preset][serialize]")
@@ -110,11 +110,11 @@ TEST_CASE("Effect state serialization - ChorusEffect", "[effects][preset][serial
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("rate") == Catch::Approx(2.5f));
-    REQUIRE(reState.getProperty("depth") == Catch::Approx(0.75f));
-    REQUIRE(reState.getProperty("centreDelay") == Catch::Approx(15.0f));
-    REQUIRE(reState.getProperty("feedback") == Catch::Approx(0.4f));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.5f));
+    REQUIRE(static_cast<float>(reState.getProperty("rate")) == Catch::Approx(2.5f));
+    REQUIRE(static_cast<float>(reState.getProperty("depth")) == Catch::Approx(0.75f));
+    REQUIRE(static_cast<float>(reState.getProperty("centreDelay")) == Catch::Approx(15.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("feedback")) == Catch::Approx(0.4f));
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.5f));
 }
 
 TEST_CASE("Effect state serialization - FlangerEffect", "[effects][preset][serialize]")
@@ -135,13 +135,13 @@ TEST_CASE("Effect state serialization - FlangerEffect", "[effects][preset][seria
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("rate") == Catch::Approx(1.2f));
-    REQUIRE(reState.getProperty("depth") == Catch::Approx(0.8f));
-    REQUIRE(reState.getProperty("delay") == Catch::Approx(5.0f));
-    REQUIRE(reState.getProperty("feedback") == Catch::Approx(0.6f));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.7f));
-    REQUIRE(reState.getProperty("bypass") == true);
-    REQUIRE(reState.getProperty("gain") == Catch::Approx(0.9f));
+    REQUIRE(static_cast<float>(reState.getProperty("rate")) == Catch::Approx(1.2f));
+    REQUIRE(static_cast<float>(reState.getProperty("depth")) == Catch::Approx(0.8f));
+    REQUIRE(static_cast<float>(reState.getProperty("delay")) == Catch::Approx(5.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("feedback")) == Catch::Approx(0.6f));
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.7f));
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == true);
+    REQUIRE(static_cast<float>(reState.getProperty("gain")) == Catch::Approx(0.9f));
 }
 
 TEST_CASE("Effect state serialization - PhaserEffect", "[effects][preset][serialize]")
@@ -163,14 +163,14 @@ TEST_CASE("Effect state serialization - PhaserEffect", "[effects][preset][serial
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("rate") == Catch::Approx(2.0f));
-    REQUIRE(reState.getProperty("depth") == Catch::Approx(0.9f));
-    REQUIRE(reState.getProperty("feedback") == Catch::Approx(0.5f));
-    REQUIRE(reState.getProperty("stages") == 8);
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.6f));
-    REQUIRE(reState.getProperty("bypass") == false);
-    REQUIRE(reState.getProperty("gain") == Catch::Approx(1.0f));
-    REQUIRE(reState.getProperty("stereoPhaseOffset") == Catch::Approx(45.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("rate")) == Catch::Approx(2.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("depth")) == Catch::Approx(0.9f));
+    REQUIRE(static_cast<float>(reState.getProperty("feedback")) == Catch::Approx(0.5f));
+    REQUIRE(static_cast<int>(reState.getProperty("stages")) == 8);
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.6f));
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == false);
+    REQUIRE(static_cast<float>(reState.getProperty("gain")) == Catch::Approx(1.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("stereoPhaseOffset")) == Catch::Approx(45.0f));
 }
 
 TEST_CASE("Effect state serialization - DistortionEffect", "[effects][preset][serialize]")
@@ -190,10 +190,10 @@ TEST_CASE("Effect state serialization - DistortionEffect", "[effects][preset][se
     auto reState = loaded.getState();
 
     REQUIRE(static_cast<int>(reState.getProperty("type")) == static_cast<int>(DistortionType::Tube));
-    REQUIRE(reState.getProperty("drive") == Catch::Approx(70.0f));
-    REQUIRE(reState.getProperty("range") == Catch::Approx(30.0f));
-    REQUIRE(reState.getProperty("blend") == Catch::Approx(80.0f));
-    REQUIRE(reState.getProperty("volume") == Catch::Approx(90.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("drive")) == Catch::Approx(70.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("range")) == Catch::Approx(30.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("blend")) == Catch::Approx(80.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("volume")) == Catch::Approx(90.0f));
 }
 
 TEST_CASE("Effect state serialization - ReverbEffect", "[effects][preset][serialize]")
@@ -212,11 +212,11 @@ TEST_CASE("Effect state serialization - ReverbEffect", "[effects][preset][serial
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("roomSize") == Catch::Approx(0.8f));
-    REQUIRE(reState.getProperty("damping") == Catch::Approx(0.4f));
-    REQUIRE(reState.getProperty("wetLevel") == Catch::Approx(0.5f));
-    REQUIRE(reState.getProperty("dryLevel") == Catch::Approx(0.5f));
-    REQUIRE(reState.getProperty("width") == Catch::Approx(0.9f));
+    REQUIRE(static_cast<float>(reState.getProperty("roomSize")) == Catch::Approx(0.8f));
+    REQUIRE(static_cast<float>(reState.getProperty("damping")) == Catch::Approx(0.4f));
+    REQUIRE(static_cast<float>(reState.getProperty("wetLevel")) == Catch::Approx(0.5f));
+    REQUIRE(static_cast<float>(reState.getProperty("dryLevel")) == Catch::Approx(0.5f));
+    REQUIRE(static_cast<float>(reState.getProperty("width")) == Catch::Approx(0.9f));
 }
 
 TEST_CASE("Effect state serialization - EQEffect", "[effects][preset][serialize]")
@@ -278,17 +278,17 @@ TEST_CASE("Effect state serialization - CompressorEffect", "[effects][preset][se
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("threshold") == Catch::Approx(-30.0f));
-    REQUIRE(reState.getProperty("ratio") == Catch::Approx(8.0f));
-    REQUIRE(reState.getProperty("attack") == Catch::Approx(5.0f));
-    REQUIRE(reState.getProperty("release") == Catch::Approx(50.0f));
-    REQUIRE(reState.getProperty("knee") == Catch::Approx(3.0f));
-    REQUIRE(reState.getProperty("makeupGain") == Catch::Approx(6.0f));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.8f));
-    REQUIRE(reState.getProperty("bypass") == false);
-    REQUIRE(reState.getProperty("gain") == Catch::Approx(1.0f));
-    REQUIRE(reState.getProperty("rmsMode") == false);
-    REQUIRE(reState.getProperty("autoMakeup") == true);
+    REQUIRE(static_cast<float>(reState.getProperty("threshold")) == Catch::Approx(-30.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("ratio")) == Catch::Approx(8.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("attack")) == Catch::Approx(5.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("release")) == Catch::Approx(50.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("knee")) == Catch::Approx(3.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("makeupGain")) == Catch::Approx(6.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.8f));
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == false);
+    REQUIRE(static_cast<float>(reState.getProperty("gain")) == Catch::Approx(1.0f));
+    REQUIRE(static_cast<bool>(reState.getProperty("rmsMode")) == false);
+    REQUIRE(static_cast<bool>(reState.getProperty("autoMakeup")) == true);
 }
 
 TEST_CASE("Effect state serialization - LimiterEffect", "[effects][preset][serialize]")
@@ -310,14 +310,14 @@ TEST_CASE("Effect state serialization - LimiterEffect", "[effects][preset][seria
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("threshold") == Catch::Approx(-12.0f));
-    REQUIRE(reState.getProperty("attack") == Catch::Approx(0.5f));
-    REQUIRE(reState.getProperty("release") == Catch::Approx(10.0f));
-    REQUIRE(reState.getProperty("lookahead") == Catch::Approx(1.0f));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.9f));
-    REQUIRE(reState.getProperty("bypass") == true);
-    REQUIRE(reState.getProperty("gain") == Catch::Approx(0.8f));
-    REQUIRE(reState.getProperty("oversampling") == 2);
+    REQUIRE(static_cast<float>(reState.getProperty("threshold")) == Catch::Approx(-12.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("attack")) == Catch::Approx(0.5f));
+    REQUIRE(static_cast<float>(reState.getProperty("release")) == Catch::Approx(10.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("lookahead")) == Catch::Approx(1.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.9f));
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == true);
+    REQUIRE(static_cast<float>(reState.getProperty("gain")) == Catch::Approx(0.8f));
+    REQUIRE(static_cast<int>(reState.getProperty("oversampling")) == 2);
 }
 
 TEST_CASE("Effect state serialization - BitcrusherEffect", "[effects][preset][serialize]")
@@ -334,9 +334,9 @@ TEST_CASE("Effect state serialization - BitcrusherEffect", "[effects][preset][se
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("bitDepth") == Catch::Approx(12.0f));
-    REQUIRE(reState.getProperty("downsample") == Catch::Approx(4.0f));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.7f));
+    REQUIRE(static_cast<float>(reState.getProperty("bitDepth")) == Catch::Approx(12.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("downsample")) == Catch::Approx(4.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.7f));
 }
 
 TEST_CASE("Effect state serialization - SaturationEffect", "[effects][preset][serialize]")
@@ -360,7 +360,7 @@ TEST_CASE("Effect state serialization - SaturationEffect", "[effects][preset][se
     REQUIRE(static_cast<double>(reState.getProperty("drive")) == Catch::Approx(60.0));
     REQUIRE(static_cast<double>(reState.getProperty("tone")) == Catch::Approx(5000.0));
     REQUIRE(static_cast<double>(reState.getProperty("mix")) == Catch::Approx(80.0));
-    REQUIRE(reState.getProperty("bypass") == false);
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == false);
     REQUIRE(static_cast<double>(reState.getProperty("gain")) == Catch::Approx(1.2));
 }
 
@@ -379,10 +379,10 @@ TEST_CASE("Effect state serialization - StereoWidenerEffect", "[effects][preset]
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("width") == Catch::Approx(0.75f));
+    REQUIRE(static_cast<float>(reState.getProperty("width")) == Catch::Approx(0.75f));
     REQUIRE(static_cast<int>(reState.getProperty("mode")) == static_cast<int>(StereoWidenerMode::Wide));
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.6f));
-    REQUIRE(reState.getProperty("bypass") == false);
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.6f));
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == false);
 }
 
 TEST_CASE("Effect state serialization - RingModulatorEffect", "[effects][preset][serialize]")
@@ -401,11 +401,11 @@ TEST_CASE("Effect state serialization - RingModulatorEffect", "[effects][preset]
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("frequency") == Catch::Approx(440.0f));
-    REQUIRE(reState.getProperty("waveform") == 1);
-    REQUIRE(reState.getProperty("mix") == Catch::Approx(0.4f));
-    REQUIRE(reState.getProperty("bypass") == true);
-    REQUIRE(reState.getProperty("gain") == Catch::Approx(0.7f));
+    REQUIRE(static_cast<float>(reState.getProperty("frequency")) == Catch::Approx(440.0f));
+    REQUIRE(static_cast<int>(reState.getProperty("waveform")) == 1);
+    REQUIRE(static_cast<float>(reState.getProperty("mix")) == Catch::Approx(0.4f));
+    REQUIRE(static_cast<bool>(reState.getProperty("bypass")) == true);
+    REQUIRE(static_cast<float>(reState.getProperty("gain")) == Catch::Approx(0.7f));
 }
 
 TEST_CASE("Effect state serialization - AutoTuneEffect", "[effects][preset][serialize]")
@@ -422,9 +422,9 @@ TEST_CASE("Effect state serialization - AutoTuneEffect", "[effects][preset][seri
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(reState.getProperty("retuneSpeed") == Catch::Approx(25.0f));
-    REQUIRE(reState.getProperty("amount") == Catch::Approx(0.8f));
-    REQUIRE(reState.getProperty("enabled") == true);
+    REQUIRE(static_cast<float>(reState.getProperty("retuneSpeed")) == Catch::Approx(25.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("amount")) == Catch::Approx(0.8f));
+    REQUIRE(static_cast<bool>(reState.getProperty("enabled")) == true);
 }
 
 //==============================================================================
@@ -474,20 +474,20 @@ TEST_CASE("Preset round-trip", "[effects][preset][roundtrip]")
         // Verify FlangerEffect parameters
         auto& slot0 = harness.effectsChain.getEffect(0);
         auto flangerState = slot0.effect->getState();
-        REQUIRE(flangerState.getProperty("rate") == Catch::Approx(1.5f));
-        REQUIRE(flangerState.getProperty("depth") == Catch::Approx(0.7f));
-        REQUIRE(flangerState.getProperty("delay") == Catch::Approx(4.0f));
-        REQUIRE(flangerState.getProperty("feedback") == Catch::Approx(0.5f));
-        REQUIRE(flangerState.getProperty("mix") == Catch::Approx(0.6f));
-        REQUIRE(flangerState.getProperty("bypass") == false);
-        REQUIRE(flangerState.getProperty("gain") == Catch::Approx(1.0f));
+        REQUIRE(static_cast<float>(flangerState.getProperty("rate")) == Catch::Approx(1.5f));
+        REQUIRE(static_cast<float>(flangerState.getProperty("depth")) == Catch::Approx(0.7f));
+        REQUIRE(static_cast<float>(flangerState.getProperty("delay")) == Catch::Approx(4.0f));
+        REQUIRE(static_cast<float>(flangerState.getProperty("feedback")) == Catch::Approx(0.5f));
+        REQUIRE(static_cast<float>(flangerState.getProperty("mix")) == Catch::Approx(0.6f));
+        REQUIRE(static_cast<bool>(flangerState.getProperty("bypass")) == false);
+        REQUIRE(static_cast<float>(flangerState.getProperty("gain")) == Catch::Approx(1.0f));
 
         // Verify BitcrusherEffect parameters
         auto& slot1 = harness.effectsChain.getEffect(1);
         auto crusherState = slot1.effect->getState();
-        REQUIRE(crusherState.getProperty("bitDepth") == Catch::Approx(6.0f));
-        REQUIRE(crusherState.getProperty("downsample") == Catch::Approx(3.0f));
-        REQUIRE(crusherState.getProperty("mix") == Catch::Approx(0.8f));
+        REQUIRE(static_cast<float>(crusherState.getProperty("bitDepth")) == Catch::Approx(6.0f));
+        REQUIRE(static_cast<float>(crusherState.getProperty("downsample")) == Catch::Approx(3.0f));
+        REQUIRE(static_cast<float>(crusherState.getProperty("mix")) == Catch::Approx(0.8f));
     }
 
     cleanupTestDir(testDir);
@@ -509,7 +509,7 @@ TEST_CASE("Factory presets load", "[effects][preset][factory]")
     effect.setState(slapback);
 
     auto state = effect.getState();
-    REQUIRE(state.getProperty("delayMs") == 80.0f);
+    REQUIRE(static_cast<float>(state.getProperty("delayMs")) == 80.0f);
     REQUIRE(static_cast<double>(state.getProperty("feedback")) == Catch::Approx(0.2));
     REQUIRE(static_cast<double>(state.getProperty("mix")) == Catch::Approx(0.3));
 }
@@ -631,9 +631,9 @@ TEST_CASE("Missing Effects section", "[effects][preset][missing]")
         // The flanger should still have its original state since there's no <Effects> section
         auto& slot0 = harness.effectsChain.getEffect(0);
         auto state = slot0.effect->getState();
-        REQUIRE(state.getProperty("rate") == Catch::Approx(3.0f));
-        REQUIRE(state.getProperty("depth") == Catch::Approx(0.9f));
-        REQUIRE(state.getProperty("feedback") == Catch::Approx(0.7f));
+        REQUIRE(static_cast<float>(state.getProperty("rate")) == Catch::Approx(3.0f));
+        REQUIRE(static_cast<float>(state.getProperty("depth")) == Catch::Approx(0.9f));
+        REQUIRE(static_cast<float>(state.getProperty("feedback")) == Catch::Approx(0.7f));
     }
 
     cleanupTestDir(testDir);
@@ -699,36 +699,36 @@ TEST_CASE("Multiple slot serialization", "[effects][preset][multislot]")
         {
             auto& slot = harness.effectsChain.getEffect(0);
             auto state = slot.effect->getState();
-            REQUIRE(state.getProperty("rate") == Catch::Approx(0.8f));
-            REQUIRE(state.getProperty("depth") == Catch::Approx(0.6f));
-            REQUIRE(state.getProperty("delay") == Catch::Approx(2.5f));
-            REQUIRE(state.getProperty("feedback") == Catch::Approx(0.4f));
-            REQUIRE(state.getProperty("mix") == Catch::Approx(0.5f));
-            REQUIRE(state.getProperty("bypass") == false);
-            REQUIRE(state.getProperty("gain") == Catch::Approx(1.0f));
+            REQUIRE(static_cast<float>(state.getProperty("rate")) == Catch::Approx(0.8f));
+            REQUIRE(static_cast<float>(state.getProperty("depth")) == Catch::Approx(0.6f));
+            REQUIRE(static_cast<float>(state.getProperty("delay")) == Catch::Approx(2.5f));
+            REQUIRE(static_cast<float>(state.getProperty("feedback")) == Catch::Approx(0.4f));
+            REQUIRE(static_cast<float>(state.getProperty("mix")) == Catch::Approx(0.5f));
+            REQUIRE(static_cast<bool>(state.getProperty("bypass")) == false);
+            REQUIRE(static_cast<float>(state.getProperty("gain")) == Catch::Approx(1.0f));
         }
 
         // Verify Compressor params
         {
             auto& slot = harness.effectsChain.getEffect(1);
             auto state = slot.effect->getState();
-            REQUIRE(state.getProperty("threshold") == Catch::Approx(-18.0f));
-            REQUIRE(state.getProperty("ratio") == Catch::Approx(6.0f));
-            REQUIRE(state.getProperty("attack") == Catch::Approx(3.0f));
-            REQUIRE(state.getProperty("release") == Catch::Approx(80.0f));
-            REQUIRE(state.getProperty("knee") == Catch::Approx(6.0f));
-            REQUIRE(state.getProperty("makeupGain") == Catch::Approx(3.0f));
-            REQUIRE(state.getProperty("mix") == Catch::Approx(0.75f));
-            REQUIRE(state.getProperty("rmsMode") == true);
+            REQUIRE(static_cast<float>(state.getProperty("threshold")) == Catch::Approx(-18.0f));
+            REQUIRE(static_cast<float>(state.getProperty("ratio")) == Catch::Approx(6.0f));
+            REQUIRE(static_cast<float>(state.getProperty("attack")) == Catch::Approx(3.0f));
+            REQUIRE(static_cast<float>(state.getProperty("release")) == Catch::Approx(80.0f));
+            REQUIRE(static_cast<float>(state.getProperty("knee")) == Catch::Approx(6.0f));
+            REQUIRE(static_cast<float>(state.getProperty("makeupGain")) == Catch::Approx(3.0f));
+            REQUIRE(static_cast<float>(state.getProperty("mix")) == Catch::Approx(0.75f));
+            REQUIRE(static_cast<bool>(state.getProperty("rmsMode")) == true);
         }
 
         // Verify Bitcrusher params
         {
             auto& slot = harness.effectsChain.getEffect(2);
             auto state = slot.effect->getState();
-            REQUIRE(state.getProperty("bitDepth") == Catch::Approx(4.0f));
-            REQUIRE(state.getProperty("downsample") == Catch::Approx(8.0f));
-            REQUIRE(state.getProperty("mix") == Catch::Approx(0.5f));
+            REQUIRE(static_cast<float>(state.getProperty("bitDepth")) == Catch::Approx(4.0f));
+            REQUIRE(static_cast<float>(state.getProperty("downsample")) == Catch::Approx(8.0f));
+            REQUIRE(static_cast<float>(state.getProperty("mix")) == Catch::Approx(0.5f));
         }
     }
 

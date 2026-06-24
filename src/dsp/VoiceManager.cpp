@@ -1011,8 +1011,61 @@ void VoiceManager::resetFilter(int voiceIndex) const
 }
 
 //==============================================================================
-// NoteOn / NoteOff (legacy compat — not used with MPESynthesiser MIDI processing)
-// These are kept for external consumers that trigger notes directly.
+// NoteOn / NoteOff / AllVoicesOff (legacy compat — not used with MPESynthesiser
+// MIDI processing).  These are kept for external consumers that trigger notes
+// directly without going through the MPE/MIDI pipeline.
 //==============================================================================
+
+void VoiceManager::noteOn(int note, float velocity)
+{
+    if (note < 0 || note > 127)
+        return;
+    velocity = clampFloat(velocity, 0.0f, 1.0f);
+
+    // Phase 1: find a free voice
+    for (int i = 0; i < maxVoices; ++i)
+    {
+        if (!isVoiceActive(i))
+        {
+            startVoice(i, note, velocity);
+            getVoice(i)->state.store(VoiceState::attack, std::memory_order_release);
+            return;
+        }
+    }
+
+    // Phase 2: no free voice — try stealing
+    const int stealIdx = stealVoice();
+    if (stealIdx >= 0)
+    {
+        auto* voice = getVoice(stealIdx);
+        voice->clearCurrentNote();
+        voice->state.store(VoiceState::free, std::memory_order_release);
+        startVoice(stealIdx, note, velocity);
+        voice->state.store(VoiceState::attack, std::memory_order_release);
+    }
+}
+
+void VoiceManager::noteOff(int note)
+{
+    if (note < 0 || note > 127)
+        return;
+
+    for (int i = 0; i < maxVoices; ++i)
+    {
+        auto* voice = getVoice(i);
+        if (voice->isActive() && voice->note == note)
+            voice->noteStopped(true);
+    }
+}
+
+void VoiceManager::allVoicesOff()
+{
+    for (int i = 0; i < maxVoices; ++i)
+    {
+        auto* voice = getVoice(i);
+        if (voice->isActive())
+            voice->noteStopped(true);
+    }
+}
 
 } // namespace ana

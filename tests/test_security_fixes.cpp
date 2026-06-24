@@ -156,7 +156,7 @@ TEST_CASE("VoiceManager - atomic state transitions are coherent",
     REQUIRE(state == VoiceState::attack);
 
     // Note off should transition to release (with tail)
-    vm.noteOff(60, 0.0f, true);
+    vm.noteOff(60);
     state = voice->state.load(std::memory_order_acquire);
     REQUIRE(state == VoiceState::release);
 }

@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 #include <cmath>
+#include <random>
 #include <set>
 #include "dsp/effects/DeEsserModule.h"
 #include "dsp/effects/BreathNoiseGenerator.h"
@@ -245,11 +246,12 @@ TEST_CASE("VocalNoiseReducer lowers noise floor", "[vocal][noisereduce]")
     signal.clear();
 
     // Tone + noise
-    juce::Random rng(12345);
+    std::mt19937 rng(12345);
+    std::normal_distribution<float> gauss;
     for (int i = 0; i < kLen; ++i)
     {
         float s = 0.5f * std::sin(2.0f * float(juce::MathConstants<double>::pi) * 440.0f * i / static_cast<float>(spec.sampleRate));
-        s += 0.15f * static_cast<float>(rng.nextGaussian());
+        s += 0.15f * static_cast<float>(gauss(rng));
         signal.setSample(0, i, s);
     }
 
@@ -364,15 +366,14 @@ TEST_CASE("Vocal presets round-trip", "[vocal][preset][roundtrip]")
         REQUIRE(reloadedParams.hasType("Parameters"));
 
         // Compare properties
-        auto origProps = params.getProperties();
-        auto relProps  = reloadedParams.getProperties();
-        for (int i = 0; i < origProps.size(); ++i)
+        auto origPropNames = params.getPropertyNames();
+        for (int i = 0; i < origPropNames.size(); ++i)
         {
-            auto key = origProps.getName(i);
-            if (relProps.contains(key))
+            auto key = origPropNames[i];
+            if (reloadedParams.hasProperty(key))
             {
-                double ov = static_cast<double>(origProps.getValue(key));
-                double rv = static_cast<double>(relProps.getValue(key));
+                double ov = static_cast<double>(params.getProperty(key));
+                double rv = static_cast<double>(reloadedParams.getProperty(key));
                 REQUIRE(ov == Catch::Approx(rv));
             }
         }
@@ -383,15 +384,14 @@ TEST_CASE("Vocal presets round-trip", "[vocal][preset][roundtrip]")
         REQUIRE(origVc.isValid());
         REQUIRE(relVc.isValid());
 
-        auto origVcProps = origVc.getProperties();
-        auto relVcProps  = relVc.getProperties();
-        for (int i = 0; i < origVcProps.size(); ++i)
+        auto origVcPropNames = origVc.getPropertyNames();
+        for (int i = 0; i < origVcPropNames.size(); ++i)
         {
-            auto key = origVcProps.getName(i);
-            if (relVcProps.contains(key))
+            auto key = origVcPropNames[i];
+            if (relVc.hasProperty(key))
             {
-                double ov = static_cast<double>(origVcProps.getValue(key));
-                double rv = static_cast<double>(relVcProps.getValue(key));
+                double ov = static_cast<double>(origVc.getProperty(key));
+                double rv = static_cast<double>(relVc.getProperty(key));
                 REQUIRE(ov == Catch::Approx(rv));
             }
         }

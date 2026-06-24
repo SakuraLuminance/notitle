@@ -12,6 +12,22 @@
 
 using namespace ana;
 
+//==============================================================================
+/** Test accessor that exposes private PresetManager methods for unit testing. */
+class PresetManagerTestAccess
+{
+public:
+    static juce::ValueTree serialiseModulationRouting(PresetManager& pm)
+    {
+        return pm.serialiseModulationRouting();
+    }
+
+    static bool deserialiseModulationRouting(PresetManager& pm, const juce::ValueTree& tree)
+    {
+        return pm.deserialiseModulationRouting(tree);
+    }
+};
+
 // ===========================================================================
 // Task 14 — Security regression tests V2
 //
@@ -177,14 +193,14 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr during serialisation",
     std::atomic<float> val1{0.5f};
     slots[0].baseValuePtr = &val1;
     slots[0].paramId = "cutoff";
-    slots[0].mod.source = LFO1;
+    slots[0].mod.source = ModSource::LFO1;
     slots[0].mod.depth = 0.3f;
     slots[0].mod.curve = 1.0f;
 
     // Slot with nullptr baseValuePtr — simulates a disconnected target
     slots[1].baseValuePtr = nullptr;
     slots[1].paramId = "resonance";
-    slots[1].mod.source = LFO2;
+    slots[1].mod.source = ModSource::LFO2;
     slots[1].mod.depth = 0.5f;
 
     // Slot with both nullptr baseValuePtr and empty paramId — edge case
@@ -197,7 +213,7 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr during serialisation",
 
     // Serialise — should not crash even if baseValuePtr is nullptr
     juce::ValueTree routing;
-    REQUIRE_NOTHROW(routing = pm.serialiseModulationRouting());
+    REQUIRE_NOTHROW(routing = PresetManagerTestAccess::serialiseModulationRouting(pm));
 
     // The serialisation should have produced a valid tree
     REQUIRE(routing.isValid());
@@ -213,7 +229,7 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr during serialisation",
     REQUIRE(static_cast<double>(child0.getProperty("depth")) == Catch::Approx(0.3));
 
     // Deserialise — should not crash with nullptr baseValuePtr
-    REQUIRE_NOTHROW(pm.deserialiseModulationRouting(routing));
+    REQUIRE_NOTHROW(PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 
     // After deserialise, the nullptr slot's paramId should still be findable
     // and the deserialise should not have crashed when resetting slots
@@ -230,7 +246,7 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr on empty bus",
     {
         s.baseValuePtr = nullptr;
         s.paramId = "";
-        s.mod.source = OFF;
+        s.mod.source = ModSource::OFF;
         s.mod.depth = 0.0f;
     }
 
@@ -239,12 +255,12 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr on empty bus",
 
     // Serialisation should not crash with all-nullptr slots
     juce::ValueTree routing;
-    REQUIRE_NOTHROW(routing = pm.serialiseModulationRouting());
+    REQUIRE_NOTHROW(routing = PresetManagerTestAccess::serialiseModulationRouting(pm));
     REQUIRE(routing.isValid());
     REQUIRE(routing.getNumChildren() == 16);
 
     // Deserialisation should not crash
-    REQUIRE_NOTHROW(pm.deserialiseModulationRouting(routing));
+    REQUIRE_NOTHROW(PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 }
 
 TEST_CASE("V5 - ModulationSlot deserialisation with null ref does not crash",
@@ -262,5 +278,5 @@ TEST_CASE("V5 - ModulationSlot deserialisation with null ref does not crash",
     routing.addChild(slot, 0, nullptr);
 
     // modSlotsRef_ is nullptr by default — should return false without crash
-    REQUIRE_FALSE(pm.deserialiseModulationRouting(routing));
+    REQUIRE_FALSE(PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 }

@@ -359,6 +359,30 @@ public:
     /** Sets the waveform type for all voices (global change). */
     void setAllWaveforms(AnaVoice::WaveformType type);
 
+    //==============================================================================
+    /**
+     * Starts a note on the first available voice (legacy compat API).
+     * Finds a free voice, or steals one if all voices are active.
+     *
+     * @param note     MIDI note number [0, 127]
+     * @param velocity Note-on velocity [0, 1]
+     */
+    void noteOn(int note, float velocity);
+
+    /**
+     * Stops all voices currently playing the given MIDI note.
+     * Transitions matching voices from attack/decay/sustain to release.
+     *
+     * @param note  MIDI note number to stop
+     */
+    void noteOff(int note);
+
+    /**
+     * Stops all active voices immediately.
+     * Every active voice is transitioned to its release phase.
+     */
+    void allVoicesOff();
+
 protected:
     //==============================================================================
     /**

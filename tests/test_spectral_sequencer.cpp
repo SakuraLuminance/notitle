@@ -17,9 +17,9 @@ TEST_CASE("SpectralSequencer - setup", "[sequencer][setup]")
 {
     SpectralSequencer seq;
     seq.setSampleRate(testSampleRate);
-    seq.setBpm(120.0f);
-    seq.setRunning(true);
-    seq.setSyncMode(true);
+    seq.setTempo(120.0f);
+    seq.start();
+    seq.setBeatDivision(4);
     SUCCEED();
 }
 
@@ -28,10 +28,10 @@ TEST_CASE("SpectralSequencer - sequence", "[sequencer][sequence]")
     SpectralSequencer seq;
     seq.setSampleRate(testSampleRate);
     
-    SpectralSequencer::Step step;
+    SpectralStep step;
     step.active = true;
-    step.frequencyMultiplier = 1.5f;
-    step.amplitudeMultiplier = 0.8f;
+    step.pitchShift = 1.5f;
+    step.gain = 0.8f;
     
     seq.setStep(0, step);
     

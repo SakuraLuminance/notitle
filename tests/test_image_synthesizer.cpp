@@ -100,7 +100,7 @@ TEST_CASE("ImageSynthesizer - amplitude from uniform white image", "[image]")
     for (const auto& frame : data.frames)
         for (const auto& p : frame.partials)
             // White → brightness ≈ 1.0  (within 8‑bit quantisation)
-            REQUIRE(p.amplitude == Approx(1.0f).epsilon(0.01f));
+            REQUIRE(p.amplitude == Catch::Approx(1.0f).epsilon(0.01f));
 }
 
 TEST_CASE("ImageSynthesizer - amplitude from uniform 50% gray image", "[image]")
@@ -113,7 +113,7 @@ TEST_CASE("ImageSynthesizer - amplitude from uniform 50% gray image", "[image]")
     for (const auto& frame : data.frames)
         for (const auto& p : frame.partials)
             // 0.5 → stored as 8‑bit (127 or 128) → float ~0.498-0.502
-            REQUIRE(p.amplitude == Approx(0.5f).epsilon(0.02f));
+            REQUIRE(p.amplitude == Catch::Approx(0.5f).epsilon(0.02f));
 }
 
 TEST_CASE("ImageSynthesizer - black pixels are skipped", "[image]")
@@ -158,8 +158,8 @@ TEST_CASE("ImageSynthesizer - frequency increases from bottom to top", "[image]"
     REQUIRE(p[0].frequency > p[1].frequency);
     REQUIRE(p[1].frequency > p[2].frequency);
 
-    REQUIRE(p[2].frequency == Approx(100.0f).margin(0.5f));
-    REQUIRE(p[0].frequency == Approx(10000.0f).margin(0.5f));
+    REQUIRE(p[2].frequency == Catch::Approx(100.0f).margin(0.5f));
+    REQUIRE(p[0].frequency == Catch::Approx(10000.0f).margin(0.5f));
 }
 
 // ============================================================================
@@ -185,7 +185,7 @@ TEST_CASE("ImageSynthesizer - pitch plane shifts frequency upward", "[image]")
     // Bottom pixel (y=1, partials[1]): baseFreq = 20 Hz
     //   deviation = (1.0 - 0.5)*2*12 = +12 st   →  20 * 2^(12/12) = 40 Hz
     const float expected = 20.0f * std::pow(2.0f, 12.0f / 12.0f);
-    REQUIRE(data.frames[0].partials[1].frequency == Approx(expected).epsilon(0.01f));
+    REQUIRE(data.frames[0].partials[1].frequency == Catch::Approx(expected).epsilon(0.01f));
 }
 
 TEST_CASE("ImageSynthesizer - pitch plane shifts frequency downward", "[image]")
@@ -205,7 +205,7 @@ TEST_CASE("ImageSynthesizer - pitch plane shifts frequency downward", "[image]")
     // Bottom pixel (y=1): baseFreq = 20 Hz
     //   deviation = (0.0 - 0.5)*2*12 = -12 st  →  20 / 2^(12/12) = 10 Hz
     const float expected = 20.0f / std::pow(2.0f, 12.0f / 12.0f);
-    REQUIRE(data.frames[0].partials[1].frequency == Approx(expected).epsilon(0.01f));
+    REQUIRE(data.frames[0].partials[1].frequency == Catch::Approx(expected).epsilon(0.01f));
 }
 
 TEST_CASE("ImageSynthesizer - gray pitch plane causes negligible shift", "[image]")
@@ -223,7 +223,7 @@ TEST_CASE("ImageSynthesizer - gray pitch plane causes negligible shift", "[image
     REQUIRE(data.frames.size() == 1);
 
     // Bottom pixel (y=1): baseFreq = 20, deviation ~0 → still ~20 Hz
-    REQUIRE(data.frames[0].partials[1].frequency == Approx(20.0f).epsilon(0.03f));
+    REQUIRE(data.frames[0].partials[1].frequency == Catch::Approx(20.0f).epsilon(0.03f));
 }
 
 // ============================================================================
@@ -245,7 +245,7 @@ TEST_CASE("ImageSynthesizer - PartialData metadata is populated", "[image]")
 
     // Timestamps increase by hopSize/sampleRate per frame
     REQUIRE(data.frames[0].timestamp == 0.0);
-    REQUIRE(data.frames[1].timestamp == Approx(512.0 / 48000.0));
+    REQUIRE(data.frames[1].timestamp == Catch::Approx(512.0 / 48000.0));
 }
 
 // ============================================================================
@@ -256,7 +256,7 @@ TEST_CASE("ImageSynthesizer - loadImage with non-existent file", "[image]")
 {
     ana::ImageSynthesizer synth;
     REQUIRE_FALSE(synth.loadImage(juce::File{}));
-    REQUIRE_FALSE(synth.loadImage(juce::File::getCurrentDirectory()
+    REQUIRE_FALSE(synth.loadImage(juce::File::getSpecialLocation(juce::File::tempDirectory)
                                       .getChildFile("__does_not_exist__.png")));
 }
 

@@ -54,32 +54,32 @@ TEST_CASE("LFOSystem - sine waveform", "[lfo][waveform][sine]")
     SECTION("phase 0")
     {
         float val = lfo.process(0);
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 
     SECTION("phase 0.25")
     {
         float val = lfo.process(samplesForPhase(hz, 0.25));
-        REQUIRE(val == Approx(1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.001f));
     }
 
     SECTION("phase 0.5")
     {
         float val = lfo.process(samplesForPhase(hz, 0.5));
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 
     SECTION("phase 0.75")
     {
         float val = lfo.process(samplesForPhase(hz, 0.75));
-        REQUIRE(val == Approx(-1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-1.0f).margin(0.001f));
     }
 
     SECTION("full cycle returns to zero")
     {
         lfo.process(samplesForPhase(hz, 1.0));
         float val = lfo.process(0);
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 }
 
@@ -96,25 +96,25 @@ TEST_CASE("LFOSystem - triangle waveform", "[lfo][waveform][triangle]")
     SECTION("phase 0")
     {
         float val = lfo.process(0);
-        REQUIRE(val == Approx(-1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-1.0f).margin(0.001f));
     }
 
     SECTION("phase 0.25")
     {
         float val = lfo.process(samplesForPhase(hz, 0.25));
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 
     SECTION("phase 0.5")
     {
         float val = lfo.process(samplesForPhase(hz, 0.5));
-        REQUIRE(val == Approx(1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.001f));
     }
 
     SECTION("phase 0.75")
     {
         float val = lfo.process(samplesForPhase(hz, 0.75));
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 }
 
@@ -131,19 +131,19 @@ TEST_CASE("LFOSystem - saw waveform", "[lfo][waveform][saw]")
     SECTION("phase 0")
     {
         float val = lfo.process(0);
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 
     SECTION("phase 0.25")
     {
         float val = lfo.process(samplesForPhase(hz, 0.25));
-        REQUIRE(val == Approx(0.5f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.5f).margin(0.001f));
     }
 
     SECTION("phase 0.75")
     {
         float val = lfo.process(samplesForPhase(hz, 0.75));
-        REQUIRE(val == Approx(-0.5f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-0.5f).margin(0.001f));
     }
 }
 
@@ -160,25 +160,25 @@ TEST_CASE("LFOSystem - square waveform", "[lfo][waveform][square]")
     SECTION("positive half (phase 0.1)")
     {
         float val = lfo.process(samplesForPhase(hz, 0.1));
-        REQUIRE(val == Approx(1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.001f));
     }
 
     SECTION("positive half (phase 0.4)")
     {
         float val = lfo.process(samplesForPhase(hz, 0.4));
-        REQUIRE(val == Approx(1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.001f));
     }
 
     SECTION("negative half (phase 0.6)")
     {
         float val = lfo.process(samplesForPhase(hz, 0.6));
-        REQUIRE(val == Approx(-1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-1.0f).margin(0.001f));
     }
 
     SECTION("negative half (phase 0.9)")
     {
         float val = lfo.process(samplesForPhase(hz, 0.9));
-        REQUIRE(val == Approx(-1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-1.0f).margin(0.001f));
     }
 }
 
@@ -239,7 +239,7 @@ TEST_CASE("LFOSystem - rate accuracy", "[lfo][rate]")
 
         // After exactly 1 second at 5 Hz, sine should be at phase 0 (5 full cycles)
         float val = lfo.process(0);
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 
     SECTION("10 Hz completes 10 cycles in 1 second")
@@ -248,7 +248,7 @@ TEST_CASE("LFOSystem - rate accuracy", "[lfo][rate]")
         lfo.process(static_cast<int>(TEST_SR)); // advance 1 second
 
         float val = lfo.process(0);
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 
     SECTION("2 Hz sine hits expected values at quarter cycles")
@@ -258,13 +258,13 @@ TEST_CASE("LFOSystem - rate accuracy", "[lfo][rate]")
         const int quarterCycle = static_cast<int>(TEST_SR / 2.0 / 4.0); // 5512 (rounded)
 
         float v1 = lfo.process(quarterCycle);
-        REQUIRE(v1 == Approx(1.0f).margin(0.005f));
+        REQUIRE(v1 == Catch::Approx(1.0f).margin(0.005f));
 
         float v2 = lfo.process(quarterCycle);
-        REQUIRE(v2 == Approx(0.0f).margin(0.005f));
+        REQUIRE(v2 == Catch::Approx(0.0f).margin(0.005f));
 
         float v3 = lfo.process(quarterCycle);
-        REQUIRE(v3 == Approx(-1.0f).margin(0.005f));
+        REQUIRE(v3 == Catch::Approx(-1.0f).margin(0.005f));
     }
 }
 
@@ -288,7 +288,7 @@ TEST_CASE("LFOSystem - tempo sync", "[lfo][sync]")
 
         // 2 Hz → half cycle at 11025 samples → sin(π) = 0
         float val = lfo.process(static_cast<int>(TEST_SR / 4.0)); // quarter second = half cycle
-        REQUIRE(val == Approx(0.0f).margin(0.005f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.005f));
     }
 
     SECTION("eighth note at 120 BPM equals 4 Hz")
@@ -299,7 +299,7 @@ TEST_CASE("LFOSystem - tempo sync", "[lfo][sync]")
 
         // 4 Hz → quarter cycle at 11025/2 = 5512 samples → sin(π/2) = 1
         float val = lfo.process(static_cast<int>(TEST_SR / 8.0)); // 1/8 second = quarter cycle
-        REQUIRE(val == Approx(1.0f).margin(0.01f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.01f));
     }
 
     SECTION("sixteenth note at 120 BPM equals 8 Hz")
@@ -311,7 +311,7 @@ TEST_CASE("LFOSystem - tempo sync", "[lfo][sync]")
         // Verify rate is approximately 8 Hz after 1/4 second
         lfo.process(static_cast<int>(TEST_SR / 4.0)); // 2 full cycles at 8 Hz
         float val = lfo.process(0);
-        REQUIRE(val == Approx(0.0f).margin(0.01f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.01f));
     }
 
     SECTION("tempo change updates effective rate")
@@ -321,7 +321,7 @@ TEST_CASE("LFOSystem - tempo sync", "[lfo][sync]")
 
         // 1 Hz → quarter cycle at 11025 → sin(π/2) = 1
         float val = lfo.process(static_cast<int>(TEST_SR / 4.0));
-        REQUIRE(val == Approx(1.0f).margin(0.005f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.005f));
     }
 
     SECTION("setRate disables sync")
@@ -373,7 +373,7 @@ TEST_CASE("LFOSystem - bipolar/unipolar mode", "[lfo][output]")
         lfo.setBipolar(false);
         float val = lfo.process(0);
         // At phase 0: raw sine = 0, scaled = 0, unipolar = 0*0.5 + 0.5 = 0.5
-        REQUIRE(val == Approx(0.5f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.5f).margin(0.001f));
     }
 
     SECTION("unipolar sine peak at phase 0.25")
@@ -381,7 +381,7 @@ TEST_CASE("LFOSystem - bipolar/unipolar mode", "[lfo][output]")
         lfo.setBipolar(false);
         float val = lfo.process(samplesForPhase(5.0f, 0.25));
         // At phase 0.25: raw = 1, scaled = 1, unipolar = 1*0.5 + 0.5 = 1.0
-        REQUIRE(val == Approx(1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.001f));
     }
 
     SECTION("unipolar sine trough at phase 0.75")
@@ -389,7 +389,7 @@ TEST_CASE("LFOSystem - bipolar/unipolar mode", "[lfo][output]")
         lfo.setBipolar(false);
         float val = lfo.process(samplesForPhase(5.0f, 0.75));
         // At phase 0.75: raw = -1, scaled = -1, unipolar = -1*0.5 + 0.5 = 0.0
-        REQUIRE(val == Approx(0.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
     }
 }
 
@@ -411,11 +411,11 @@ TEST_CASE("LFOSystem - depth scaling", "[lfo][depth]")
 
         // At phase 0.25, sine = 1.0, depth 50% → 0.5
         float peak = lfo.process(samplesForPhase(5.0f, 0.25));
-        REQUIRE(peak == Approx(0.5f).margin(0.001f));
+        REQUIRE(peak == Catch::Approx(0.5f).margin(0.001f));
 
         // At phase 0.75, sine = -1.0, depth 50% → -0.5
         float trough = lfo.process(samplesForPhase(5.0f, 0.5));
-        REQUIRE(trough == Approx(-0.5f).margin(0.001f));
+        REQUIRE(trough == Catch::Approx(-0.5f).margin(0.001f));
     }
 
     SECTION("0% depth gives zero output in bipolar mode")
@@ -424,7 +424,7 @@ TEST_CASE("LFOSystem - depth scaling", "[lfo][depth]")
         for (int i = 0; i < 100; ++i)
         {
             float val = lfo.process(1);
-            REQUIRE(val == Approx(0.0f).margin(0.001f));
+            REQUIRE(val == Catch::Approx(0.0f).margin(0.001f));
         }
     }
 
@@ -435,7 +435,7 @@ TEST_CASE("LFOSystem - depth scaling", "[lfo][depth]")
         for (int i = 0; i < 100; ++i)
         {
             float val = lfo.process(1);
-            REQUIRE(val == Approx(0.5f).margin(0.001f));
+            REQUIRE(val == Catch::Approx(0.5f).margin(0.001f));
         }
     }
 }
@@ -459,7 +459,7 @@ TEST_CASE("LFOSystem - phase offset", "[lfo][phase]")
         lfo.reset();
         float val = lfo.process(0);
         // sin(2pi * 0.25) = sin(pi/2) = 1
-        REQUIRE(val == Approx(1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(1.0f).margin(0.001f));
     }
 
     SECTION("180° offset shifts sine to start at 0, inverted trajectory")
@@ -468,7 +468,7 @@ TEST_CASE("LFOSystem - phase offset", "[lfo][phase]")
         lfo.reset();
         float val = lfo.process(samplesForPhase(5.0f, 0.25));
         // Phase = 0.25 + 0.5 = 0.75 → sin(3pi/2) = -1
-        REQUIRE(val == Approx(-1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-1.0f).margin(0.001f));
     }
 
     SECTION("270° offset shifts sine to start at -1")
@@ -477,7 +477,7 @@ TEST_CASE("LFOSystem - phase offset", "[lfo][phase]")
         lfo.reset();
         float val = lfo.process(0);
         // sin(2pi * 0.75) = sin(3pi/2) = -1
-        REQUIRE(val == Approx(-1.0f).margin(0.001f));
+        REQUIRE(val == Catch::Approx(-1.0f).margin(0.001f));
     }
 }
 
@@ -555,14 +555,14 @@ TEST_CASE("LFOSystem - reset", "[lfo][basic]")
         REQUIRE(lfo.getCurrentPhase() > 0.0);
 
         lfo.reset();
-        REQUIRE(lfo.getCurrentPhase() == Approx(0.0).margin(0.0001));
+        REQUIRE(lfo.getCurrentPhase() == Catch::Approx(0.0).margin(0.0001));
     }
 
     SECTION("reset respects phase offset")
     {
         lfo.setPhase(90.0f);
         lfo.reset();
-        REQUIRE(lfo.getCurrentPhase() == Approx(0.25).margin(0.0001));
+        REQUIRE(lfo.getCurrentPhase() == Catch::Approx(0.25).margin(0.0001));
     }
 }
 

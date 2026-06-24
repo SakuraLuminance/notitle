@@ -18,9 +18,9 @@ TEST_CASE("PhysicalModel - config", "[physical][config]")
     PhysicalModel model;
     model.setSampleRate(testSampleRate);
     model.setModelType(PhysicalModel::ModelType::String);
-    model.setStiffness(0.5f);
+    model.setMaterial(0.5f);
     model.setDamping(0.2f);
-    model.setExcitation(0.8f);
+    model.setExcitation(PhysicalModel::Excitation::Impulse);
     SUCCEED();
 }
 
@@ -35,6 +35,6 @@ TEST_CASE("PhysicalModel - process", "[physical][process]")
     data.amplitude[0] = 1.0f;
     data.activeCount = 1;
     
-    model.process(data);
+    model.generate(data);
     SUCCEED();
 }

@@ -299,7 +299,7 @@ TEST_CASE("Arpeggiator - gate and velocity behavior", "[arp][gate]")
         arp.setStep(0, true, 0.75f, 0.5f);
         arp.setMode(ana::ArpMode::Pattern);
         arp.process(1);
-        REQUIRE(arp.getCurrentVelocity() == Approx(0.75f).margin(0.01f));
+        REQUIRE(arp.getCurrentVelocity() == Catch::Approx(0.75f).margin(0.01f));
     }
 }
 
@@ -327,7 +327,7 @@ TEST_CASE("Arpeggiator - Pattern mode step control", "[arp][pattern]")
     {
         arp.process(1);
         REQUIRE(arp.isNoteActive());
-        REQUIRE(arp.getCurrentVelocity() == Approx(0.8f).margin(0.01f));
+        REQUIRE(arp.getCurrentVelocity() == Catch::Approx(0.8f).margin(0.01f));
     }
 
     SECTION("inactive step produces rest")

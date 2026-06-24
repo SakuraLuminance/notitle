@@ -13,7 +13,7 @@ TEST_CASE("BpmDetector - empty data", "[bpm][edge]")
     detector.setSampleRate(testSampleRate);
     std::vector<float> emptyData;
 
-    REQUIRE(detector.detectBpm(emptyData) == Approx(120.0f));
+    REQUIRE(detector.detectBpm(emptyData) == Catch::Approx(120.0f));
     REQUIRE(detector.detectFirstBeatOffset(emptyData) == 0);
 }
 

@@ -590,7 +590,7 @@ TEST_CASE("Mix bypass", "[mix][bypass]")
         // Process with mix=0 (fully dry)
         chain.setMix(slot, 0.0f);
         auto dryOutput = buffer;
-        chain.getEffect(slot).effect->setBypass(false);
+        chain.bypassEffect(slot, false);
         chain.process(dryOutput);
 
         // Process with effect bypassed

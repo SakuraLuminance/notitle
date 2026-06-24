@@ -273,6 +273,8 @@ public:
     /** XML root element name. */
     static constexpr const char* xmlRootTag = "AnaPlugPreset";
 
+    friend class PresetManagerTestAccess;
+
 private:
     //==============================================================================
     /** Serialises STFT configuration. */
