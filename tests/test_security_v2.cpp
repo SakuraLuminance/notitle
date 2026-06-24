@@ -213,7 +213,7 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr during serialisation",
 
     // Serialise — should not crash even if baseValuePtr is nullptr
     juce::ValueTree routing;
-    REQUIRE_NOTHROW(routing = PresetManagerTestAccess::serialiseModulationRouting(pm));
+    REQUIRE_NOTHROW(routing = ::PresetManagerTestAccess::serialiseModulationRouting(pm));
 
     // The serialisation should have produced a valid tree
     REQUIRE(routing.isValid());
@@ -229,7 +229,7 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr during serialisation",
     REQUIRE(static_cast<double>(child0.getProperty("depth")) == Catch::Approx(0.3));
 
     // Deserialise — should not crash with nullptr baseValuePtr
-    REQUIRE_NOTHROW(PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
+    REQUIRE_NOTHROW(::PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 
     // After deserialise, the nullptr slot's paramId should still be findable
     // and the deserialise should not have crashed when resetting slots
@@ -255,12 +255,12 @@ TEST_CASE("V5 - ModulationSlot baseValuePtr nullptr on empty bus",
 
     // Serialisation should not crash with all-nullptr slots
     juce::ValueTree routing;
-    REQUIRE_NOTHROW(routing = PresetManagerTestAccess::serialiseModulationRouting(pm));
+    REQUIRE_NOTHROW(routing = ::PresetManagerTestAccess::serialiseModulationRouting(pm));
     REQUIRE(routing.isValid());
     REQUIRE(routing.getNumChildren() == 16);
 
     // Deserialisation should not crash
-    REQUIRE_NOTHROW(PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
+    REQUIRE_NOTHROW(::PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 }
 
 TEST_CASE("V5 - ModulationSlot deserialisation with null ref does not crash",
@@ -278,5 +278,5 @@ TEST_CASE("V5 - ModulationSlot deserialisation with null ref does not crash",
     routing.addChild(slot, 0, nullptr);
 
     // modSlotsRef_ is nullptr by default — should return false without crash
-    REQUIRE_FALSE(PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
+    REQUIRE_FALSE(::PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 }

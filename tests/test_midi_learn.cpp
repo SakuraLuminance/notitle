@@ -208,7 +208,7 @@ TEST_CASE("MidiLearn - saveProcessorState and loadProcessorState round-trip", "[
     // Count child Mapping elements
     int mappingCount = 0;
     for (const auto& child : state)
-        if (child.hasTagName("Mapping"))
+        if (child.hasType("Mapping"))
             ++mappingCount;
     REQUIRE(mappingCount == 3);
 

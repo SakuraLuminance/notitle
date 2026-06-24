@@ -366,10 +366,9 @@ TEST_CASE("Vocal presets round-trip", "[vocal][preset][roundtrip]")
         REQUIRE(reloadedParams.hasType("Parameters"));
 
         // Compare properties
-        auto origPropNames = params.getPropertyNames();
-        for (int i = 0; i < origPropNames.size(); ++i)
+        for (int i = 0; i < params.getNumProperties(); ++i)
         {
-            auto key = origPropNames[i];
+            auto key = params.getPropertyName(i);
             if (reloadedParams.hasProperty(key))
             {
                 double ov = static_cast<double>(params.getProperty(key));
@@ -384,10 +383,9 @@ TEST_CASE("Vocal presets round-trip", "[vocal][preset][roundtrip]")
         REQUIRE(origVc.isValid());
         REQUIRE(relVc.isValid());
 
-        auto origVcPropNames = origVc.getPropertyNames();
-        for (int i = 0; i < origVcPropNames.size(); ++i)
+        for (int i = 0; i < origVc.getNumProperties(); ++i)
         {
-            auto key = origVcPropNames[i];
+            auto key = origVc.getPropertyName(i);
             if (relVc.hasProperty(key))
             {
                 double ov = static_cast<double>(origVc.getProperty(key));
