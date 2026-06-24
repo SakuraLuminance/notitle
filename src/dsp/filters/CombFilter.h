@@ -33,7 +33,7 @@ public:
     void process(juce::dsp::AudioBlock<float>& block);
 
 private:
-    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationType::Linear> delayLine;
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delayLine;
     double sampleRate = 44100.0;
     float delayTimeMs = 10.0f;
     float feedback = 0.0f;

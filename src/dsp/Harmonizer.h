@@ -3,6 +3,7 @@
 #include "PartialDataSIMD.h"
 #include <cmath>
 #include <vector>
+#include <juce_core/juce_core.h>
 
 namespace ana {
 

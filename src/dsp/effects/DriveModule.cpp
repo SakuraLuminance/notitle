@@ -19,8 +19,7 @@ void DriveModule::prepare(const juce::dsp::ProcessSpec& spec)
     // --- Oversampling 4x (half-band FIR for best anti-aliasing) ---
     oversampling_ = std::make_unique<juce::dsp::Oversampling<float>>(
         spec.numChannels, 4,
-        juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,
-        juce::dsp::Oversampling<float>::standard);
+        juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple);
     oversampling_->initProcessing(static_cast<double>(spec.maximumBlockSize));
     oversampling_->setUsingIntegerLatency(true);
     latencySamples_ = static_cast<int>(oversampling_->getLatencyInSamples());

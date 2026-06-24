@@ -2,6 +2,7 @@
 #include <vector>
 #include <atomic>
 #include <string>
+#include <juce_core/juce_core.h>
 
 namespace ana {
 

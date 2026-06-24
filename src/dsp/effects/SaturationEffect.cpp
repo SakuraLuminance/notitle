@@ -12,8 +12,7 @@ void SaturationEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     // Oversampling 4x — use half-band FIR for best anti-aliasing
     oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
         spec.numChannels, 4,
-        juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,
-        juce::dsp::Oversampling<float>::standard);
+        juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple);
 
     oversampling->initProcessing(static_cast<double>(spec.maximumBlockSize));
 
@@ -21,7 +20,7 @@ void SaturationEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     waveShaper.prepare(spec);
 
     // Set up waveshaper function — captures this to read live params (atomic-safe)
-    waveShaper.function = [this](float x) -> float {
+    waveShaper.setFunction([this](float x) -> float {
         const float g = preGainAtomic_.load(std::memory_order_relaxed);
         // Clamp input to prevent NaN from extreme values
         x = juce::jlimit(-100.0f, 100.0f, x);

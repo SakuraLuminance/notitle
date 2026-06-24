@@ -1,4 +1,5 @@
 #include "PresetManager.h"
+#include "PresetFactory.h"
 #include "ProcessorStore.h"
 
 namespace ana {
@@ -364,7 +365,7 @@ bool PresetManager::savePreset(const juce::String& name, const juce::String& cat
     if (!stream.openedOk())
         return false;
 
-    xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+    xml->writeTo(stream, juce::XmlElement::TextFormat());
 
     currentPresetName = safeName;
     rebuildCache();
@@ -436,7 +437,7 @@ bool PresetManager::savePresetToFile(const juce::File& file)
     if (!stream.openedOk())
         return false;
 
-    xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+    xml->writeTo(stream, juce::XmlElement::TextFormat());
 
     return true;
 }
@@ -557,11 +558,6 @@ void PresetManager::setStateReferences(STFTConfig* stftConfig,
     unisonRef       = unison;
     voiceManagerRef = voiceManager;
     filterModRef    = filterMod;
-}
-
-void PresetManager::setEffectsChain(EffectsChain* chain)
-{
-    effectsChain_ = chain;
 }
 
 //==============================================================================
@@ -1402,7 +1398,7 @@ void PresetManager::writeFactoryPreset(const juce::String& name, const juce::Str
     auto file = dir.getChildFile(safeName + presetExtension);
     juce::FileOutputStream stream(file);
     if (stream.openedOk())
-        xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+        xml->writeTo(stream, juce::XmlElement::TextFormat());
 }
 
 
@@ -1414,7 +1410,7 @@ juce::StringArray PresetManager::getPresetNames() const
 {
     juce::StringArray names;
     for (int i = 0; i < cachedPresets.size(); ++i)
-        names.add(cachedPresets.getName(i));
+        names.add(cachedPresets.getAllKeys()[i]);
     names.sort(true);
     return names;
 }
@@ -1548,7 +1544,7 @@ bool PresetManager::saveEffectPreset(const juce::String& name)
     if (!stream.openedOk())
         return false;
 
-    xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+    xml->writeTo(stream, juce::XmlElement::TextFormat());
     return true;
 }
 
@@ -1635,7 +1631,7 @@ void PresetManager::saveFavoritesToFile()
 
     juce::FileOutputStream stream(file);
     if (stream.openedOk())
-        xml->writeTo(stream, juce::XmlElement::TextFormat().withHeaderLineComment(""));
+        xml->writeTo(stream, juce::XmlElement::TextFormat());
 }
 
 void PresetManager::loadFavoritesFromFile()

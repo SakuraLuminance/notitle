@@ -632,10 +632,10 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
             statusLabel_.setText(">> PARAMETERS RANDOMIZED <<", juce::dontSendNotification);
         };
 
-        rangeCombo_.addItem("\xC2\xB15%", 1);
-        rangeCombo_.addItem("\xC2\xB110%", 2);
-        rangeCombo_.addItem("\xC2\xB125%", 3);
-        rangeCombo_.addItem("\xC2\xB150%", 4);
+        rangeCombo_.addItem("\u00B15%", 1);
+        rangeCombo_.addItem("\u00B110%", 2);
+        rangeCombo_.addItem("\u00B125%", 3);
+        rangeCombo_.addItem("\u00B150%", 4);
         rangeCombo_.setSelectedId(3);
         rangeCombo_.setTooltip("Randomize range: ±5/10/25/50%");
         rangeCombo_.setColour(juce::ComboBox::backgroundColourId,
@@ -1613,9 +1613,6 @@ void AnaPlugAudioProcessorEditor::effectPresetRightClicked()
         return;
 
     juce::PopupMenu menu;
-    menu.addColour(juce::PopupMenu::backgroundColourId, ana::CyberpunkTheme::bg_.brighter(0.1f));
-    menu.addColour(juce::PopupMenu::textColourId, ana::CyberpunkTheme::fg_);
-    menu.addColour(juce::PopupMenu::highlightedBackgroundColourId, ana::CyberpunkTheme::magenta_.withAlpha(0.3f));
     menu.addItem("Delete \"" + currentName + "\"", [this, currentName]()
     {
         audioProcessor.getPresetManager().deleteEffectPreset(currentName);

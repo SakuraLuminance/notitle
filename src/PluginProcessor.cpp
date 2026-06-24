@@ -188,7 +188,7 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     modSlots_[15] = { ana::ModulationConnection(), &modTargetSpare_,            0.0f, "spare" };
 
     // Register all effect factories and initialise the default effect rack
-    ProcessorStore::registerAll();
+    ana::ProcessorStore::registerAll();
     initializeDefaultEffects();
 }
 
@@ -218,7 +218,7 @@ void AnaPlugAudioProcessor::initializeDefaultEffects()
     // → RingModulator → Limiter
 
     // StereoWidener (no pointer extraction needed)
-    effectsChain_.addEffect(ProcessorStore::create("StereoWidener"), "StereoWidener");
+    effectsChain_.addEffect(ana::ProcessorStore::create("StereoWidener"), "StereoWidener");
 
     // Delay (pointer-tracked via delayEffect_)
     {
@@ -290,7 +290,7 @@ void AnaPlugAudioProcessor::initializeDefaultEffects()
     }
 
     // RingModulator (no pointer extraction needed)
-    effectsChain_.addEffect(ProcessorStore::create("RingModulator"), "RingModulator");
+    effectsChain_.addEffect(ana::ProcessorStore::create("RingModulator"), "RingModulator");
 
     // Limiter (reference to direct member limiterEffect_)
     effectsChain_.addEffect(std::make_unique<LimiterEffectAdapter>(limiterEffect_), "Limiter");
@@ -960,8 +960,7 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     auto macroState = state.getChildWithName("macrocontroller");
     if (macroState.isValid())
     {
-        auto macroXml = macroState.toXml();
-        if (macroXml != nullptr)
+        if (auto macroXml = juce::XmlDocument::parse(macroState.toXmlString()))
         {
             macroController_.loadFromXml(*macroXml);
         }

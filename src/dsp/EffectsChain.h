@@ -18,6 +18,10 @@ public:
 };
 
 struct EffectSlot {
+    EffectSlot() = default;
+    EffectSlot(EffectSlot&&) noexcept = default;
+    EffectSlot& operator=(EffectSlot&&) noexcept = default;
+
     std::unique_ptr<EffectBase> effect;
     bool bypassed = false;
     float mix = 1.0f;

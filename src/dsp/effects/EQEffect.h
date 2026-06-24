@@ -1,11 +1,10 @@
 #pragma once
+#include "EQCommon.h"
 #include <juce_dsp/juce_dsp.h>
 #include <juce_data_structures/juce_data_structures.h>
 #include <array>
 
 namespace ana {
-
-enum class EQBandType { LowShelf, Peaking, HighShelf };
 
 struct EQBand {
     float frequency = 1000.0f;

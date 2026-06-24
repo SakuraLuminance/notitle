@@ -1,4 +1,5 @@
 #pragma once
+#include "EQCommon.h"
 #include <juce_dsp/juce_dsp.h>
 #include <juce_data_structures/juce_data_structures.h>
 #include <array>
@@ -6,7 +7,6 @@
 namespace ana {
 
 enum class EQMode { Band3, Band5, Tilt, Para };
-enum class EQBandType { LowShelf, Peaking, HighShelf };
 
 struct EQBandParams {
     float frequency = 1000.0f;

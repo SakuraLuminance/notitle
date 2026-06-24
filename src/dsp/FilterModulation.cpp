@@ -14,7 +14,7 @@ FilterModulationSystem::FilterModulationSystem()
 int FilterModulationSystem::connect(ModulationSource source, ModulationTarget target,
                                     int filterIndex, float depth, bool bipolar)
 {
-    ModulationConnection conn;
+    FilterModulationConnection conn;
     conn.source = source;
     conn.target = target;
     conn.filterIndex = filterIndex;
@@ -29,7 +29,7 @@ int FilterModulationSystem::connect(ModulationSource source, ModulationTarget ta
 bool FilterModulationSystem::disconnect(int connectionId)
 {
     auto it = std::find_if(connections.begin(), connections.end(),
-        [connectionId](const ModulationConnection& c) { return c.id == connectionId; });
+        [connectionId](const FilterModulationConnection& c) { return c.id == connectionId; });
 
     if (it != connections.end())
     {
@@ -43,7 +43,7 @@ void FilterModulationSystem::disconnectAll(int filterIndex)
 {
     connections.erase(
         std::remove_if(connections.begin(), connections.end(),
-            [filterIndex](const ModulationConnection& c)
+            [filterIndex](const FilterModulationConnection& c)
             {
                 return c.filterIndex == filterIndex;
             }),
@@ -72,7 +72,7 @@ float FilterModulationSystem::getSourceValue(ModulationSource source) const
 }
 
 //==============================================================================
-float FilterModulationSystem::getEffectiveSourceValue(const ModulationConnection& conn) const
+float FilterModulationSystem::getEffectiveSourceValue(const FilterModulationConnection& conn) const
 {
     float rawValue = sourceValues[static_cast<int>(conn.source)];
 
@@ -137,7 +137,7 @@ float FilterModulationSystem::getModulatedMix(float baseMix, int filterIndex) co
 }
 
 //==============================================================================
-const std::vector<ModulationConnection>& FilterModulationSystem::getConnections() const
+const std::vector<FilterModulationConnection>& FilterModulationSystem::getConnections() const
 {
     return connections;
 }

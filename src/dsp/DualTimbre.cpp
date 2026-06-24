@@ -134,9 +134,8 @@ void DualTimbre::blendFade(const float* a, const float* b,
 
         _mm256_storeu_ps(dest + i, result);
     }
-#endif
 
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     const __m128 mmix        = _mm_set1_ps(mix);
     const __m128 moneMinusMix = _mm_set1_ps(oneMinusMix);
 
@@ -180,9 +179,8 @@ void DualTimbre::blendSubtract(const float* a, const float* b,
 
         _mm256_storeu_ps(dest + i, result);
     }
-#endif
 
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     const __m128 zero = _mm_setzero_ps();
 
     for (; i + 4 <= count; i += 4)
@@ -230,9 +228,8 @@ void DualTimbre::blendMaximum(const float* a, const float* b,
 
         _mm256_storeu_ps(dest + i, _mm256_max_ps(va, vb));
     }
-#endif
 
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     for (; i + 4 <= count; i += 4)
     {
         const __m128 va = _mm_loadu_ps(a + i);
@@ -264,9 +261,8 @@ void DualTimbre::blendMinimum(const float* a, const float* b,
 
         _mm256_storeu_ps(dest + i, _mm256_min_ps(va, vb));
     }
-#endif
 
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     for (; i + 4 <= count; i += 4)
     {
         const __m128 va = _mm_loadu_ps(a + i);

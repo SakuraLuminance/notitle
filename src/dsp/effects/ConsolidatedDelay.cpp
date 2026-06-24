@@ -100,7 +100,7 @@ void ConsolidatedDelay::process(juce::AudioBuffer<float>& buffer) {
         auto* data = buffer.getWritePointer(ch);
         auto& f = wetFilters_[static_cast<size_t>(ch)];
 
-        juce::dsp::AudioBlock<float> block(data, 1, static_cast<size_t>(numSamples));
+        juce::dsp::AudioBlock<float> block(&data, 1, static_cast<size_t>(numSamples));
         f.hpf.process(juce::dsp::ProcessContextReplacing<float>(block));
         f.lpf.process(juce::dsp::ProcessContextReplacing<float>(block));
     }

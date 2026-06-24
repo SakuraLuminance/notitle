@@ -40,7 +40,7 @@ enum class ModulationTarget
     source to both increase and decrease the target value, while unipolar
     modulation only increases it.
 */
-struct ModulationConnection
+struct FilterModulationConnection
 {
     ModulationSource source;
     ModulationTarget target;
@@ -143,7 +143,7 @@ public:
 
     //==============================================================================
     /** Returns a list of all active modulation connections (read-only). */
-    const std::vector<ModulationConnection>& getConnections() const;
+    const std::vector<FilterModulationConnection>& getConnections() const;
 
     /** Returns the number of active connections. */
     int getNumConnections() const;
@@ -155,13 +155,13 @@ public:
     void setNumFilters(int numFiltersInChain);
 
 private:
-    std::vector<ModulationConnection> connections;
+    std::vector<FilterModulationConnection> connections;
     float sourceValues[7] = {};  // One per ModulationSource enum value
     int nextConnectionId = 1;
     int numFilters = 1;
 
     /** Gets the current raw source value accounting for bipolar mode. */
-    float getEffectiveSourceValue(const ModulationConnection& conn) const;
+    float getEffectiveSourceValue(const FilterModulationConnection& conn) const;
 
     /** Clamps a value to [0, 1]. */
     static float clamp01(float value);

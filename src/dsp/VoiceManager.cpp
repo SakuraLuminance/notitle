@@ -351,7 +351,7 @@ void VoiceManager::process(juce::AudioBuffer<float>& buffer)
 // MPESynthesiser overrides — note lifecycle
 //==============================================================================
 
-void VoiceManager::noteAdded(MPENote newNote)
+void VoiceManager::noteAdded(juce::MPENote newNote)
 {
     const auto mode = voiceMode_.load(std::memory_order_relaxed);
 
@@ -372,7 +372,7 @@ void VoiceManager::noteAdded(MPENote newNote)
     anaVoiceInit(voice, newNote, VoiceMode::Poly);
 }
 
-void VoiceManager::noteReleased(MPENote finishedNote)
+void VoiceManager::noteReleased(juce::MPENote finishedNote)
 {
     const auto mode = voiceMode_.load(std::memory_order_relaxed);
 
@@ -430,7 +430,7 @@ void VoiceManager::renderNextSubBlock(juce::AudioBuffer<float>& outputAudio,
 // MPESynthesiser overrides — voice allocation
 //==============================================================================
 
-MPESynthesiserVoice* VoiceManager::findFreeVoice(MPENote /*noteToFindVoiceFor*/,
+juce::MPESynthesiserVoice* VoiceManager::findFreeVoice(juce::MPENote /*noteToFindVoiceFor*/,
                                                    bool stealIfNoneAvailable) const
 {
     // Mono / Legato: always return voice 0
@@ -488,12 +488,12 @@ MPESynthesiserVoice* VoiceManager::findFreeVoice(MPENote /*noteToFindVoiceFor*/,
 
     // Phase 3: steal if allowed
     if (stealIfNoneAvailable)
-        return findVoiceToSteal(MPENote());
+        return findVoiceToSteal(juce::MPENote());
 
     return nullptr;
 }
 
-MPESynthesiserVoice* VoiceManager::findVoiceToSteal(MPENote /*noteToStealVoiceFor*/) const
+juce::MPESynthesiserVoice* VoiceManager::findVoiceToSteal(juce::MPENote /*noteToStealVoiceFor*/) const
 {
     if (const int idx = stealVoice(); idx >= 0)
         return getVoice(idx);
@@ -568,7 +568,7 @@ int VoiceManager::stealVoice() const
 // Voice lifecycle helpers
 //==============================================================================
 
-void VoiceManager::anaVoiceInit(MPESynthesiserVoice* voice, const MPENote& newNote, VoiceMode mode)
+void VoiceManager::anaVoiceInit(juce::MPESynthesiserVoice* voice, const juce::MPENote& newNote, VoiceMode mode)
 {
     auto* anaVoice = static_cast<AnaVoice*>(voice);
     const bool isLegato = (mode == VoiceMode::Legato);

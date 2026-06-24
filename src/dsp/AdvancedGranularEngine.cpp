@@ -541,7 +541,7 @@ void AdvancedGranularEngine::updateGrains(int numSamples)
 
         gs.active = true;
         grainStates_.push_back(gs);
-        activeGrains_.push_back(g.config);
+        activeGrains_.push_back(g);
         ++nextGrainToActivate_;
     }
 }

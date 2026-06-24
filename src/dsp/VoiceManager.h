@@ -365,12 +365,12 @@ protected:
      * Overrides noteAdded to set up our custom voice state when MPESynthesiser
      * assigns a new note to a voice.
      */
-    void noteAdded(MPENote newNote) override;
+    void noteAdded(juce::MPENote newNote) override;
 
     /**
      * Overrides noteReleased to initiate voice release when a note ends.
      */
-    void noteReleased(MPENote finishedNote) override;
+    void noteReleased(juce::MPENote finishedNote) override;
 
     /**
      * Overrides renderNextSubBlock to clear the buffer before summing voices.
@@ -384,14 +384,14 @@ protected:
      * Overrides findFreeVoice to use our custom allocation algorithm
      * (free -> idle -> steal with the configured AllocationMode).
      */
-    MPESynthesiserVoice* findFreeVoice(MPENote noteToFindVoiceFor,
+    juce::MPESynthesiserVoice* findFreeVoice(juce::MPENote noteToFindVoiceFor,
                                         bool stealIfNoneAvailable) const override;
 
     /**
      * Overrides findVoiceToSteal to use our priority-based stealing:
      * sustain > release > decay > attack, then oldest.
      */
-    MPESynthesiserVoice* findVoiceToSteal(MPENote noteToStealVoiceFor) const override;
+    juce::MPESynthesiserVoice* findVoiceToSteal(juce::MPENote noteToStealVoiceFor) const override;
 
 private:
     //==============================================================================
@@ -417,7 +417,7 @@ private:
      * state is preserved (no retrigger).  In Mono mode the voice is forcibly
      * restarted.
      */
-    void anaVoiceInit(MPESynthesiserVoice* voice, const MPENote& newNote, VoiceMode mode);
+    void anaVoiceInit(juce::MPESynthesiserVoice* voice, const juce::MPENote& newNote, VoiceMode mode);
 
     /** Applies the velocity curve mapping to a raw velocity value. */
     float applyVelocityCurve(float velocity) const;

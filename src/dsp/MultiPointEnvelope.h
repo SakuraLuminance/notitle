@@ -186,6 +186,12 @@ public:
     /** Returns the current release time in seconds. */
     float getRelease() const noexcept { return release_; }
 
+    /** Rebuilds breakpoints from the current ADSR parameters
+        using a standard 4-point envelope:
+          (0,0) → (attack, 1.0) → (attack+decay, sustain) → (attack+decay+release, 0)
+    */
+    void rebuildADSR();
+
     //==============================================================================
     /** Starts the envelope from the beginning.
         If already active, resets to the start.
@@ -247,12 +253,6 @@ private:
     float decay_   = 0.5f;
     float sustain_ = 0.7f;
     float release_ = 1.0f;
-
-    /** Rebuilds breakpoints from the current ADSR parameters
-        using a standard 4-point envelope:
-          (0,0) → (attack, 1.0) → (attack+decay, sustain) → (attack+decay+release, 0)
-    */
-    void rebuildADSR();
 
     double tempo = 120.0;
     double beatDiv = 1.0;
