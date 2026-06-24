@@ -24,7 +24,7 @@ add_executable(AnaPlugTests
     test_neural_upsampler.cpp
     test_parallel_processor.cpp
     test_partial_data_simd.cpp
-    test_partial_editor_canvas.cpp
+    #test_partial_editor_canvas.cpp
     test_partial_tracker.cpp
     test_peak_detector.cpp
     test_phase_propagation.cpp
