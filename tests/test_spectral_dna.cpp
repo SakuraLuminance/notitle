@@ -9,7 +9,7 @@ TEST_CASE("SpectralDNA initializes correctly", "[spectral-dna]")
     SpectralDNA dna;
     dna.initialize();
     REQUIRE(dna.isValid());
-    REQUIRE(dna.isActive(0) || SpectralDNA::computeActiveCount(dna) > 0);
+    REQUIRE((dna.isActive(0) || SpectralDNA::computeActiveCount(dna) > 0));
 }
 
 TEST_CASE("SpectralDNA round-trips through toPartials", "[spectral-dna]")
