@@ -435,7 +435,7 @@ void MacroController::loadFromXml(const juce::XmlElement& xml)
 
     // ---- Count how many macros the XML describes ----
     int xmlMacroCount = 0;
-    for (auto* macroXml : xml)
+    for (auto* macroXml = xml.getFirstChildElement(); macroXml != nullptr; macroXml = macroXml->getNextElement())
     {
         if (macroXml->hasTagName("macro"))
         {
@@ -455,7 +455,7 @@ void MacroController::loadFromXml(const juce::XmlElement& xml)
     setNumMacros(xmlMacroCount);
 
     // ---- Restore each macro ----
-    for (auto* macroXml : xml)
+    for (auto* macroXml = xml.getFirstChildElement(); macroXml != nullptr; macroXml = macroXml->getNextElement())
     {
         if (! macroXml->hasTagName("macro"))
             continue;

@@ -654,14 +654,19 @@ void EffectRackComponent::showAddEffectMenu()
     auto types = EffectSlotWidget::getAvailableEffectTypes();
     for (int i = 0; i < types.size(); ++i)
     {
-        menu.addItem(i + 1, types[i], true, false,
-            [this, typeName = types[i]]()
-            {
-                auto& chain = processor_.getEffectsChain();
-                undoManager_.perform(new EffectAddAction(
-                    chain, chain.getNumEffects(), typeName));
-                rebuildSlots();
-            });
+        juce::PopupMenu::Item item;
+        item.itemID = i + 1;
+        item.text = types[i];
+        item.isEnabled = true;
+        item.isTicked = false;
+        item.action = [this, typeName = types[i]]()
+        {
+            auto& chain = processor_.getEffectsChain();
+            undoManager_.perform(new EffectAddAction(
+                chain, chain.getNumEffects(), typeName));
+            rebuildSlots();
+        };
+        menu.addItem(std::move(item));
     }
 
     menu.showMenuAsync(juce::PopupMenu::Options()

@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <list>
 #include <memory>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_dsp/juce_dsp.h>
@@ -50,7 +50,7 @@ public:
     EffectSlot& getEffect(int index);
     void clear();
 private:
-    std::vector<EffectSlot> slots;
+    std::list<EffectSlot> slots;
     juce::AudioBuffer<float> dryBuffer;
     juce::dsp::ProcessSpec currentSpec;
 };

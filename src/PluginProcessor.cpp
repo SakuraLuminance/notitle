@@ -107,6 +107,17 @@ public:
     ana::RingModulatorEffect* getEffect() { return &effect; }
 };
 
+class SaturationEffectAdapter : public ana::EffectBase {
+    ana::SaturationEffect& effect;
+public:
+    explicit SaturationEffectAdapter(ana::SaturationEffect& e) : effect(e) {}
+    void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
+    void process(juce::AudioBuffer<float>& buffer) override   { effect.process(buffer); }
+    void reset() override                                      { effect.reset(); }
+    juce::ValueTree getState() const override                 { return effect.getState(); }
+    void setState(const juce::ValueTree& s) override          { effect.setState(s); }
+};
+
 } // namespace
 
 AnaPlugAudioProcessor::AnaPlugAudioProcessor()

@@ -51,9 +51,9 @@ public:
             int idx = band.getProperty("index", 0);
             if (idx >= 0 && idx < 3)
             {
-                bands[idx].frequency = juce::jlimit(20.0f, 20000.0f, band.getProperty("frequency", 1000.0f));
-                bands[idx].gain      = juce::jlimit(-24.0f, 24.0f, band.getProperty("gain", 0.0f));
-                bands[idx].q         = juce::jlimit(0.1f, 10.0f, band.getProperty("q", 0.707f));
+                bands[idx].frequency = juce::jlimit(20.0f, 20000.0f, static_cast<float>(band.getProperty("frequency", 1000.0f)));
+                bands[idx].gain      = juce::jlimit(-24.0f, 24.0f, static_cast<float>(band.getProperty("gain", 0.0f)));
+                bands[idx].q         = juce::jlimit(0.1f, 10.0f, static_cast<float>(band.getProperty("q", 0.707f)));
                 bands[idx].type      = static_cast<EQBandType>(juce::jlimit(0, 2, static_cast<int>(band.getProperty("type", static_cast<int>(EQBandType::Peaking)))));
                 updateCoeffs(idx);
             }

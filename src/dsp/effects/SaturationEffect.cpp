@@ -20,7 +20,7 @@ void SaturationEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     waveShaper.prepare(spec);
 
     // Set up waveshaper function — captures this to read live params (atomic-safe)
-    waveShaper.setFunction([this](float x) -> float {
+    waveShaper.function = [this](float x) -> float {
         const float g = preGainAtomic_.load(std::memory_order_relaxed);
         // Clamp input to prevent NaN from extreme values
         x = juce::jlimit(-100.0f, 100.0f, x);

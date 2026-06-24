@@ -236,10 +236,11 @@ public:
     // Font
     static juce::Font getCyberFont(float height, bool bold = false)
     {
-        // Try to load a monospaced/tech font, fallback to default
         auto typeface = bold ? juce::Font::getDefaultMonospacedFontName()
                              : juce::Font::getDefaultSansSerifFontName();
-        return juce::Font(juce::FontOptions(typeface).withHeight(height).withStyle(bold ? "Bold" : "Regular"));
+        auto f = juce::Font(typeface, height);
+        if (bold) f = f.withStyle("Bold");
+        return f;
     }
 
     juce::Font getTextButtonFont(juce::TextButton&, int) override

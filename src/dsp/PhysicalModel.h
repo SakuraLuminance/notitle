@@ -3,6 +3,7 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <vector>
 #include <cstdint>
+#include <random>
 
 #include "PartialDataSIMD.h"
 

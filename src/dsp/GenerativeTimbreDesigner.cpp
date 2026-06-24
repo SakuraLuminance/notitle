@@ -274,8 +274,19 @@ void GenerativeTimbreDesigner::Individual::generate(
     PartialDataSIMD& output,
     const std::vector<float>& baseHarmonics)
 {
+    // Compute lookup tables from genome for the core algorithm
+    std::array<float, 512> tiltLUT, brightnessLUT, inharmLUT;
+    std::array<float, 512> formantLUT[3];
+    computeLatentLUTs(genome, tiltLUT, brightnessLUT, formantLUT, inharmLUT);
+
     // Run core algorithm into our timbre member
-    latentToPartialsCore(genome, timbre, 44100.0);
+    latentToPartialsCore(genome, timbre, 44100.0,
+                         tiltLUT.data(),
+                         brightnessLUT.data(),
+                         formantLUT[0].data(),
+                         formantLUT[1].data(),
+                         formantLUT[2].data(),
+                         inharmLUT.data());
 
     // Overwrite frequencies from the provided harmonic series
     const int count = std::min(static_cast<int>(baseHarmonics.size()),

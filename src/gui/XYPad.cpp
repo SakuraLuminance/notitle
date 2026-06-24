@@ -13,7 +13,7 @@ static constexpr float cornerShrink = 12.0f;
 XYPad::XYPad(AnaPlugAudioProcessor& processor)
     : processor_(processor)
 {
-    setTooltip("X: Morph Amount (0-100%) | Y: Modulation Depth (0-100%) | Drag to position, double-click to reset");
+    setToolTip("X: Morph Amount (0-100%) | Y: Modulation Depth (0-100%) | Drag to position, double-click to reset");
     startTimerHz(30);
 }
 

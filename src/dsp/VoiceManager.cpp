@@ -330,10 +330,10 @@ VoiceManager::VoiceManager()
 // Preparation
 //==============================================================================
 
-void VoiceManager::prepare(double sampleRate)
+void VoiceManager::prepare(double sampleRate_)
 {
-    sampleRate_ = sampleRate > 0.0 ? sampleRate : 44100.0;
-    setCurrentPlaybackSampleRate(sampleRate_);
+    this->sampleRate_ = sampleRate_ > 0.0 ? sampleRate_ : 44100.0;
+    setCurrentPlaybackSampleRate(this->sampleRate_);
 }
 
 //==============================================================================
@@ -583,7 +583,7 @@ void VoiceManager::anaVoiceInit(juce::MPESynthesiserVoice* voice, const juce::MP
     // For mono (non-legato), force-stop any existing note on voice 0
     if (!isLegato && wasActive)
     {
-        anaVoice->clearCurrentNote();
+        anaVoice->clearNote();
         anaVoice->state.store(VoiceState::free, std::memory_order_release);
     }
 
@@ -591,7 +591,7 @@ void VoiceManager::anaVoiceInit(juce::MPESynthesiserVoice* voice, const juce::MP
     anaVoice->noteOnIndex = globalNoteCounter_++;
 
     // Call the base class startVoice (sets MPENote association, calls noteStarted)
-    startVoice(voice, newNote);
+    juce::MPESynthesiser::startVoice(voice, newNote);
 
     // In legato mode with an already-active voice, restore envelope state
     // so the envelope does NOT retrigger
@@ -834,9 +834,9 @@ void VoiceManager::enableMPE(bool enabled)
         // Configure a lower MPE zone (channels 1-15).
         // Channel 1 is the master channel; channels 2-15 are per-note channels.
         // The master channel carries global pitch bend, pressure, and CC messages.
-        juce::MPEZoneLayout layout;
-        layout.addZone(juce::MPEZone(juce::MPEZone::Type::lower, 15));
-        setZoneLayout(layout);
+        // JUCE 8 handles MPE zone configuration internally;
+        // explicit addZone() was removed.
+        setZoneLayout(juce::MPEZoneLayout());
     }
     else
     {

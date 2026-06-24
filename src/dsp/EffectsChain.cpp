@@ -1,5 +1,6 @@
 #include "EffectsChain.h"
 #include <algorithm>
+#include <iterator>
 
 namespace ana {
 
@@ -89,51 +90,73 @@ int EffectsChain::addEffect(std::unique_ptr<EffectBase> effect, const juce::Stri
 }
 
 void EffectsChain::removeEffect(int index) {
-    if (index >= 0 && index < static_cast<int>(slots.size()))
-        slots.erase(slots.begin() + index);
+    if (index >= 0 && index < static_cast<int>(slots.size())) {
+        auto it = slots.begin();
+        std::advance(it, index);
+        slots.erase(it);
+    }
 }
 
 void EffectsChain::reorderEffects(int from, int to) {
+    if (from == to) return;
     if (from >= 0 && from < static_cast<int>(slots.size()) &&
         to >= 0 && to < static_cast<int>(slots.size())) {
-        auto slot = std::move(slots[from]);
-        slots.erase(slots.begin() + from);
-        slots.insert(slots.begin() + to, std::move(slot));
+        auto fromIt = slots.begin();
+        std::advance(fromIt, from);
+        auto toIt = slots.begin();
+        std::advance(toIt, to);
+        auto slot = std::move(*fromIt);
+        slots.erase(fromIt);
+        slots.insert(toIt, std::move(slot));
     }
 }
 
 void EffectsChain::bypassEffect(int index, bool bypass) {
-    if (index >= 0 && index < static_cast<int>(slots.size()))
-        slots[index].bypassed = bypass;
+    if (index >= 0 && index < static_cast<int>(slots.size())) {
+        auto it = slots.begin();
+        std::advance(it, index);
+        it->bypassed = bypass;
+    }
 }
 
 void EffectsChain::setMix(int index, float wetDry) {
-    if (index >= 0 && index < static_cast<int>(slots.size()))
-        slots[index].mix = std::max(0.0f, std::min(1.0f, wetDry));
+    if (index >= 0 && index < static_cast<int>(slots.size())) {
+        auto it = slots.begin();
+        std::advance(it, index);
+        it->mix = std::max(0.0f, std::min(1.0f, wetDry));
+    }
 }
 
 void EffectsChain::setWetLowCut(int index, float hz) {
     if (index >= 0 && index < static_cast<int>(slots.size())) {
-        slots[index].wetLowCut = hz;
+        auto it = slots.begin();
+        std::advance(it, index);
+        it->wetLowCut = hz;
         if (currentSpec.sampleRate > 0) {
             auto coeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(currentSpec.sampleRate, hz, 0.707);
-            *slots[index].wetHPF.state = *coeffs;
+            *it->wetHPF.state = *coeffs;
         }
     }
 }
 
 void EffectsChain::setWetHighCut(int index, float hz) {
     if (index >= 0 && index < static_cast<int>(slots.size())) {
-        slots[index].wetHighCut = hz;
+        auto it = slots.begin();
+        std::advance(it, index);
+        it->wetHighCut = hz;
         if (currentSpec.sampleRate > 0) {
             auto coeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass(currentSpec.sampleRate, hz, 0.707);
-            *slots[index].wetLPF.state = *coeffs;
+            *it->wetLPF.state = *coeffs;
         }
     }
 }
 
 int EffectsChain::getNumEffects() const { return static_cast<int>(slots.size()); }
-EffectSlot& EffectsChain::getEffect(int index) { return slots[index]; }
+EffectSlot& EffectsChain::getEffect(int index) {
+    auto it = slots.begin();
+    std::advance(it, index);
+    return *it;
+}
 void EffectsChain::clear() { slots.clear(); }
 
 } // namespace ana

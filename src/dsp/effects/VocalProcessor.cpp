@@ -78,7 +78,8 @@ void VocalProcessor::process(juce::AudioBuffer<float>& buffer)
         eq_.process(buffer);
         {
             juce::dsp::AudioBlock<float> block(buffer);
-            lpf_.process(block);
+            juce::dsp::ProcessContextReplacing<float> context(block);
+            lpf_.process(context);
         }
         drive_.process(buffer);
         break;
@@ -100,8 +101,9 @@ void VocalProcessor::process(juce::AudioBuffer<float>& buffer)
         // BPF 300–3400 Hz (HPF + LPF) → Crush drive → notch -6 dB @ 400 Hz
         {
             juce::dsp::AudioBlock<float> block(buffer);
-            hpf_.process(block);
-            lpf_.process(block);
+            juce::dsp::ProcessContextReplacing<float> context(block);
+            hpf_.process(context);
+            lpf_.process(context);
         }
         drive_.process(buffer);
         eq_.process(buffer);
@@ -119,8 +121,9 @@ void VocalProcessor::process(juce::AudioBuffer<float>& buffer)
         compressor_.process(buffer);
         {
             juce::dsp::AudioBlock<float> block(buffer);
-            hpf_.process(block);
-            lpf_.process(block);
+            juce::dsp::ProcessContextReplacing<float> context(block);
+            hpf_.process(context);
+            lpf_.process(context);
         }
         drive_.process(buffer);
         eq_.process(buffer);
@@ -131,7 +134,8 @@ void VocalProcessor::process(juce::AudioBuffer<float>& buffer)
         noiseGate_.process(buffer);
         {
             juce::dsp::AudioBlock<float> block(buffer);
-            hpf_.process(block);
+            juce::dsp::ProcessContextReplacing<float> context(block);
+            hpf_.process(context);
         }
         eq_.process(buffer);
         deEsser_.process(buffer);

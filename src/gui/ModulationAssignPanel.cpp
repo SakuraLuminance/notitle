@@ -149,7 +149,7 @@ ModulationAssignPanel::ModulationAssignPanel(AnaPlugAudioProcessor& processor)
             }
         };
         // Apply initial state (OFF by default → disabled)
-        row.depthSlider.setEnabled(false);
+        row->depthSlider.setEnabled(false);
     };
 
     for (auto& r : filterSection_.rows)  wireDepthSync(r);

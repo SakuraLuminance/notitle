@@ -6,7 +6,9 @@
 #include <cmath>
 #include <vector>
 
-struct ebur128_state;
+extern "C" {
+#include <ebur128.h>
+}
 
 namespace ana {
 

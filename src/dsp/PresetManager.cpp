@@ -1,6 +1,8 @@
 #include "PresetManager.h"
 #include "PresetFactory.h"
 #include "ProcessorStore.h"
+#include "Randomizer.h"
+#include "MidiLearn.h"
 
 namespace ana {
 
@@ -332,7 +334,7 @@ bool PresetManager::savePreset(const juce::String& name, const juce::String& cat
     bool validCategory = false;
     for (int i = 0; i < numCategories; ++i)
     {
-        if (categories[i] == category)
+        if (juce::String(categories[i]) == category)
         {
             validCategory = true;
             break;

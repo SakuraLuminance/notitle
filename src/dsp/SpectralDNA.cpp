@@ -822,7 +822,7 @@ void SpectralDNAEvolver::loadState(const juce::ValueTree& state)
     population_.clear();
     hallOfFame_.clear();
 
-    if (auto popTree = state.getChildWithName("POPULATION"))
+    if (auto popTree = state.getChildWithName("POPULATION"); popTree.isValid())
     {
         for (int i = 0; i < popTree.getNumChildren(); ++i)
         {
@@ -860,7 +860,7 @@ void SpectralDNAEvolver::loadState(const juce::ValueTree& state)
     }
 
     // 加载名人堂
-    if (auto hofTree = state.getChildWithName("HALLOFFAME"))
+    if (auto hofTree = state.getChildWithName("HALLOFFAME"); hofTree.isValid())
     {
         for (int i = 0; i < hofTree.getNumChildren(); ++i)
         {
