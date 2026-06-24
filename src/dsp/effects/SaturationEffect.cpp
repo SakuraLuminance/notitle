@@ -19,8 +19,8 @@ void SaturationEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     // Prepare WaveShaper with original spec — we manually process upsampled
     waveShaper.prepare(spec);
 
-    // Set up waveshaper function — captures this to read live params (atomic-safe)
-    waveShaper.function = [this](float x) -> float {
+    // Set up waveshaper function via fallback: store the lambda as a member
+    satFunction = [this](float x) -> float {
         const float g = preGainAtomic_.load(std::memory_order_relaxed);
         // Clamp input to prevent NaN from extreme values
         x = juce::jlimit(-100.0f, 100.0f, x);
@@ -72,8 +72,13 @@ void SaturationEffect::process(juce::AudioBuffer<float>& buffer) {
         juce::dsp::AudioBlock<float> block(buffer);
         // Upsample to 4x — returns a mutable block at the oversampled rate
         auto upBlock = oversampling->processSamplesUp(block);
-        // Apply waveshaper at oversampled rate (anti-aliasing)
-        waveShaper.process(juce::dsp::ProcessContextReplacing<float>(upBlock));
+        // Apply waveshaper at oversampled rate (manual, anti-aliasing)
+        for (int ch = 0; ch < static_cast<int>(upBlock.getNumChannels()); ++ch)
+        {
+            auto* samples = upBlock.getChannelPointer(static_cast<size_t>(ch));
+            for (size_t s = 0; s < upBlock.getNumSamples(); ++s)
+                samples[s] = satFunction(samples[s]);
+        }
         // Downsample back to original rate
         oversampling->processSamplesDown(block);
     }

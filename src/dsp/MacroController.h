@@ -266,6 +266,23 @@ private:
     /** Internal per-macro state. */
     struct Macro
     {
+        Macro() = default;
+        Macro(const Macro& other)
+            : name(other.name),
+              value(other.value.load(std::memory_order_relaxed)),
+              mappings(other.mappings),
+              targets(other.targets),
+              mappingCurve(other.mappingCurve),
+              midiLearnCC(other.midiLearnCC) {}
+        Macro& operator=(const Macro& other) {
+            name = other.name;
+            value.store(other.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            mappings = other.mappings;
+            targets = other.targets;
+            mappingCurve = other.mappingCurve;
+            midiLearnCC = other.midiLearnCC;
+            return *this;
+        }
         juce::String name;
         std::atomic<float> value { 0.0f };
         std::vector<MacroMapping> mappings;

@@ -49,7 +49,8 @@ private:
 
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
 
-    // WaveShaper function is set via the public .function member
+    // WaveShaper function — stored as std::function (JUCE 8 removed .function member)
+    std::function<float(float)> satFunction;
     juce::dsp::WaveShaper<float, std::function<float(float)>> waveShaper;
 
     // Per-channel 1-pole LP tone filter
