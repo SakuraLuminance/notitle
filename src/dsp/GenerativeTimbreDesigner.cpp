@@ -698,6 +698,11 @@ void GenerativeTimbreDesigner::reset()
 // Private helpers
 // ============================================================================
 
+void GenerativeTimbreDesigner::updateLUTs(const LatentVector& /*latent*/)
+{
+    // TODO: implement LUT rebuild from latent vector
+}
+
 void GenerativeTimbreDesigner::latentToPartials(const LatentVector& latent,
                                                  PartialDataSIMD& output)
 {
