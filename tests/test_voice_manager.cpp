@@ -56,12 +56,12 @@ TEST_CASE("VoiceManager - noteOn allocates a voice", "[voice][allocation]")
 
     REQUIRE(vm.getNumActiveVoices() == 1);
 
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.state == VoiceState::attack);
-    REQUIRE(v.note == 60);
-    REQUIRE(v.velocity == Catch::Approx(0.5f));
-    REQUIRE(v.pitchHz == Catch::Approx(261.6255f).margin(0.1f));
-    REQUIRE(v.envelopeLevel == Catch::Approx(0.0f));
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->state == VoiceState::attack);
+    REQUIRE(v->note == 60);
+    REQUIRE(v->velocity == Catch::Approx(0.5f));
+    REQUIRE(v->pitchHz == Catch::Approx(261.6255f).margin(0.1f));
+    REQUIRE(v->envelopeLevel == Catch::Approx(0.0f));
 }
 
 TEST_CASE("VoiceManager - multiple noteOn allocates multiple voices", "[voice][allocation]")
@@ -76,9 +76,9 @@ TEST_CASE("VoiceManager - multiple noteOn allocates multiple voices", "[voice][a
     REQUIRE(vm.getNumActiveVoices() == 3);
 
     // With round-robin, voices should be in slots 0, 1, 2
-    REQUIRE(vm.getVoice(0).note == 60);
-    REQUIRE(vm.getVoice(1).note == 64);
-    REQUIRE(vm.getVoice(2).note == 67);
+    REQUIRE(vm.getVoice(0)->note == 60);
+    REQUIRE(vm.getVoice(1)->note == 64);
+    REQUIRE(vm.getVoice(2)->note == 67);
 }
 
 TEST_CASE("VoiceManager - noteOn clamps out-of-range values", "[voice][allocation]")
@@ -98,10 +98,10 @@ TEST_CASE("VoiceManager - noteOn clamps out-of-range values", "[voice][allocatio
     SECTION("velocity clamped to 0-1")
     {
         vm.noteOn(60, -0.1f);
-        REQUIRE(vm.getVoice(0).velocity == Catch::Approx(0.0f));
+        REQUIRE(vm.getVoice(0)->velocity == Catch::Approx(0.0f));
 
         vm.noteOn(61, 1.5f);
-        REQUIRE(vm.getVoice(1).velocity == Catch::Approx(1.0f));
+        REQUIRE(vm.getVoice(1)->velocity == Catch::Approx(1.0f));
     }
 }
 
@@ -115,11 +115,11 @@ TEST_CASE("VoiceManager - noteOff triggers release phase", "[voice][release]")
     vm.prepare(testSampleRate);
 
     vm.noteOn(60, 0.5f);
-    REQUIRE(vm.getVoice(0).state == VoiceState::attack);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::attack);
 
     vm.noteOff(60);
-    REQUIRE(vm.getVoice(0).state == VoiceState::release);
-    REQUIRE(vm.getVoice(0).releaseStartLevel > 0.0f);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::release);
+    REQUIRE(vm.getVoice(0)->releaseStartLevel > 0.0f);
 }
 
 TEST_CASE("VoiceManager - noteOff only affects matching note", "[voice][release]")
@@ -134,7 +134,7 @@ TEST_CASE("VoiceManager - noteOff only affects matching note", "[voice][release]
 
     // Note 60 should be in release, note 64 should still be in attack
     REQUIRE(vm.isVoiceActive(0));
-    REQUIRE(vm.getVoice(1).state == VoiceState::attack);
+    REQUIRE(vm.getVoice(1)->state == VoiceState::attack);
 
     // One voice is now in release, one in attack
     REQUIRE(vm.getNumActiveVoices() == 2);
@@ -148,7 +148,7 @@ TEST_CASE("VoiceManager - noteOff on inactive note is a no-op", "[voice][release
     vm.noteOn(60, 0.5f);
     vm.noteOff(99); // Not playing
 
-    REQUIRE(vm.getVoice(0).state == VoiceState::attack);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::attack);
     REQUIRE(vm.getNumActiveVoices() == 1);
 }
 
@@ -164,7 +164,7 @@ TEST_CASE("VoiceManager - allVoicesOff releases all voices", "[voice][release]")
     vm.allVoicesOff();
 
     for (int i = 0; i < 3; ++i)
-        REQUIRE(vm.getVoice(i).state == VoiceState::release);
+        REQUIRE(vm.getVoice(i)->state == VoiceState::release);
 }
 
 //==============================================================================
@@ -189,7 +189,7 @@ TEST_CASE("VoiceManager - voice stealing when all voices used", "[voice][stealin
     REQUIRE(vm.getNumActiveVoices() == VoiceManager::maxVoices);
 
     // The oldest voice (slot 0) should now play note 76
-    REQUIRE(vm.getVoice(0).note == 76);
+    REQUIRE(vm.getVoice(0)->note == 76);
 }
 
 TEST_CASE("VoiceManager - oldest voices stolen first", "[voice][stealing]")
@@ -209,12 +209,12 @@ TEST_CASE("VoiceManager - oldest voices stolen first", "[voice][stealing]")
 
     // All voices should be in sustain
     for (int i = 0; i < VoiceManager::maxVoices; ++i)
-        REQUIRE(vm.getVoice(i).state == VoiceState::sustain);
+        REQUIRE(vm.getVoice(i)->state == VoiceState::sustain);
 
     // Voice 0 has the lowest noteOnIndex (0) so it should be stolen first
     vm.noteOn(80, 0.5f);
 
-    REQUIRE(vm.getVoice(0).note == 80);
+    REQUIRE(vm.getVoice(0)->note == 80);
 }
 
 TEST_CASE("VoiceManager - stealing prefers sustain over attack", "[voice][stealing]")
@@ -236,8 +236,8 @@ TEST_CASE("VoiceManager - stealing prefers sustain over attack", "[voice][steali
     vm.noteOn(90, 0.5f);
 
     // The stolen voice should be the one in sustain with lowest noteOnIndex
-    const auto& stolen = vm.getVoice(0);
-    REQUIRE(stolen.note == 90);
+    auto* stolen = vm.getVoice(0);
+    REQUIRE(stolen->note == 90);
 }
 
 //==============================================================================
@@ -259,10 +259,10 @@ TEST_CASE("VoiceManager - envelope attack phase", "[voice][envelope]")
         auto buf = makeBuffer(static_cast<int>(0.05 * testSampleRate)); // 50ms
         vm.process(buf);
 
-        const auto& v = vm.getVoice(0);
-        REQUIRE(v.state == VoiceState::attack);
-        REQUIRE(v.envelopeLevel > 0.0f);
-        REQUIRE(v.envelopeLevel < 1.0f);
+        auto* v = vm.getVoice(0);
+        REQUIRE(v->state == VoiceState::attack);
+        REQUIRE(v->envelopeLevel > 0.0f);
+        REQUIRE(v->envelopeLevel < 1.0f);
     }
 
     SECTION("attack reaches 1 at end of attack time")
@@ -270,9 +270,9 @@ TEST_CASE("VoiceManager - envelope attack phase", "[voice][envelope]")
         auto buf = makeBuffer(static_cast<int>(0.1 * testSampleRate)); // 100ms
         vm.process(buf);
 
-        const auto& v = vm.getVoice(0);
-        REQUIRE(v.state == VoiceState::decay);
-        REQUIRE(v.envelopeLevel == Catch::Approx(1.0f).margin(0.001f));
+        auto* v = vm.getVoice(0);
+        REQUIRE(v->state == VoiceState::decay);
+        REQUIRE(v->envelopeLevel == Catch::Approx(1.0f).margin(0.001f));
     }
 }
 
@@ -293,10 +293,10 @@ TEST_CASE("VoiceManager - envelope decay to sustain", "[voice][envelope]")
         vm.process(buf);
     }
 
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.state == VoiceState::decay);
-    REQUIRE(v.envelopeLevel < 1.0f);
-    REQUIRE(v.envelopeLevel > v.sustainLevel);
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->state == VoiceState::decay);
+    REQUIRE(v->envelopeLevel < 1.0f);
+    REQUIRE(v->envelopeLevel > v->sustainLevel);
 
     // Process through the rest of decay
     {
@@ -304,8 +304,8 @@ TEST_CASE("VoiceManager - envelope decay to sustain", "[voice][envelope]")
         vm.process(buf);
     }
 
-    REQUIRE(v.state == VoiceState::sustain);
-    REQUIRE(v.envelopeLevel == Catch::Approx(0.5f).margin(0.001f));
+    REQUIRE(v->state == VoiceState::sustain);
+    REQUIRE(v->envelopeLevel == Catch::Approx(0.5f).margin(0.001f));
 }
 
 TEST_CASE("VoiceManager - envelope sustain holds level", "[voice][envelope]")
@@ -325,9 +325,9 @@ TEST_CASE("VoiceManager - envelope sustain holds level", "[voice][envelope]")
         vm.process(buf);
     }
 
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.state == VoiceState::sustain);
-    REQUIRE(v.envelopeLevel == Catch::Approx(0.7f).margin(0.001f));
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->state == VoiceState::sustain);
+    REQUIRE(v->envelopeLevel == Catch::Approx(0.7f).margin(0.001f));
 
     // Process more - sustain should stay at 0.7
     {
@@ -335,8 +335,8 @@ TEST_CASE("VoiceManager - envelope sustain holds level", "[voice][envelope]")
         vm.process(buf);
     }
 
-    REQUIRE(v.state == VoiceState::sustain);
-    REQUIRE(v.envelopeLevel == Catch::Approx(0.7f).margin(0.001f));
+    REQUIRE(v->state == VoiceState::sustain);
+    REQUIRE(v->envelopeLevel == Catch::Approx(0.7f).margin(0.001f));
 }
 
 TEST_CASE("VoiceManager - envelope release fades to zero", "[voice][envelope]")
@@ -359,7 +359,7 @@ TEST_CASE("VoiceManager - envelope release fades to zero", "[voice][envelope]")
 
     // Release
     vm.noteOff(60);
-    REQUIRE(vm.getVoice(0).state == VoiceState::release);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::release);
 
     // Process halfway through release
     {
@@ -367,10 +367,10 @@ TEST_CASE("VoiceManager - envelope release fades to zero", "[voice][envelope]")
         vm.process(buf);
     }
 
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.state == VoiceState::release);
-    REQUIRE(v.envelopeLevel > 0.0f);
-    REQUIRE(v.envelopeLevel < 0.7f);
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->state == VoiceState::release);
+    REQUIRE(v->envelopeLevel > 0.0f);
+    REQUIRE(v->envelopeLevel < 0.7f);
 
     // Process through the rest of release
     {
@@ -378,8 +378,8 @@ TEST_CASE("VoiceManager - envelope release fades to zero", "[voice][envelope]")
         vm.process(buf);
     }
 
-    REQUIRE(v.state == VoiceState::idle);
-    REQUIRE(v.envelopeLevel == Catch::Approx(0.0f));
+    REQUIRE(v->state == VoiceState::idle);
+    REQUIRE(v->envelopeLevel == Catch::Approx(0.0f));
 }
 
 //==============================================================================
@@ -401,9 +401,9 @@ TEST_CASE("VoiceManager - zero-length attack is instant", "[voice][envelope][edg
     vm.process(buf);
 
     // Should have skipped directly to decay
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.state == VoiceState::decay);
-    REQUIRE(v.envelopeLevel == Catch::Approx(1.0f));
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->state == VoiceState::decay);
+    REQUIRE(v->envelopeLevel == Catch::Approx(1.0f));
 }
 
 TEST_CASE("VoiceManager - zero-length release is instant", "[voice][envelope][edge]")
@@ -432,8 +432,8 @@ TEST_CASE("VoiceManager - zero-length release is instant", "[voice][envelope][ed
         vm.process(buf);
     }
 
-    REQUIRE(vm.getVoice(0).state == VoiceState::idle);
-    REQUIRE(vm.getVoice(0).envelopeLevel == Catch::Approx(0.0f));
+    REQUIRE(vm.getVoice(0)->state == VoiceState::idle);
+    REQUIRE(vm.getVoice(0)->envelopeLevel == Catch::Approx(0.0f));
 }
 
 //==============================================================================
@@ -457,7 +457,7 @@ TEST_CASE("VoiceManager - complete voice lifecycle", "[voice][lifecycle]")
         auto buf = makeBuffer(static_cast<int>(0.03 * testSampleRate));
         vm.process(buf);
     }
-    REQUIRE(vm.getVoice(0).state == VoiceState::attack);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::attack);
 
     // 2. Complete attack -> decay
     {
@@ -471,20 +471,20 @@ TEST_CASE("VoiceManager - complete voice lifecycle", "[voice][lifecycle]")
         auto buf = makeBuffer(static_cast<int>(0.15 * testSampleRate));
         vm.process(buf);
     }
-    REQUIRE(vm.getVoice(0).state == VoiceState::sustain);
-    REQUIRE(vm.getVoice(0).envelopeLevel == Catch::Approx(0.6f).margin(0.001f));
+    REQUIRE(vm.getVoice(0)->state == VoiceState::sustain);
+    REQUIRE(vm.getVoice(0)->envelopeLevel == Catch::Approx(0.6f).margin(0.001f));
 
     // 4. Note-off -> release
     vm.noteOff(60);
-    REQUIRE(vm.getVoice(0).state == VoiceState::release);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::release);
 
     // 5. Complete release -> idle
     {
         auto buf = makeBuffer(static_cast<int>(0.15 * testSampleRate));
         vm.process(buf);
     }
-    REQUIRE(vm.getVoice(0).state == VoiceState::idle);
-    REQUIRE(vm.getVoice(0).envelopeLevel == Catch::Approx(0.0f));
+    REQUIRE(vm.getVoice(0)->state == VoiceState::idle);
+    REQUIRE(vm.getVoice(0)->envelopeLevel == Catch::Approx(0.0f));
 }
 
 //==============================================================================
@@ -551,7 +551,7 @@ TEST_CASE("VoiceManager - round-robin allocation cycles through voices", "[voice
     {
         vm.noteOn(60 + i, 0.5f);
         REQUIRE(vm.isVoiceActive(i));
-        REQUIRE(vm.getVoice(i).note == 60 + i);
+        REQUIRE(vm.getVoice(i)->note == 60 + i);
     }
 }
 
@@ -573,11 +573,11 @@ TEST_CASE("VoiceManager - oldest-first allocation", "[voice][allocation][mode]")
     }
 
     // Voice 0 should be idle now
-    REQUIRE(vm.getVoice(0).state == VoiceState::idle);
+    REQUIRE(vm.getVoice(0)->state == VoiceState::idle);
 
     // Next noteOn with oldestFirst should use the first free voice (slot 0)
     vm.noteOn(72, 0.5f);
-    REQUIRE(vm.getVoice(0).note == 72);
+    REQUIRE(vm.getVoice(0)->note == 72);
 }
 
 TEST_CASE("VoiceManager - random allocation", "[voice][allocation][mode]")
@@ -702,10 +702,10 @@ TEST_CASE("VoiceManager - per-voice ADSR setters work", "[voice][adsr]")
     vm.setVoiceSustain(0, 0.3f);
     vm.setVoiceRelease(0, 4.0f);
 
-    REQUIRE(vm.getVoice(0).attackSeconds == Catch::Approx(2.0f));
-    REQUIRE(vm.getVoice(0).decaySeconds == Catch::Approx(1.5f));
-    REQUIRE(vm.getVoice(0).sustainLevel == Catch::Approx(0.3f));
-    REQUIRE(vm.getVoice(0).releaseSeconds == Catch::Approx(4.0f));
+    REQUIRE(vm.getVoice(0)->attackSeconds == Catch::Approx(2.0f));
+    REQUIRE(vm.getVoice(0)->decaySeconds == Catch::Approx(1.5f));
+    REQUIRE(vm.getVoice(0)->sustainLevel == Catch::Approx(0.3f));
+    REQUIRE(vm.getVoice(0)->releaseSeconds == Catch::Approx(4.0f));
 }
 
 TEST_CASE("VoiceManager - per-voice ADSR clamps to valid ranges", "[voice][adsr]")
@@ -719,17 +719,17 @@ TEST_CASE("VoiceManager - per-voice ADSR clamps to valid ranges", "[voice][adsr]
     vm.setVoiceSustain(0, 2.0f);
     vm.setVoiceRelease(0, 15.0f);
 
-    REQUIRE(vm.getVoice(0).attackSeconds == Catch::Approx(10.0f));
-    REQUIRE(vm.getVoice(0).decaySeconds == Catch::Approx(10.0f));
-    REQUIRE(vm.getVoice(0).sustainLevel == Catch::Approx(1.0f));
-    REQUIRE(vm.getVoice(0).releaseSeconds == Catch::Approx(10.0f));
+    REQUIRE(vm.getVoice(0)->attackSeconds == Catch::Approx(10.0f));
+    REQUIRE(vm.getVoice(0)->decaySeconds == Catch::Approx(10.0f));
+    REQUIRE(vm.getVoice(0)->sustainLevel == Catch::Approx(1.0f));
+    REQUIRE(vm.getVoice(0)->releaseSeconds == Catch::Approx(10.0f));
 
     // Clamp below min
     vm.setVoiceAttack(0, -1.0f);
     vm.setVoiceSustain(0, -0.5f);
 
-    REQUIRE(vm.getVoice(0).attackSeconds == Catch::Approx(0.0f));
-    REQUIRE(vm.getVoice(0).sustainLevel == Catch::Approx(0.0f));
+    REQUIRE(vm.getVoice(0)->attackSeconds == Catch::Approx(0.0f));
+    REQUIRE(vm.getVoice(0)->sustainLevel == Catch::Approx(0.0f));
 }
 
 TEST_CASE("VoiceManager - per-voice ADSR setters ignore invalid index",
@@ -742,7 +742,7 @@ TEST_CASE("VoiceManager - per-voice ADSR setters ignore invalid index",
     vm.setVoiceSustain(VoiceManager::maxVoices, 0.5f);
 
     // defaults should be unchanged
-    REQUIRE(vm.getVoice(0).attackSeconds == Catch::Approx(0.01f));
+    REQUIRE(vm.getVoice(0)->attackSeconds == Catch::Approx(0.01f));
 }
 
 //==============================================================================
@@ -762,11 +762,11 @@ TEST_CASE("VoiceManager - default ADSR values are applied to new voices",
 
     vm.noteOn(60, 0.5f);
 
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.attackSeconds == Catch::Approx(0.5f));
-    REQUIRE(v.decaySeconds == Catch::Approx(1.0f));
-    REQUIRE(v.sustainLevel == Catch::Approx(0.4f));
-    REQUIRE(v.releaseSeconds == Catch::Approx(2.0f));
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->attackSeconds == Catch::Approx(0.5f));
+    REQUIRE(v->decaySeconds == Catch::Approx(1.0f));
+    REQUIRE(v->sustainLevel == Catch::Approx(0.4f));
+    REQUIRE(v->releaseSeconds == Catch::Approx(2.0f));
 }
 
 TEST_CASE("VoiceManager - default ADSR clamps to valid ranges", "[voice][adsr]")
@@ -780,11 +780,11 @@ TEST_CASE("VoiceManager - default ADSR clamps to valid ranges", "[voice][adsr]")
 
     vm.noteOn(60, 0.5f);
 
-    const auto& v = vm.getVoice(0);
-    REQUIRE(v.attackSeconds == Catch::Approx(10.0f));
-    REQUIRE(v.decaySeconds == Catch::Approx(0.0f));
-    REQUIRE(v.sustainLevel == Catch::Approx(1.0f));
-    REQUIRE(v.releaseSeconds == Catch::Approx(10.0f));
+    auto* v = vm.getVoice(0);
+    REQUIRE(v->attackSeconds == Catch::Approx(10.0f));
+    REQUIRE(v->decaySeconds == Catch::Approx(0.0f));
+    REQUIRE(v->sustainLevel == Catch::Approx(1.0f));
+    REQUIRE(v->releaseSeconds == Catch::Approx(10.0f));
 }
 
 //==============================================================================

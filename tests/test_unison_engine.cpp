@@ -99,8 +99,8 @@ TEST_CASE("UnisonEngine - detune spread", "[unison][detune]")
         auto buf = makeStereoBuffer(64);
         engine.process(buf);
 
-        REQUIRE(engine.getVoice(0).detuneCents == Approx(-48.0f).margin(0.01f));
-        REQUIRE(engine.getVoice(7).detuneCents == Approx(48.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(0).detuneCents == Catch::Approx(-48.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(7).detuneCents == Catch::Approx(48.0f).margin(0.01f));
     }
 
     SECTION("symmetry around zero")
@@ -112,11 +112,11 @@ TEST_CASE("UnisonEngine - detune spread", "[unison][detune]")
 
         // Voices should be symmetric: first and last sum to 0, etc.
         REQUIRE(engine.getVoice(0).detuneCents + engine.getVoice(4).detuneCents
-                == Approx(0.0f).margin(0.01f));
+                == Catch::Approx(0.0f).margin(0.01f));
         REQUIRE(engine.getVoice(1).detuneCents + engine.getVoice(3).detuneCents
-                == Approx(0.0f).margin(0.01f));
+                == Catch::Approx(0.0f).margin(0.01f));
         // Middle voice should be at 0
-        REQUIRE(engine.getVoice(2).detuneCents == Approx(0.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(2).detuneCents == Catch::Approx(0.0f).margin(0.01f));
     }
 
     SECTION("spread scales with detune amount")
@@ -134,7 +134,7 @@ TEST_CASE("UnisonEngine - detune spread", "[unison][detune]")
         float secondSpan = engine.getVoice(3).detuneCents - engine.getVoice(0).detuneCents;
 
         // 3x the detune should give 3x the span
-        REQUIRE(secondSpan == Approx(firstSpan * 3.0f).margin(0.01f));
+        REQUIRE(secondSpan == Catch::Approx(firstSpan * 3.0f).margin(0.01f));
     }
 }
 
@@ -155,7 +155,7 @@ TEST_CASE("UnisonEngine - stereo positioning", "[unison][stereo]")
         engine.process(buf);
 
         for (int i = 0; i < 4; ++i)
-            REQUIRE(engine.getVoice(i).pan == Approx(0.0f).margin(0.01f));
+            REQUIRE(engine.getVoice(i).pan == Catch::Approx(0.0f).margin(0.01f));
     }
 
     SECTION("100% spread pans outermost voices to full left/right")
@@ -165,9 +165,9 @@ TEST_CASE("UnisonEngine - stereo positioning", "[unison][stereo]")
         auto buf = makeStereoBuffer(64);
         engine.process(buf);
 
-        REQUIRE(engine.getVoice(0).pan == Approx(-1.0f).margin(0.01f));
-        REQUIRE(engine.getVoice(1).pan == Approx(0.0f).margin(0.01f));
-        REQUIRE(engine.getVoice(2).pan == Approx(1.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(0).pan == Catch::Approx(-1.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(1).pan == Catch::Approx(0.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(2).pan == Catch::Approx(1.0f).margin(0.01f));
     }
 
     SECTION("50% spread gives half-range panning")
@@ -177,8 +177,8 @@ TEST_CASE("UnisonEngine - stereo positioning", "[unison][stereo]")
         auto buf = makeStereoBuffer(64);
         engine.process(buf);
 
-        REQUIRE(engine.getVoice(0).pan == Approx(-0.5f).margin(0.01f));
-        REQUIRE(engine.getVoice(1).pan == Approx(0.5f).margin(0.01f));
+        REQUIRE(engine.getVoice(0).pan == Catch::Approx(-0.5f).margin(0.01f));
+        REQUIRE(engine.getVoice(1).pan == Catch::Approx(0.5f).margin(0.01f));
     }
 
     SECTION("stereo output channels differ when spread > 0")

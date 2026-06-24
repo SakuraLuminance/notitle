@@ -23,8 +23,8 @@ TEST_CASE("SpectralDNA round-trips through toPartials", "[spectral-dna]")
 
     for (int i = 0; i < SpectralDNA::kMaxPartials; ++i)
     {
-        REQUIRE(dna.frequency[i] == Approx(dna2.frequency[i]).margin(0.001f));
-        REQUIRE(dna.amplitude[i] == Approx(dna2.amplitude[i]).margin(0.001f));
+        REQUIRE(dna.frequency[i] == Catch::Approx(dna2.frequency[i]).margin(0.001f));
+        REQUIRE(dna.amplitude[i] == Catch::Approx(dna2.amplitude[i]).margin(0.001f));
     }
 }
 
@@ -39,7 +39,7 @@ TEST_CASE("Uniform crossover produces valid offspring", "[spectral-dna]")
 
     REQUIRE(child.isValid());
     REQUIRE(child.generation == 1);
-    REQUIRE(child.mutationRate == Approx((a.mutationRate + b.mutationRate) * 0.5f));
+    REQUIRE(child.mutationRate == Catch::Approx((a.mutationRate + b.mutationRate) * 0.5f));
 }
 
 TEST_CASE("Spectral crossover splits by frequency", "[spectral-dna]")
