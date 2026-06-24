@@ -238,8 +238,7 @@ public:
     {
         auto typeface = bold ? juce::Font::getDefaultMonospacedFontName()
                              : juce::Font::getDefaultSansSerifFontName();
-        auto f = juce::Font(typeface, height);
-        if (bold) f = f.withStyle("Bold");
+        auto f = juce::Font(typeface, height, bold ? juce::Font::bold : juce::Font::plain);
         return f;
     }
 

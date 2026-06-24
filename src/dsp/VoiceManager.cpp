@@ -583,7 +583,7 @@ void VoiceManager::anaVoiceInit(juce::MPESynthesiserVoice* voice, const juce::MP
     // For mono (non-legato), force-stop any existing note on voice 0
     if (!isLegato && wasActive)
     {
-        anaVoice->clearNote();
+        anaVoice->clearCurrentNote();
         anaVoice->state.store(VoiceState::free, std::memory_order_release);
     }
 

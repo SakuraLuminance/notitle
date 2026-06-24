@@ -471,7 +471,7 @@ void MacroController::loadFromXml(const juce::XmlElement& xml)
         macro.mappings.clear();
         macro.targets.clear();
 
-        for (auto* mapXml : *macroXml)
+        for (auto* mapXml : macroXml->getChildIterator())
         {
             if (mapXml->hasTagName("mapping"))
             {
