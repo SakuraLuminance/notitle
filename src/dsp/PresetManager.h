@@ -14,6 +14,10 @@
 #include "EffectsChain.h"
 #include "ModulationEngine.h"
 
+#ifdef ANA_INCLUDE_TEST_ACCESSORS
+class PresetManagerTestAccess;
+#endif
+
 namespace ana {
 
 class Randomizer; // forward declaration
@@ -274,8 +278,8 @@ public:
     static constexpr const char* xmlRootTag = "AnaPlugPreset";
 
     #ifdef ANA_INCLUDE_TEST_ACCESSORS
-friend class ::PresetManagerTestAccess;
-#endif
+    friend class PresetManagerTestAccess;
+    #endif
 
 private:
     //==============================================================================
