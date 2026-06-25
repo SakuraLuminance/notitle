@@ -102,8 +102,62 @@ add_executable(AnaPlugTests
     ../src/dsp/PresetFactory.cpp
     ../src/dsp/ProcessorStore.cpp
 
-    # DSP sources needed by GenerativeTimbreDesigner tests
+    # DSP sources needed by various tests
+    ../src/dsp/AnaPlugEngine.cpp
+    ../src/dsp/Arpeggiator.cpp
+    ../src/dsp/BlurEffect.cpp
+    ../src/dsp/BpmDetector.cpp
+    ../src/dsp/DualTimbre.cpp
+    ../src/dsp/FilterModulation.cpp
+    ../src/dsp/FrequencyShaper.cpp
     ../src/dsp/GenerativeTimbreDesigner.cpp
+    ../src/dsp/Harmonizer.cpp
+    ../src/dsp/ImageSynthesizer.cpp
+    ../src/dsp/LFOSystem.cpp
+    ../src/dsp/MacroController.cpp
+    ../src/dsp/MidiLearn.cpp
+    ../src/dsp/ModulationBus.cpp
+    ../src/dsp/ModulationMatrix.cpp
+    ../src/dsp/MultiFilter.cpp
+    ../src/dsp/MultiPointEnvelope.cpp
+    ../src/dsp/NeuralStyleTransfer.cpp
+    ../src/dsp/NeuralUpsampler.cpp
+    ../src/dsp/ParallelProcessor.cpp
+    ../src/dsp/PartialTracker.cpp
+    ../src/dsp/PeakDetector.cpp
+    ../src/dsp/PhasePropagation.cpp
+    ../src/dsp/PhysicalModel.cpp
+    ../src/dsp/PrismEffect.cpp
+    ../src/dsp/QuantumSpectralProcessor.cpp
+    ../src/dsp/Randomizer.cpp
+    ../src/dsp/ResynthesisEngine.cpp
+    ../src/dsp/SampleProcessor.cpp
+    ../src/dsp/SpectralDNA.cpp
+    ../src/dsp/SpectralDynamics.cpp
+    ../src/dsp/SpectralFreezeEngine.cpp
+    ../src/dsp/SpectralMorpher.cpp
+    ../src/dsp/SpectralParticleSystem.cpp
+    ../src/dsp/SpectralReverb.cpp
+    ../src/dsp/SpectralSculptor.cpp
+    ../src/dsp/SpectralSequencer.cpp
+    ../src/dsp/STFTAnalyzer.cpp
+    ../src/dsp/SubHarmonicGenerator.cpp
+    ../src/dsp/TimeStretchEngine.cpp
+    ../src/dsp/UndoManager.cpp
+    ../src/dsp/UnisonEngine.cpp
+    ../src/dsp/VocoderMode.cpp
+    ../src/dsp/WavetableEngine.cpp
+    ../src/dsp/WavLoader.cpp
+    ../src/dsp/effects/AutoTuneEffect.cpp
+    ../src/dsp/effects/ChorusEffect.cpp
+    ../src/dsp/effects/DelayEffect.cpp
+    ../src/dsp/effects/DistortionEffect.cpp
+    ../src/dsp/effects/EQEffect.cpp
+    ../src/dsp/effects/FlangerEffect.cpp
+    ../src/dsp/effects/LimiterEffect.cpp
+    ../src/dsp/effects/ModulationEffects.cpp
+    ../src/dsp/effects/PhaserEffect.cpp
+    ../src/dsp/effects/ReverbEffect.cpp
 )
 
 target_include_directories(AnaPlugTests
