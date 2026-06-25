@@ -13,9 +13,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Clean build dir (prevent stale CMakeCache.txt)
-      run: rm -rf build
+    - name: Remove stale CMakeCache (keep compiled objects for speed)
+      run: rm -f build/CMakeCache.txt build/CMakeFiles/*.cmake 2>/dev/null || true
       shell: bash
+
+    - name: Cache build directory (object files)
+      uses: actions/cache@v4
+      with:
+        path: build
+        key: ${{ runner.os }}-build-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt') }}
 
     - name: Cache FetchContent dependencies
       uses: actions/cache@v4
