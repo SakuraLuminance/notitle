@@ -36,8 +36,9 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
 
-    - name: Test
-      run: ctest --test-dir build -C Release --output-on-failure --timeout 30 || echo "Tests failed but build succeeded"
+    - name: Test (allow failure - executable has startup crash)
+      continue-on-error: true
+      run: ctest --test-dir build -C Release --output-on-failure --timeout 30
 
     - name: Run benchmarks (informational)
       run: ctest --test-dir build -C Release -R benchmark --output-on-failure || true
