@@ -103,7 +103,9 @@ add_executable(AnaPlugTests
     ../src/dsp/ProcessorStore.cpp
 
     # DSP sources needed by various test files
+    ../src/dsp/AnaPlugEngine.cpp
     ../src/dsp/Arpeggiator.cpp
+    ../src/dsp/FrequencyShaper.cpp
     ../src/dsp/BlurEffect.cpp
     ../src/dsp/BpmDetector.cpp
     ../src/dsp/DualTimbre.cpp
