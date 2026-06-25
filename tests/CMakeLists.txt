@@ -193,11 +193,6 @@ target_link_libraries(AnaPlugTests
         ebur128
 )
 
-include(Catch)
-
-# Make clap-juce-extensions headers available if the target exists
-if(TARGET clap_juce_extensions)
-    target_link_libraries(AnaPlugTests PRIVATE clap_juce_extensions)
-endif()
-
-catch_discover_tests(AnaPlugTests)
+# Use manual test registration instead of catch_discover_tests
+# because the executable has static init deps that crash --list-tests.
+add_test(NAME AnaPlugTests COMMAND AnaPlugTests)
