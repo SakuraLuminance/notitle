@@ -698,9 +698,9 @@ void GenerativeTimbreDesigner::reset()
 // Private helpers
 // ============================================================================
 
-void GenerativeTimbreDesigner::updateLUTs(const LatentVector& /*latent*/)
+void GenerativeTimbreDesigner::updateLUTs(const LatentVector& latent)
 {
-    // TODO: implement LUT rebuild from latent vector
+    computeLatentLUTs(latent, tiltLUT_, brightnessLUT_, formantLUT_, inharmLUT_);
 }
 
 void GenerativeTimbreDesigner::latentToPartials(const LatentVector& latent,
