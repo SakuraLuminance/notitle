@@ -178,5 +178,7 @@ target_link_libraries(AnaPlugTests
         ebur128
 )
 
-include(Catch)
-catch_discover_tests(AnaPlugTests)
+# catch_discover_tests runs the test executable with --list-tests,
+# but it crashes at startup due to static initializer dependencies.
+# Use manual registration instead.
+add_test(NAME AnaPlugTests COMMAND AnaPlugTests)
