@@ -324,19 +324,25 @@ GenerativeTimbreDesigner::GenerativeTimbreDesigner()
 // Latent vector control
 // ============================================================================
 
-void GenerativeTimbreDesigner::setLatentVector(const LatentVector& v) { currentLatent_ = v; }
+void GenerativeTimbreDesigner::setLatentVector(const LatentVector& v)
+{
+    currentLatent_ = v;
+    lutsDirty_ = true;
+}
 GenerativeTimbreDesigner::LatentVector GenerativeTimbreDesigner::getLatentVector() const { return currentLatent_; }
 
 void GenerativeTimbreDesigner::randomizeLatent()
 {
     juce::Random rng;
     currentLatent_.randomize(rng);
+    lutsDirty_ = true;
 }
 
 void GenerativeTimbreDesigner::mutateLatent(float amount)
 {
     juce::Random rng;
     currentLatent_.mutate(amount, rng);
+    lutsDirty_ = true;
 }
 
 // ============================================================================
@@ -357,6 +363,7 @@ void GenerativeTimbreDesigner::morphToTarget(float t)
     LatentVector result;
     result.interpolate(currentLatent_, targetLatent_, morphProgress_);
     currentLatent_ = result;
+    lutsDirty_ = true;
 }
 
 void GenerativeTimbreDesigner::setMorphSpeed(float speed)
@@ -527,6 +534,7 @@ int GenerativeTimbreDesigner::getGeneration() const
 void GenerativeTimbreDesigner::loadPreset(Preset preset)
 {
     loadLatentPreset(preset, currentLatent_);
+    lutsDirty_ = true;
 }
 
 void GenerativeTimbreDesigner::loadLatentPreset(Preset preset, LatentVector& out)
@@ -677,6 +685,7 @@ void GenerativeTimbreDesigner::captureFromPartials(const PartialDataSIMD& partia
         v.values[40] = std::max(-1.0f, std::min(1.0f, (devSum / static_cast<float>(devN)) * 5.0f));
 
     currentLatent_ = v;
+    lutsDirty_ = true;
 }
 
 // ============================================================================
@@ -692,6 +701,7 @@ void GenerativeTimbreDesigner::reset()
     morphSpeed_     = 0.01f;
     generatedTimbre_ = PartialDataSIMD{};
     resetEvolution();
+    lutsDirty_ = true;
 }
 
 // ============================================================================
@@ -706,10 +716,15 @@ void GenerativeTimbreDesigner::updateLUTs(const LatentVector& latent)
 void GenerativeTimbreDesigner::latentToPartials(const LatentVector& latent,
                                                  PartialDataSIMD& output)
 {
-    // Rebuild LUTs if latent changed since last generation
-    if (lutsDirty_)
+    // Rebuild LUTs if the latent changed since last generation.  The dirty
+    // flag covers the common case (currentLatent_ modified by a setter).
+    // The bit-comparison also catches generateFromLatent(arbitrary) calls
+    // whose latent differs from the one the cached LUTs were built from.
+    if (lutsDirty_ || std::memcmp(latent.values, lutSourceLatent_.values,
+                                  sizeof(latent.values)) != 0)
     {
         updateLUTs(latent);
+        lutSourceLatent_ = latent;
         lutsDirty_ = false;
     }
 

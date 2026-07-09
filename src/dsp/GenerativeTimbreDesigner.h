@@ -249,6 +249,11 @@ private:
     std::array<float, 512> inharmLUT_ {};
     /** Flag: LUTs need recomputation before next generation. */
     bool lutsDirty_ = true;
+    /** Snapshot of the latent vector the LUTs were last built from.
+        Compared against the incoming latent in latentToPartials() so that
+        generateFromLatent(arbitrary) stays correct even when lutsDirty_ is
+        false (e.g. after a generate() call using currentLatent_). */
+    LatentVector lutSourceLatent_ {};
 
     // --------------------------------------------------------------------
     // Static preset storage (shared across instances)

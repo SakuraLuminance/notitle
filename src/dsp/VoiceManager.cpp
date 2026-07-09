@@ -159,11 +159,9 @@ void AnaVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
     const float minCutoff = 200.0f;
     const float maxCutoff = nyquist * 0.95f;
 
-    // Hoist channel write pointers
+    // Hoist channel write pointers (JUCE-managed array — no fixed-size limit)
     const int numChannels = outputBuffer.getNumChannels();
-    float* chData[32];
-    for (int ch = 0; ch < numChannels; ++ch)
-        chData[ch] = outputBuffer.getWritePointer(ch);
+    auto* const* chData = outputBuffer.getArrayOfWritePointers();
 
     // --- Sample loop ---
     for (int s = 0; s < numSamples; ++s)
@@ -1038,9 +1036,10 @@ void VoiceManager::noteOn(int note, float velocity)
     if (stealIdx >= 0)
     {
         auto* voice = getVoice(stealIdx);
-        // clearCurrentNote() is protected in juce::SynthesiserVoice — not accessible here.
-        // startVoice() below fully reinitializes the voice, so no explicit clear needed.
-        voice->state.store(VoiceState::free, std::memory_order_release);
+        // Properly disassociate the stolen voice from its note (clears the
+        // base-class currently-playing state) before reinitialising.
+        // startVoice() below fully reinitializes the voice state.
+        voice->noteStopped(false);
         startVoice(stealIdx, note, velocity);
         voice->state.store(VoiceState::attack, std::memory_order_release);
     }

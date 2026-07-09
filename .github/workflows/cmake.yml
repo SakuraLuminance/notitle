@@ -36,7 +36,7 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
 
-    - name: Test (allow failure - executable has startup crash)
+    - name: Test
       continue-on-error: true
       run: ctest --test-dir build -C Release --output-on-failure --timeout 30
 
@@ -54,3 +54,15 @@ jobs:
       with:
         name: AnaPlug-CLAP-${{ matrix.os }}
         path: build/*_artefacts/Release/CLAP/
+
+    # Validate the built VST3 loads & processes audio without crashing.
+    # This directly addresses the P0 "plugin loads then crashes in host" issue:
+    # pluginval instantiates the plugin the way a host does and reports any
+    # load/scan/process crash as a failure (exit code 1). Runs AFTER artifact
+    # upload so the binaries remain available for local debugging on failure.
+    - name: Validate VST3 with pluginval
+      shell: bash
+      run: |
+        curl -L "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_windows.zip" -o pluginval.zip
+        unzip -o pluginval.zip -d pluginval_dir
+        pluginval_dir/pluginval.exe --validate-in-process --strictness-level 5 --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3"
