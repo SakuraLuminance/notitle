@@ -172,7 +172,7 @@ void AnaVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
             const float totalS = static_cast<float>(portamentoTotalSamples);
             float t = (totalS > 0.0f) ? std::min(1.0f, static_cast<float>(portamentoElapsed) / totalS) : 1.0f;
 
-            float currentPitch;
+            float currentPitch = 0.0f;
             if (t < 1.0f)
             {
                 switch (portamentoCurve)
