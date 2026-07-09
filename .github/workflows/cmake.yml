@@ -70,7 +70,7 @@ jobs:
         Write-Host "=== DLL DEPENDENCIES ==="
         & $dumpbin /dependents $dll 2>&1 | ForEach-Object { $_ } | Select-String -Pattern "Image has|DLL|import" 
         Write-Host "=== EXPORTED SYMBOLS ==="
-        & $dumpbin /exports $dll 2>&1 | Select-String -Pattern "ordinal|RVA|name|InitModule|DeinitModule"
+        & $dumpbin /exports $dll 2>&1 | Select-String -Pattern "ordinal|Init|Deinit|name" -NotMatch | Tee-Object -Variable foo | Out-Null; & $dumpbin /exports $dll 2>&1
 
     # Validate the built VST3 loads & processes audio without crashing.
     # This directly addresses the P0 "plugin loads then crashes in host" issue:

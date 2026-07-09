@@ -48,7 +48,13 @@ FetchContent_Declare(
 )
 
 set(SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS OFF)
+# Force BUILD_SHARED_LIBS OFF for all FetchContent subprojects (JUCE, Catch2,
+# libebur128, clap-juce-extensions).  Must be a CACHE variable with FORCE so
+# subproject option() calls (which check the cache) respect it — without CACHE,
+# libebur128's option(BUILD_SHARED_LIBS ... ON) creates a new cache entry and
+# builds EBUR128.dll as a shared library, making the VST3 dependent on a DLL
+# that won't be present on user machines (the P0 load failure).
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 FetchContent_MakeAvailable(JUCE Catch2 libebur128 clap-juce-extensions)
 set(BUILD_SHARED_LIBS ${SAVED_BUILD_SHARED_LIBS})
