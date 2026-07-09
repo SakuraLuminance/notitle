@@ -198,9 +198,8 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     modSlots_[14] = { ana::ModulationConnection(), &modTargetMasterPan_,        0.0f, "master_pan" };
     modSlots_[15] = { ana::ModulationConnection(), &modTargetSpare_,            0.0f, "spare" };
 
-    // Register all effect factories and initialise the default effect rack
+    // Register all effect factories (static, safe in constructor)
     ana::ProcessorStore::registerAll();
-    initializeDefaultEffects();
 }
 
 //==============================================================================
@@ -395,6 +394,12 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     }
     #endif
 #endif
+
+    // Lazy-initialise the default effect rack (14 effects).  Deferred from
+    // the constructor to prepareToPlay() so the VST3 constructor stays
+    // lightweight — avoids segfault during plugin instantiation in headless
+    // or scanning contexts where the DSP environment isn't yet set up.
+    initializeDefaultEffects();
 
     // Prepare the polyphonic voice engine
     if (sampleRate > 0.0)
