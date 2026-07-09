@@ -55,6 +55,23 @@ jobs:
         name: AnaPlug-CLAP-${{ matrix.os }}
         path: build/*_artefacts/Release/CLAP/
 
+    # Diagnostic: dump the VST3 DLL's dependencies and exported symbols.
+    # These reveal whether LoadLibrary fails due to missing DLL dependencies
+    # or whether InitModule/DeinitModule (the VST3 factory entry-points)
+    # are exported correctly.
+    - name: Dump VST3 dependencies and exports
+      shell: pwsh
+      run: |
+        $dll = "build\AnaPlug_artefacts\Release\VST3\AnaPlug.vst3\Contents\x86_64-win\AnaPlug.vst3"
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if ($null -eq $vswhere -or !(Test-Path $vswhere)) { Write-Host "vswhere not found, skipping dumpbin"; exit 0 }
+        $dumpbin = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find **/Hostx64/x64/dumpbin.exe | Select-Object -First 1
+        if ($null -eq $dumpbin -or !(Test-Path $dumpbin)) { Write-Host "dumpbin not found, skipping"; exit 0 }
+        Write-Host "=== DLL DEPENDENCIES ==="
+        & $dumpbin /dependents $dll 2>&1 | ForEach-Object { $_ } | Select-String -Pattern "Image has|DLL|import" 
+        Write-Host "=== EXPORTED SYMBOLS ==="
+        & $dumpbin /exports $dll 2>&1 | Select-String -Pattern "ordinal|RVA|name|InitModule|DeinitModule"
+
     # Validate the built VST3 loads & processes audio without crashing.
     # This directly addresses the P0 "plugin loads then crashes in host" issue:
     # pluginval instantiates the plugin the way a host does and reports any
