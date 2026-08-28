@@ -98,6 +98,7 @@ jobs:
       continue-on-error: true
       shell: bash
       run: |
+        mkdir -p /c/pdb && find build -name '*.pdb' -exec cp {} /c/pdb/ \; 2>/dev/null || true
         cat > dbgscript.txt <<'EOF'
         g
         .ecxr
@@ -105,7 +106,7 @@ jobs:
         q
         EOF
         "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
-          -y "D:\\a\\notitle\\notitle\\build;D:\\a\\notitle\\notitle\\build\\tests\\Release;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3\\AnaPlug.vst3\\Contents\\x86_64-win;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
+          -y "C:\\pdb;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
           -cf dbgscript.txt \
           build/tests/Release/AnaPlugTests.exe 2>&1 | tail -n 150 || true
     - name: Run benchmarks (informational)
@@ -165,6 +166,7 @@ jobs:
       continue-on-error: true
       shell: bash
       run: |
+        mkdir -p /c/pdb && find build -name '*.pdb' -exec cp {} /c/pdb/ \; 2>/dev/null || true
         cat > dbgscript2.txt <<'EOF'
         g
         .ecxr
@@ -172,7 +174,7 @@ jobs:
         q
         EOF
         "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
-          -y "D:\\a\\notitle\\notitle\\build;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3\\AnaPlug.vst3\\Contents\\x86_64-win;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
+          -y "C:\\pdb;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
           -cf dbgscript2.txt \
           pluginval_dir/pluginval.exe --validate-in-process --strictness-level 1 --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tail -n 150 || true
 

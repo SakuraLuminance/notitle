@@ -181,7 +181,8 @@ std::vector<std::vector<std::complex<float>>> STFTAnalyzer::analyze(
         juce::dsp::FFT localFft(fftOrder);
         
         // Reusable buffers for this thread's chunk
-        std::vector<float> fftBuffer(paddedSize, 0.0f);
+        // JUCE 8 requires 2 * getSize() floats for performRealOnlyForwardTransform
+        std::vector<float> fftBuffer(paddedSize * 2, 0.0f);
         std::vector<std::complex<float>> spectrum(halfSize);
 
         for (int i = startFrame; i < endFrame; ++i)
@@ -200,7 +201,7 @@ std::vector<std::vector<std::complex<float>>> STFTAnalyzer::analyze(
                                  fftSize);
 
             // Forward FFT (in-place, interleaved real/imag result)
-            localFft.performRealOnlyForwardTransform(fftBuffer.data());
+            localFft.performRealOnlyForwardTransform(fftBuffer.data(), true);
 
             // SIMD-optimized: extract complex spectrum
             extractSpectrum(fftBuffer.data(), spectrum.data(), halfSize);

@@ -51,7 +51,7 @@ void VocalNoiseReducer::prepare(const juce::dsp::ProcessSpec& spec)
     }
 
     // Pre-allocate FFT temp buffer
-    fftBuf_.resize(fftSize_, 0.0f);
+    fftBuf_.resize(fftSize_ * 2, 0.0f);
 
     // Compute derived coefficients
     updateAlpha();

@@ -776,7 +776,8 @@ std::vector<float> NeuralUpsampler::spectralUpsample(
     // --- STFT processing ---
     // Scratch buffers
     scratch_.resize(static_cast<size_t>(fftSize));
-    scratch2_.resize(static_cast<size_t>(fftSize));
+    // JUCE 8 real-only FFTs need 2 * getSize() floats
+    scratch2_.resize(static_cast<size_t>(fftSize) * 2, 0.0f);
 
     // Magnitude/phase for current frame
     std::vector<float> mag(static_cast<size_t>(halfSize));

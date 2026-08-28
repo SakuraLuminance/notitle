@@ -80,7 +80,7 @@ void FormantTuner::prepare(const juce::dsp::ProcessSpec& spec)
     resizeIfSmaller(scratchLpcVowel_,   orderP1);
     resizeIfSmaller(scratchResidual_,   static_cast<size_t>(maxBlock));
 
-    resizeIfSmaller(scratchFftBuf_,     static_cast<size_t>(kFftSize));
+    resizeIfSmaller(scratchFftBuf_,     static_cast<size_t>(kFftSize) * 2);
     resizeIfSmaller(scratchLpcR_,       orderP1);
     resizeIfSmaller(scratchAprev_,      orderP1);
     resizeIfSmaller(scratchAcurr_,      orderP1);

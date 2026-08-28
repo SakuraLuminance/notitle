@@ -118,7 +118,7 @@ void VocoderMode::setFftSize(int size)
     overlapBuffer_.assign(static_cast<size_t>(fftSize_), 0.0f);
 
     // Resize FFT scratch buffers
-    scratch_fftIn_.resize(static_cast<size_t>(fftSize_));
+    scratch_fftIn_.resize(static_cast<size_t>(fftSize_) * 2, 0.0f);
     scratch_magnitude_.resize(static_cast<size_t>(fftSize_ / 2 + 1));
 }
 
@@ -470,8 +470,11 @@ void VocoderMode::analyseFFT(const std::vector<float>& modulator,
     }
 
     // Zero the FFT input buffer, then copy and window
-    // (use pre-allocated scratch_fftIn_, sized to fftSize_)
-    scratch_fftIn_.assign(static_cast<size_t>(fftSize), 0.0f);
+    // (pre-allocated scratch_fftIn_ is 2 * fftSize_ — JUCE 8 real-only
+    // transforms require 2 * getSize() floats)
+    std::fill(scratch_fftIn_.begin(),
+              scratch_fftIn_.begin() + static_cast<std::ptrdiff_t>(fftSize),
+              0.0f);
 
     // Use the most recent fftSize samples
     const size_t offset = modulator.size() - copyLen;
