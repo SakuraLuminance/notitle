@@ -108,7 +108,6 @@ public:
     void releaseResources() override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     void refreshParameterList() override;
-    void setRateAndBufferSizeDetails(double sampleRate, int blockSize) override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;

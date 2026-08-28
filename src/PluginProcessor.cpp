@@ -322,12 +322,6 @@ void AnaPlugAudioProcessor::refreshParameterList()
     ANA_CRUMB("refreshParameterList");
 }
 
-void AnaPlugAudioProcessor::setRateAndBufferSizeDetails(double sampleRate, int blockSize)
-{
-    ANA_CRUMB("setRateAndBufferSizeDetails");
-    AudioProcessor::setRateAndBufferSizeDetails(sampleRate, blockSize);
-}
-
 const juce::String AnaPlugAudioProcessor::getName() const
 {
     return JucePlugin_Name;
@@ -479,11 +473,6 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     // Initialise Spectral DNA evolver population if not already done
     if (!dnaEvolver_.getPopulationSize())
         dnaEvolver_.init(16);
-}
-
-void AnaPlugAudioProcessor::releaseResources()
-{
-    vocalProcessor_.reset();
 }
 
 void AnaPlugAudioProcessor::releaseResources()
