@@ -9,10 +9,15 @@ void LimiterEffect::prepare(const juce::dsp::ProcessSpec& spec) {
     sampleRate = spec.sampleRate;
     numChannels = static_cast<int>(spec.numChannels);
 
-    // Prepare lookahead delay lines
+    // Prepare lookahead delay lines (10 ms cap matches setLookahead's jlimit)
     lookaheadLines.resize(numChannels);
     for (auto& dl : lookaheadLines)
+    {
+        dl.setMaximumDelayInSamples(juce::jmax(1,
+            static_cast<int>(std::ceil(0.010 * spec.sampleRate))));
+        dl.reset();
         dl.prepare(spec);
+    }
 
     // Pre-allocate oversampling buffer (4x max) with avoidReallocating=true
     int maxOsBlock = static_cast<int>(spec.maximumBlockSize * 4);
@@ -77,14 +82,36 @@ void LimiterEffect::processLimiter(juce::AudioBuffer<float>& buffer) {
     int numSamples = buffer.getNumSamples();
     int numCh = juce::jmin(numChannels, buffer.getNumChannels());
 
+    // Defensive: the limiter may be driven (e.g. via the oversampled path)
+    // with blocks larger than the prepared maximumBlockSize, and tests may
+    // skip prepare() entirely — make the internal state fit before use.
+    if (sampleRate <= 0.0f || (int) lookaheadLines.size() < numCh)
+    {
+        sampleRate = sampleRate > 0.0f ? sampleRate : 44100.0f;
+        lookaheadLines.resize(numCh);
+        for (auto& dl : lookaheadLines)
+        {
+            dl.setMaximumDelayInSamples(juce::jmax(1,
+                static_cast<int>(std::ceil(0.010 * sampleRate))));
+            dl.reset();
+            dl.prepare({ sampleRate, static_cast<juce::uint32>(juce::jmax(512, numSamples)),
+                         static_cast<juce::uint32>(numCh) });
+        }
+        numChannels = juce::jmax(numChannels, numCh);
+    }
+
     // Dry buffer for mixing (pre-allocated)
     dryBuffer_.makeCopyOf(buffer, true);
 
     // Lookahead delay in samples
     float lookaheadSamples = lookaheadMs * static_cast<float>(sampleRate) / 1000.0f;
+    const float maxDelaySamples = static_cast<float>(lookaheadLines[0].getMaximumDelayInSamples());
+    lookaheadSamples = juce::jlimit(0.0f, maxDelaySamples, lookaheadSamples);
     float thresholdLinear = juce::Decibels::decibelsToGain(thresholdDb);
 
     // Temporary buffer to hold the pre-gain output (pre-allocated in prepare())
+    if (wetBuffer_.getNumChannels() < numCh || wetBuffer_.getNumSamples() < numSamples)
+        wetBuffer_.setSize(numCh, numSamples, true, true, false);
     wetBuffer_.clear();
 
     // First pass: push all samples into lookahead, compute envelope,
