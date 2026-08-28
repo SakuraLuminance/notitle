@@ -65,13 +65,16 @@ jobs:
         exe="build/tests/Release/AnaPlugTests.exe"
         ls -la "$(dirname "$exe")" || true
         timeout 300 "$exe" --reporter xml::out=test-results.xml > test-stdout.log 2> test-stderr.log || echo "full-run exit: $?"
-        "$exe" --list-test-names-only > test-names.txt 2>/dev/null || true
+        # Name list straight from the sources (Catch2 list-mode proved unreliable here)
+        grep -rhoE 'TEST_CASE\("([^"]+)"' tests --include='*.cpp' \
+          | sed -E 's/^TEST_CASE\("//; s/"$//' | sort -u > test-names.txt
         echo "total named tests: $(wc -l < test-names.txt)"
         : > forensics.txt
         while IFS= read -r t; do
           [ -z "$t" ] && continue
-          if ! timeout 90 "$exe" "$t" > /dev/null 2>&1; then
+          if ! timeout 120 "$exe" "$t" > per-test.log 2>&1; then
             echo "CRASH-OR-FAIL :: $t" | tee -a forensics.txt
+            tail -n 12 per-test.log | sed 's/^/    /' >> forensics.txt
           fi
         done < test-names.txt
         echo "===== forensics summary ====="
