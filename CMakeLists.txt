@@ -41,7 +41,11 @@ FetchContent_Declare(
 add_library(ebur128 STATIC third_party/ebur128/ebur128.c)
 target_include_directories(ebur128 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ebur128)
 
-FetchContent_MakeAvailable(JUCE clap-juce-extensions Catch2)
+# Order matters: Catch2 must be populated BEFORE clap-juce-extensions —
+# the clap subproject re-declares Catch2 internally and would clobber the
+# recorded download details, failing configure with "No content details
+# recorded for Catch2".
+FetchContent_MakeAvailable(JUCE Catch2 clap-juce-extensions)
 
 # ---- Plugin Target ----
 juce_add_plugin(AnaPlug
