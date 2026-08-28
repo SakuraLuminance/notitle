@@ -1,4 +1,5 @@
 #include "SpectrumEditorCanvas.h"
+#include "../dsp/Crumb.h"
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -15,6 +16,7 @@ namespace ana {
 // ============================================================================
 SpectrumEditorCanvas::SpectrumEditorCanvas()
 {
+    ANA_CRUMB("sec:enter");
     setWantsKeyboardFocus(false);
     setMouseClickGrabsKeyboardFocus(false);
     startTimerHz(30); // 30 fps smooth animation
@@ -26,6 +28,7 @@ SpectrumEditorCanvas::SpectrumEditorCanvas()
         std::memset(frame.amplitude, 0, sizeof(frame.amplitude));
         frame.activeCount = 0;
     }
+    ANA_CRUMB("sec:exit");
 }
 
 SpectrumEditorCanvas::~SpectrumEditorCanvas()

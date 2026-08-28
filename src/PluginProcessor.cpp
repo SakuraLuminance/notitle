@@ -918,7 +918,10 @@ bool AnaPlugAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* AnaPlugAudioProcessor::createEditor()
 {
-    return new AnaPlugAudioProcessorEditor(*this);
+    ANA_CRUMB("createEditor:enter");
+    auto* ed = new AnaPlugAudioProcessorEditor(*this);
+    ANA_CRUMB("createEditor:exit");
+    return ed;
 }
 
 void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)

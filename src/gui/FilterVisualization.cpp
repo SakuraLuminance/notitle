@@ -1,4 +1,5 @@
 #include "FilterVisualization.h"
+#include "../dsp/Crumb.h"
 #include "CyberpunkTheme.h"
 #include <cmath>
 
@@ -17,7 +18,9 @@ static const juce::Colour filterColours[] = {
 
 FilterVisualization::FilterVisualization()
 {
+    ANA_CRUMB("fv:enter");
     startTimerHz(15);
+    ANA_CRUMB("fv:exit");
 }
 
 FilterVisualization::~FilterVisualization()

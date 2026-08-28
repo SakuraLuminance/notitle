@@ -1,4 +1,5 @@
 #include "VisualFeedbackPanel.h"
+#include "../dsp/Crumb.h"
 #include <cmath>
 
 namespace ana {
@@ -6,8 +7,10 @@ namespace ana {
 //==============================================================================
 VisualFeedbackPanel::VisualFeedbackPanel()
 {
+    ANA_CRUMB("vfp:enter");
     peakLevels_.resize(static_cast<size_t>(PartialDataSIMD::kMaxPartials), 0.0f);
     startTimerHz(30); // 30 fps refresh
+    ANA_CRUMB("vfp:exit");
 }
 
 VisualFeedbackPanel::~VisualFeedbackPanel()

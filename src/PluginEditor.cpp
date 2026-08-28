@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "dsp/PitchCorrector.h"
+#include "dsp/Crumb.h"
 #include <cmath>
 
 //==============================================================================
@@ -75,6 +76,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     : AudioProcessorEditor(&p), audioProcessor(p), meteringPanel_(p), modPanel_(p), effectRack_(p)
 {
     setLookAndFeel(&ana::CyberpunkTheme::getInstance());
+    ANA_CRUMB("ed:laf");
     setSize(1100, 780);
     setResizable(true, true);
     setResizeLimits(900, 660, 1920, 1200);
@@ -135,6 +137,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 
     //==============================================================================
     // Center — Visual feedback + view selector
+    ANA_CRUMB("ed:center-start");
     addAndMakeVisible(feedbackPanel_);
     addAndMakeVisible(waterfallDisplay_);
     waterfallDisplay_.setVisible(false);
@@ -246,9 +249,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     xyPad_ = std::make_unique<ana::XYPad>(audioProcessor);
     xyPad_->setXParameter(&audioProcessor.getMorphAmountRef(), "MORPH");
     addAndMakeVisible(xyPad_.get());
+    ANA_CRUMB("ed:xypad");
 
     //==============================================================================
     // Effect preset combo box
+    ANA_CRUMB("ed:fx-start");
     fxPresetLabel_.setText("FX PRESET", juce::dontSendNotification);
     fxPresetLabel_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f, true));
     fxPresetLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::cyan_);
@@ -342,10 +347,12 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 
     //==============================================================================
     // Dynamic Effect Rack — replaces the old hardcoded effect slider stack
+    ANA_CRUMB("ed:rack");
     addAndMakeVisible(effectRack_);
 
     //==============================================================================
     // Modulation assignment panel (replaces old LFO/Envelope + Vol ADSR + ModSrc)
+    ANA_CRUMB("ed:mod-start");
     modPanel_.setSize(300, modPanel_.calcContentHeight());
     modViewport_.setViewedComponent(&modPanel_, false);
     modViewport_.setScrollBarsShown(true, false);
@@ -716,6 +723,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     // Effect rack — MIDI Learn for the rack controls is handled internally
 
     updateStatus();
+    ANA_CRUMB("ed:exit");
     startTimerHz(30);
 }
 

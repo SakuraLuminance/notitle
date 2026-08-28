@@ -1,4 +1,5 @@
 #include "WaterfallDisplay.h"
+#include "../dsp/Crumb.h"
 #include "CyberpunkTheme.h"
 #include <cmath>
 #include <algorithm>
@@ -20,8 +21,10 @@ static float magnitudeToNorm(float mag, float maxMag)
 //==============================================================================
 WaterfallDisplay::WaterfallDisplay()
 {
+    ANA_CRUMB("wf:enter");
     history_.resize(static_cast<size_t>(maxHistory_));
     startTimerHz(30);
+    ANA_CRUMB("wf:exit");
 }
 
 WaterfallDisplay::~WaterfallDisplay()

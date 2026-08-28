@@ -1,4 +1,5 @@
 #include "MeteringPanel.h"
+#include "../dsp/Crumb.h"
 #include "../PluginProcessor.h"  // for MeteringEngine access
 #include <cmath>
 
@@ -8,6 +9,7 @@ namespace ana {
 MeteringPanel::MeteringPanel(AnaPlugAudioProcessor& proc)
     : processor_(proc)
 {
+    ANA_CRUMB("meter:enter");
     // Reset button — magenta accent, small
     resetButton_.setButtonText("R");
     resetButton_.setTooltip("Reset Integrated LUFS & LRA");
@@ -18,6 +20,7 @@ MeteringPanel::MeteringPanel(AnaPlugAudioProcessor& proc)
     addAndMakeVisible(resetButton_);
 
     startTimerHz(20);  // 50 ms refresh
+    ANA_CRUMB("meter:exit");
 }
 
 MeteringPanel::~MeteringPanel()

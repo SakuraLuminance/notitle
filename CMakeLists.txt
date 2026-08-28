@@ -24,21 +24,6 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
 )
 
-FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.2
-    GIT_SHALLOW TRUE
-)
-
-# libebur128 — ITU-R BS.1770-4 LUFS loudness metering (MIT)
-FetchContent_Declare(
-    libebur128
-    GIT_REPOSITORY https://github.com/jiixyj/libebur128.git
-    GIT_TAG v1.2.6
-    GIT_SHALLOW TRUE
-)
-
 # clap-juce-extensions — CLAP polyphonic modulation & note expressions (MIT)
 FetchContent_Declare(
     clap-juce-extensions
@@ -47,23 +32,16 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
 )
 
-set(SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-# Force BUILD_SHARED_LIBS OFF for all FetchContent subprojects (JUCE, Catch2,
-# libebur128, clap-juce-extensions).  Must be a CACHE variable with FORCE so
-# subproject option() calls (which check the cache) respect it — without CACHE,
-# libebur128's option(BUILD_SHARED_LIBS ... ON) creates a new cache entry and
-# builds EBUR128.dll as a shared library, making the VST3 dependent on a DLL
-# that won't be present on user machines (the P0 load failure).
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-FetchContent_MakeAvailable(JUCE Catch2 libebur128 clap-juce-extensions)
-set(BUILD_SHARED_LIBS ${SAVED_BUILD_SHARED_LIBS})
+# libebur128 — ITU-R BS.1770-4 LUFS loudness metering (MIT).
+# Vendored as plain sources (third_party/ebur128) instead of FetchContent:
+# building it via FetchContent required BUILD_SHARED_LIBS CACHE FORCE games
+# (its ancient CMake ignores normal variables), and that global force
+# regressed the test executable into a pre-main segfault. A plain static
+# target has no such coupling.
+add_library(ebur128 STATIC third_party/ebur128/ebur128.c)
+target_include_directories(ebur128 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ebur128)
 
-# libebur128 does not set INTERFACE_INCLUDE_DIRECTORIES on its target,
-# so ensure the header can be found via #include <ebur128.h>
-if(TARGET ebur128)
-    target_include_directories(ebur128 PUBLIC ${libebur128_SOURCE_DIR}/ebur128)
-endif()
+FetchContent_MakeAvailable(JUCE clap-juce-extensions Catch2)
 
 # ---- Plugin Target ----
 juce_add_plugin(AnaPlug

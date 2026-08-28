@@ -1,4 +1,5 @@
 #include "EffectRackComponent.h"
+#include "../dsp/Crumb.h"
 #include "../dsp/effects/DelayEffect.h"
 #include "../dsp/effects/ReverbEffect.h"
 #include "../dsp/effects/EQEffect.h"
@@ -516,6 +517,7 @@ private:
 EffectRackComponent::EffectRackComponent(AnaPlugAudioProcessor& processor)
     : processor_(processor)
 {
+    ANA_CRUMB("rack:enter");
     // Viewport settings
     viewport_.setScrollBarsShown(true, false);
     viewport_.getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId,
@@ -534,6 +536,7 @@ EffectRackComponent::EffectRackComponent(AnaPlugAudioProcessor& processor)
 
     // Initial build
     rebuildSlots();
+    ANA_CRUMB("rack:exit");
 }
 
 //==============================================================================

@@ -1,4 +1,5 @@
 #include "XYPad.h"
+#include "../dsp/Crumb.h"
 #include "CyberpunkTheme.h"
 #include "../PluginProcessor.h"
 #include <cmath>
@@ -13,7 +14,9 @@ static constexpr float cornerShrink = 12.0f;
 XYPad::XYPad(AnaPlugAudioProcessor& processor)
     : processor_(processor)
 {
+    ANA_CRUMB("xy:enter");
     startTimerHz(30);
+    ANA_CRUMB("xy:exit");
 }
 
 XYPad::~XYPad()

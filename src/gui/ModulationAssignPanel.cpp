@@ -1,4 +1,5 @@
 #include "ModulationAssignPanel.h"
+#include "../dsp/Crumb.h"
 
 namespace ana {
 
@@ -6,6 +7,7 @@ namespace ana {
 ModulationAssignPanel::ModulationAssignPanel(AnaPlugAudioProcessor& processor)
     : processor_(processor)
 {
+    ANA_CRUMB("mod:enter");
     // --- Volume ADSR (pinned at top) ---
     volAdsrHeader_.setText("VOL ADSR", juce::dontSendNotification);
     volAdsrHeader_.setFont(CyberpunkTheme::getCyberFont(10.0f, true));
@@ -156,6 +158,7 @@ ModulationAssignPanel::ModulationAssignPanel(AnaPlugAudioProcessor& processor)
     for (auto& r : timbreSection_.rows)  wireDepthSync(r);
     for (auto& r : effectsSection_.rows) wireDepthSync(r);
     for (auto& r : masterSection_.rows)  wireDepthSync(r);
+    ANA_CRUMB("mod:exit");
 }
 
 //==============================================================================
