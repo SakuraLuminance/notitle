@@ -45,6 +45,13 @@ target_include_directories(ebur128 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_part
 # the clap subproject re-declares Catch2 internally and would clobber the
 # recorded download details, failing configure with "No content details
 # recorded for Catch2".
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.5.2
+    GIT_SHALLOW TRUE
+)
+
 FetchContent_MakeAvailable(JUCE Catch2 clap-juce-extensions)
 
 # ---- Plugin Target ----
