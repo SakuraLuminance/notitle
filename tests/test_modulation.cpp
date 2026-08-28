@@ -42,10 +42,15 @@ static void runLfoPool(std::array<LFOSystem, 4>& pool, int numSamples, float out
         outVals[i] = pool[static_cast<size_t>(i)].process(numSamples);
 }
 
-static void runEnvPool(std::array<MultiPointEnvelope, 3>& pool, int numSamples, float outVals[3])
+static void runEnvPool(std::array<MultiPointEnvelope, 3>& pool, int numSamples, float* outVals)
 {
+    // outVals may be null when the caller only wants to advance the envelopes
     for (int i = 0; i < 3; ++i)
-        outVals[i] = pool[static_cast<size_t>(i)].process(numSamples);
+    {
+        const float v = pool[static_cast<size_t>(i)].process(numSamples);
+        if (outVals != nullptr)
+            outVals[i] = v;
+    }
 }
 
 //==============================================================================
