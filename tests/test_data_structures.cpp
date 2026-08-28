@@ -30,7 +30,7 @@ TEST_CASE("PartialFrame struct construction", "[data]")
     REQUIRE(frame.partials.size() == 1);
 }
 
-TEST_CASE("PartialData struct construction", "[data]")
+TEST_CASE("PartialData defaults", "[data]")
 {
     ana::PartialData data;
     REQUIRE(data.frames.empty());
