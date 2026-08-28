@@ -63,6 +63,7 @@ struct TestHarness
 
     TestHarness()
     {
+        effectsChain.prepare({ 44100.0, 512, 2 });
         presetManager.setStateReferences(&stftConfig, &multiFilter, &envelope,
                                           &lfo, &granular, &unison,
                                           &voiceManager, &filterMod);
@@ -78,7 +79,7 @@ TEST_CASE("Effect state serialization - DelayEffect", "[effects][preset][seriali
 {
     DelayEffect effect;
     effect.setDelayTime(150.0f);
-    effect.setFeedback(0.45f);
+    effect.setFeedback(45.0f);   // percent semantics
     effect.setMix(60.0f);
 
     auto state = effect.getState();

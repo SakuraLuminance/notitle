@@ -182,7 +182,7 @@ private:
     float evalSlotResponse(const FilterSlot& slot, float frequency) const;
 
     //==============================================================================
-    juce::dsp::ProcessSpec spec;
+    juce::dsp::ProcessSpec spec{};
     std::vector<FilterSlot> slots;
     RoutingMode currentRouting = RoutingMode::Serial;
     float masterGainValue = 1.0f;

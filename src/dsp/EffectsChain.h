@@ -52,7 +52,10 @@ public:
 private:
     std::list<EffectSlot> slots;
     juce::AudioBuffer<float> dryBuffer;
-    juce::dsp::ProcessSpec currentSpec;
+    // Zero-initialised: sampleRate == 0 until prepare() runs, so addEffect()
+    // on a not-yet-prepared chain skips effect preparation instead of using
+    // indeterminate spec values (huge maximumBlockSize -> bad_alloc).
+    juce::dsp::ProcessSpec currentSpec{};
 };
 
 } // namespace ana
