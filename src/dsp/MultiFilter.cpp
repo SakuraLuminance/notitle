@@ -314,10 +314,29 @@ void MultiFilter::updateMorphCoefficients(FilterSlot& slot)
 //==============================================================================
 //  Main processing
 //==============================================================================
+void MultiFilter::ensureScratchCapacity(int numChannels, int numSamples)
+{
+    auto ensure = [] (juce::AudioBuffer<float>& buf, int ch, int n)
+    {
+        if (buf.getNumChannels() < ch || buf.getNumSamples() < n)
+            buf.setSize(ch, n, true, true, false);
+    };
+
+    ensure(dryScratch,       numChannels, numSamples);
+    ensure(parallelScratch,  numChannels, numSamples);
+    ensure(formantScratch,   numChannels, numSamples);
+    ensure(formantAccum,     numChannels, numSamples);
+}
+
 void MultiFilter::process(juce::AudioBuffer<float>& buffer)
 {
     if (slots.empty())
         return;
+
+    // Scratch buffers are sized from spec.maximumBlockSize in prepare(); a
+    // host (or test) may legally deliver a larger block than that, so grow
+    // the scratches before any of the routing paths touch them.
+    ensureScratchCapacity(buffer.getNumChannels(), buffer.getNumSamples());
 
     // Clamp cutoff and update coefficients only for dirty slots
     bool anyDirty = false;

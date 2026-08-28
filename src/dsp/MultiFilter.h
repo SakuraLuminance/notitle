@@ -162,6 +162,11 @@ private:
     void updateFormantCoefficients(FilterSlot& slot);
     void updateMorphCoefficients(FilterSlot& slot);
 
+    // Grows the scratch buffers so they can hold a block of this size.
+    // Hosts/tests may deliver larger blocks than spec.maximumBlockSize
+    // prepared for; processing without this guard overruns the heap.
+    void ensureScratchCapacity(int numChannels, int numSamples);
+
     // Routing logic
     void processSerial(juce::dsp::AudioBlock<float>& block);
     void processParallel(juce::AudioBuffer<float>& buffer);
