@@ -11,8 +11,9 @@ static std::unique_ptr<UndoCommand> makeCounterCmd(int* value, int delta,
 {
     auto cmd = std::make_unique<UndoCommand>();
     cmd->description = desc;
-    cmd->execute = [value, delta]() { *value += delta; };
-    cmd->undo    = [value, delta]() { *value -= delta; };
+    // value may be null (description-only commands) — guard the writes
+    cmd->execute = [value, delta]() { if (value != nullptr) *value += delta; };
+    cmd->undo    = [value, delta]() { if (value != nullptr) *value -= delta; };
     return cmd;
 }
 
