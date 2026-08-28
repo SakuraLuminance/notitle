@@ -347,17 +347,19 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
 
     if (direction > 0)
     {
+        // The curve stored on a breakpoint shapes the segment that ENDS at
+        // it (this matches addBreakpoint usage and the built-in ADSR setup).
         currentValue = interpolateValue(
             breakpoints[segment].value,
             breakpoints[segment + 1].value, p,
-            breakpoints[segment].curve);
+            breakpoints[segment + 1].curve);
     }
     else
     {
         currentValue = interpolateValue(
             breakpoints[segment + 1].value,
             breakpoints[segment].value, p,
-            breakpoints[segment].curve);
+            breakpoints[segment + 1].curve);
     }
 }
 

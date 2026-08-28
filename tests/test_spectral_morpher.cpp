@@ -151,12 +151,23 @@ TEST_CASE("SpectralMorpher::morphWeighted - t=0 yields pure A",
     }
 }
 
-TEST_CASE("SpectralMorpher::morphWeighted - t=1 yields pure B",
+TEST_CASE("SpectralMorpher::morphWeighted - t=1 yields pure B at unit amplitude",
           "[morpher][weighted]")
 {
     PartialDataSIMD a, b, out;
     fillPattern(a, 100.0f, 0.8f, 0.0f);
     fillPattern(b, 400.0f, 0.4f, 1.0f);
+
+    // Weighted morph scales the effective t by the mean amplitude
+    // (t_eff = t * (ampA + ampB) / 2), so with unit amplitudes t_eff == t
+    // and t=1 must land exactly on B.
+    for (int i = 0; i < PartialDataSIMD::kMaxPartials; ++i)
+    {
+        a.amplitude[i] = 1.0f;
+        b.amplitude[i] = 1.0f;
+    }
+    a.updateActiveMask();
+    b.updateActiveMask();
 
     SpectralMorpher::morphWeighted(out, a, b, 1.0f);
 

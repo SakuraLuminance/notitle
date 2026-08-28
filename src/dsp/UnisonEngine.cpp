@@ -35,6 +35,11 @@ void UnisonEngine::reset()
 
 void UnisonEngine::noteOn()
 {
+    // Voices are (re)configured lazily on process(); a noteOn arriving
+    // before that must still see a correctly sized voice table.
+    if (!voicesValid_ || voices_.size() != static_cast<size_t>(voiceCount_))
+        updateVoices();
+
     const float maxOffset = phaseOffset_ * juce::MathConstants<float>::twoPi;
     for (auto& v : voices_)
     {

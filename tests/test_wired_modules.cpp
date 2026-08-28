@@ -411,8 +411,9 @@ TEST_CASE("UnisonEngine - 4 voices produce detuned output", "[wired][unison]")
         engine.process(buf);
 
         // Outermost voices should be symmetric around 0
-        REQUIRE(engine.getVoice(0).detuneCents == Catch::Approx(-22.5f).margin(0.01f));
-        REQUIRE(engine.getVoice(3).detuneCents == Catch::Approx(22.5f).margin(0.01f));
+        // Contract: total spread = detune * voiceCount / 2 (15 * 4 / 2 = 30)
+        REQUIRE(engine.getVoice(0).detuneCents == Catch::Approx(-30.0f).margin(0.01f));
+        REQUIRE(engine.getVoice(3).detuneCents == Catch::Approx(30.0f).margin(0.01f));
     }
 }
 

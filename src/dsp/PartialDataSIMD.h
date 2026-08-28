@@ -128,12 +128,11 @@ struct alignas(32) PartialDataSIMD
         return (activeMask[word] & (1u << bit)) != 0;
     }
 
+    /** Returns the next active partial index strictly AFTER startFrom,
+        or -1 when none remains.  Pass -1 to start from the beginning. */
     int getNextActive(int startFrom) const
     {
-        if (startFrom < 0 || startFrom >= kMaxPartials)
-            return -1;
-
-        for (int i = startFrom; i < kMaxPartials; ++i)
+        for (int i = startFrom + 1; i < kMaxPartials; ++i)
         {
             if (isActive(i))
                 return i;

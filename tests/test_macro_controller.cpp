@@ -25,7 +25,9 @@ TEST_CASE("MacroController - mappings", "[macro][mapping]")
     REQUIRE(mc.getNumTargets() == 1);
     
     mc.setMacroValue(0, 0.5f);
-    float val = mc.getTargetValue(3);
+    // getTargetValue indexes the mapping cache by ordinal (this is the
+    // first/only mapping), not by targetParamIndex.
+    float val = mc.getTargetValue(0);
     REQUIRE(val == Catch::Approx(10010.0f));
 }
 

@@ -37,9 +37,9 @@ TEST_CASE("VoiceManager - initial state", "[voice][init]")
         REQUIRE(vm.getAllocationMode() == AllocationMode::roundRobin);
     }
 
-    SECTION("maxVoices is 16")
+    SECTION("maxVoices is 32")
     {
-        REQUIRE(VoiceManager::maxVoices == 16);
+        REQUIRE(VoiceManager::maxVoices == 32);
     }
 }
 

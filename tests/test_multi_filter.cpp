@@ -285,9 +285,11 @@ TEST_CASE("MultiFilter - coefficient caching", "[multifilter][caching]")
 
     const int idx = filter.addSlot(FilterType::LowPass, FilterParams{1000.0, 0.5f, 0.0f, 1.0f});
 
-    SECTION("new slot starts dirty")
+    SECTION("new slot starts clean (coefficients computed at addSlot)")
     {
-        REQUIRE(filter.getSlot(idx).coefficientsDirty);
+        // addSlot computes coefficients immediately so the slot is valid
+        // even if the host processes before another prepare() pass.
+        REQUIRE_FALSE(filter.getSlot(idx).coefficientsDirty);
     }
 
     SECTION("coefficients cleared after process")
