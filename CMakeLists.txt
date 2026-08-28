@@ -228,6 +228,15 @@ if(MSVC)
         /Zi                    # PDB symbols (CI crash-dump analysis)
     )
     target_link_options(AnaPlug PRIVATE /DEBUG)
+    # The format-module targets (VST3/CLAP/Standalone DLLs) perform their own
+    # link step — they need /DEBUG to emit the PDBs cdb uses for symbolising
+    # crash dumps.
+    foreach(_anaplug_fmt_target AnaPlug_VST3 AnaPlug_CLAP AnaPlug_Standalone)
+        if(TARGET ${_anaplug_fmt_target})
+            target_compile_options(${_anaplug_fmt_target} PRIVATE /Zi)
+            target_link_options(${_anaplug_fmt_target} PRIVATE /DEBUG)
+        endif()
+    endforeach()
     # /GL and /LTCG not needed here — already set by juce_recommended_lto_flags (linked PUBLIC above)
     
     if(ENABLE_PGO_GENERATE)
