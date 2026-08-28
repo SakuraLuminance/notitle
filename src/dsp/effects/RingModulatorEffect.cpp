@@ -27,7 +27,10 @@ void RingModulatorEffect::prepare(const juce::dsp::ProcessSpec& spec) {
 }
 
 void RingModulatorEffect::reset() {
-    for (int ch = 0; ch < numChannels; ++ch) {
+    // phase_ etc. are sized by prepare(); reset() must be safe before that
+    const int nch = static_cast<int>(std::min<size_t>(numChannels,
+        std::min(phase_.size(), std::min(phasorCos_.size(), phasorSin_.size()))));
+    for (int ch = 0; ch < nch; ++ch) {
         phase_[ch] = 0.0f;
         phasorCos_[ch] = 1.0f;
         phasorSin_[ch] = 0.0f;

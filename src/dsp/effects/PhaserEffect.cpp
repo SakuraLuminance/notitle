@@ -40,7 +40,10 @@ void PhaserEffect::prepare(const juce::dsp::ProcessSpec& spec) {
 void PhaserEffect::reset() {
     std::fill(stateSV1.begin(), stateSV1.end(), 0.0f);
     std::fill(stateSV2.begin(), stateSV2.end(), 0.0f);
-    for (int ch = 0; ch < numChannels; ++ch) {
+    // lfoPhase/fbOut are sized by prepare(); reset() must be safe before that
+    const int nch = static_cast<int>(std::min<size_t>(numChannels,
+        std::min(lfoPhase.size(), fbOut.size())));
+    for (int ch = 0; ch < nch; ++ch) {
         lfoPhase[ch] = (ch > 0) ? stereoPhaseOffset / 360.0f : 0.0f;
         fbOut[ch] = 0.0f;
     }

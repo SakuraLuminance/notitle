@@ -369,8 +369,12 @@ void DriveModule::reset()
     wetHPFFilter_.reset();
     wetLPFFilter_.reset();
 
-    // Ring state
-    for (int ch = 0; ch < numChannels_; ++ch)
+    // Ring state — phase_ etc. are only sized by prepare(); reset() must be
+    // safe on an unprepared module (hosts call releaseResources at any time)
+    const int ringChannels = static_cast<int>(std::min(
+        { phase_.size(), phasorCos_.size(), phasorSin_.size(),
+          static_cast<size_t>(numChannels_) }));
+    for (int ch = 0; ch < ringChannels; ++ch)
     {
         phase_[ch] = 0.0f;
         phasorCos_[ch] = 1.0f;

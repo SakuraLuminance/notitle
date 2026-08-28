@@ -25,8 +25,11 @@ void FlangerEffect::prepare(const juce::dsp::ProcessSpec& spec) {
 void FlangerEffect::reset() {
     for (auto& dl : delayLines)
         dl.reset();
+    // lfoPhase is sized by prepare(); reset() must be safe before that
+    if (lfoPhase.empty())
+        return;
     lfoPhase[0] = 0.0f;
-    for (int ch = 1; ch < numChannels; ++ch)
+    for (int ch = 1; ch < static_cast<int>(std::min<size_t>(numChannels, lfoPhase.size())); ++ch)
         lfoPhase[ch] = 0.5f;
 }
 
