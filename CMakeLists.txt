@@ -39,6 +39,7 @@ FetchContent_Declare(
 # regressed the test executable into a pre-main segfault. A plain static
 # target has no such coupling.
 add_library(ebur128 STATIC third_party/ebur128/ebur128.c)
+target_compile_definitions(ebur128 PRIVATE _USE_MATH_DEFINES)
 target_include_directories(ebur128
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ebur128
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ebur128/queue)
