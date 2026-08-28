@@ -99,8 +99,10 @@ jobs:
       shell: bash
       run: |
         cat > dbgscript.txt <<'EOF'
-        sxe -c "!analyze -v; .ecxr; kb 60; qd" av
         g
+        .ecxr
+        kb 60
+        q
         EOF
         "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
           -y "D:\\a\\notitle\\notitle\\build;D:\\a\\notitle\\notitle\\build\\tests\\Release;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3\\Contents\\x86_64-win;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
@@ -164,8 +166,10 @@ jobs:
       shell: bash
       run: |
         cat > dbgscript2.txt <<'EOF'
-        sxe -c "!analyze -v; .ecxr; kb 60; qd" av
         g
+        .ecxr
+        kb 60
+        q
         EOF
         "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
           -y "D:\\a\\notitle\\notitle\\build;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3\\Contents\\x86_64-win;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \

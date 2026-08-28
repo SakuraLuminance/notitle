@@ -1,12 +1,20 @@
-// Catch2 test runner — JUCE static initializer for production code compatibility
-#include <catch2/catch_all.hpp>
+// Catch2 test runner
+//
+// NOTE: JUCE (MessageManager) must NOT be touched from a static initializer
+// here. The previous JuceInitialiser static object called
+// juce::MessageManager::getInstance() during CRT static init, which raced
+// against the class-static juce::SingletonHolder<InternalMessageQueue,
+// CriticalSection> constructor in another translation unit and segfaulted
+// pre-main (NULL critical section). Initialising in main() is order-safe.
+#include <catch2/catch_session.hpp>
 #include <juce_events/juce_events.h>
 
-// Some production DSP sources use JUCE's message thread or create JUCE objects
-// during static initialization. This ensures JUCE's GUI infrastructure is available
-// before any static initializers run.
-struct JuceInitialiser {
-    JuceInitialiser() {
-        juce::MessageManager::getInstance();
-    }
-} juceInit;
+int main(int argc, char* argv[])
+{
+    juce::MessageManager::getInstance();
+
+    int result = Catch::Session().run(argc, argv);
+
+    juce::MessageManager::deleteInstance();
+    return result;
+}

@@ -181,7 +181,7 @@ endif()
 
 target_link_libraries(AnaPlugTests
     PRIVATE
-        Catch2::Catch2WithMain
+        Catch2::Catch2
         juce::juce_audio_processors
         juce::juce_dsp
         juce::juce_audio_formats
