@@ -36,6 +36,17 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
 
+    # Crash forensics: WER writes a minidump for ANY process that dies with
+    # an unhandled exception (AnaPlugTests.exe, pluginval.exe) into C:\dumps.
+    - name: Enable WER LocalDumps
+      shell: pwsh
+      run: |
+        New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Force | Out-Null
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name DumpFolder -Value "C:\dumps" -Type ExpandString
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name DumpType -Value 1 -Type DWord
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name DumpCount -Value 10 -Type DWord
+        New-Item -ItemType Directory -Force -Path "C:\dumps" | Out-Null
+
     - name: Test
       continue-on-error: true
       run: ctest --test-dir build -C Release --output-on-failure --timeout 30
@@ -130,6 +141,33 @@ jobs:
         echo "===== pluginval log tail ====="
         tail -n 40 pluginval.log || true
         exit "$code"
+
+    # Analyse any minidumps produced this run (faulting module+offset+stack
+    # when cdb.exe is available; dumps are always uploaded as artifacts).
+    - name: Analyze crash dumps
+      if: always()
+      shell: pwsh
+      run: |
+        if (!(Test-Path C:\dumps)) { Write-Host "no dumps dir"; exit 0 }
+        $dumps = Get-ChildItem C:\dumps -Filter *.dmp -ErrorAction SilentlyContinue
+        if (-not $dumps) { Write-Host "no dump files"; exit 0 }
+        $cdb = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Debuggers" -Recurse -Filter cdb.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+        foreach ($d in $dumps) {
+          Write-Host "===== $($d.FullName) ($([math]::Round($d.Length/1KB)) KB) ====="
+          if ($cdb) {
+            & $cdb.FullName -z $d.FullName -c "!analyze -v; q" 2>&1 | Select-Object -Last 120
+          } else {
+            Write-Host "cdb.exe not found on runner; dump uploaded for manual analysis"
+          }
+        }
+
+    - name: Upload crash dumps
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: crash-dumps-${{ matrix.os }}
+        path: C:\dumps
+        if-no-files-found: ignore
 
     - name: Upload pluginval log
       if: always()

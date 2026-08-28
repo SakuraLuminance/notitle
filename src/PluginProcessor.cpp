@@ -314,6 +314,18 @@ void AnaPlugAudioProcessor::initializeDefaultEffects()
 
 AnaPlugAudioProcessor::~AnaPlugAudioProcessor()
 {
+    ANA_CRUMB("dtor:enter");
+}
+
+void AnaPlugAudioProcessor::refreshParameterList()
+{
+    ANA_CRUMB("refreshParameterList");
+}
+
+void AnaPlugAudioProcessor::setRateAndBufferSizeDetails(double sampleRate, int blockSize)
+{
+    ANA_CRUMB("setRateAndBufferSizeDetails");
+    AudioProcessor::setRateAndBufferSizeDetails(sampleRate, blockSize);
 }
 
 const juce::String AnaPlugAudioProcessor::getName() const
@@ -338,37 +350,44 @@ bool AnaPlugAudioProcessor::isMidiEffect() const
 
 double AnaPlugAudioProcessor::getTailLengthSeconds() const
 {
+    ANA_CRUMB("getTailLengthSeconds");
     return 0.0;
 }
 
 int AnaPlugAudioProcessor::getNumPrograms()
 {
+    ANA_CRUMB("getNumPrograms");
     return 1;
 }
 
 int AnaPlugAudioProcessor::getCurrentProgram()
 {
+    ANA_CRUMB("getCurrentProgram");
     return 0;
 }
 
 void AnaPlugAudioProcessor::setCurrentProgram(int index)
 {
+    ANA_CRUMB("setCurrentProgram");
     juce::ignoreUnused(index);
 }
 
 const juce::String AnaPlugAudioProcessor::getProgramName(int index)
 {
+    ANA_CRUMB("getProgramName");
     juce::ignoreUnused(index);
     return {};
 }
 
 void AnaPlugAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
+    ANA_CRUMB("changeProgramName");
     juce::ignoreUnused(index, newName);
 }
 
 bool AnaPlugAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
+    ANA_CRUMB("isBusesLayoutSupported");
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
      && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
@@ -467,8 +486,18 @@ void AnaPlugAudioProcessor::releaseResources()
     vocalProcessor_.reset();
 }
 
+void AnaPlugAudioProcessor::releaseResources()
+{
+    ANA_CRUMB("releaseResources");
+    vocalProcessor_.reset();
+}
+
 void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    static std::atomic<bool> firstProcessBlock_{true};
+    if (firstProcessBlock_.exchange(false))
+        ANA_CRUMB("processBlock: first call");
+
     // Flush-to-Zero and Denormals-Are-Zero for SSE
     // Reset here because some hosts reset the FP control word between prepareToPlay and processBlock
 #if JUCE_INTEL
@@ -926,6 +955,7 @@ juce::AudioProcessorEditor* AnaPlugAudioProcessor::createEditor()
 
 void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
+    ANA_CRUMB("getStateInformation");
     juce::ValueTree state("AnaPlugState");
     state.setProperty("fftSize", fftSize.load(), nullptr);
     state.setProperty("hopSize", hopSize.load(), nullptr);
@@ -958,6 +988,7 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 
 void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
+    ANA_CRUMB("setStateInformation");
     auto state = juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
     if (!state.isValid() || !state.hasType("AnaPlugState"))
         return;
