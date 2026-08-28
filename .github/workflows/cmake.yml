@@ -40,6 +40,46 @@ jobs:
       continue-on-error: true
       run: ctest --test-dir build -C Release --output-on-failure --timeout 30
 
+    # Crash forensics (Phase 0): the test exe segfaults at startup in CI.
+    # 1) One full run with an XML reporter — the results file lists every
+    #    COMPLETED test case, so the crash point is the next one.
+    # 2) A per-test isolated loop via --list-test-names-only: each test runs
+    #    in its own process, so a crash is attributed to exactly one name.
+    #    If EVERY run crashes, the fault is in static initialisation (pre-main).
+    - name: Test forensics
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: |
+        exe="build/tests/Release/AnaPlugTests.exe"
+        ls -la "$(dirname "$exe")" || true
+        timeout 300 "$exe" --reporter xml::out=test-results.xml > test-stdout.log 2> test-stderr.log || echo "full-run exit: $?"
+        "$exe" --list-test-names-only > test-names.txt 2>/dev/null || true
+        echo "total named tests: $(wc -l < test-names.txt)"
+        : > forensics.txt
+        while IFS= read -r t; do
+          [ -z "$t" ] && continue
+          if ! timeout 90 "$exe" "$t" > /dev/null 2>&1; then
+            echo "CRASH-OR-FAIL :: $t" | tee -a forensics.txt
+          fi
+        done < test-names.txt
+        echo "===== forensics summary ====="
+        cat forensics.txt || true
+        echo "===== xml tail ====="
+        tail -c 1200 test-results.xml 2>/dev/null || true
+
+    - name: Upload test forensics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-forensics-${{ matrix.os }}
+        path: |
+          test-results.xml
+          test-stdout.log
+          test-stderr.log
+          test-names.txt
+          forensics.txt
+
     - name: Run benchmarks (informational)
       run: ctest --test-dir build -C Release -R benchmark --output-on-failure || true
 
@@ -82,4 +122,18 @@ jobs:
       run: |
         curl -L "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_windows.zip" -o pluginval.zip
         unzip -o pluginval.zip -d pluginval_dir
-        pluginval_dir/pluginval.exe --validate-in-process --strictness-level 1 --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3"
+        set +e
+        pluginval_dir/pluginval.exe --validate-in-process --strictness-level 1 --verbose --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tee pluginval.log
+        code=$?
+        set -e
+        echo "pluginval exit: $code"
+        echo "===== pluginval log tail ====="
+        tail -n 40 pluginval.log || true
+        exit "$code"
+
+    - name: Upload pluginval log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pluginval-log-${{ matrix.os }}
+        path: pluginval.log

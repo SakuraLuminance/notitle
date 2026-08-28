@@ -1,4 +1,5 @@
 #include "VoiceManager.h"
+#include "Crumb.h"
 #include <juce_core/juce_core.h>
 #include <cmath>
 
@@ -320,8 +321,10 @@ void AnaVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
 
 VoiceManager::VoiceManager()
 {
+    ANA_CRUMB("vm:enter");
     for (int i = 0; i < maxVoices; ++i)
         addVoice(new AnaVoice());
+    ANA_CRUMB("vm:exit");
 }
 
 //==============================================================================

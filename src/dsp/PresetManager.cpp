@@ -3,6 +3,7 @@
 #include "ProcessorStore.h"
 #include "Randomizer.h"
 #include "MidiLearn.h"
+#include "Crumb.h"
 
 namespace ana {
 
@@ -276,13 +277,18 @@ static AllocationMode stringToAllocMode(const juce::String& s)
 
 PresetManager::PresetManager()
 {
+    ANA_CRUMB("pm:enter");
+
     // Ensure the ProcessorStore is populated with all built-in effect types
     ProcessorStore::registerAll();
+    ANA_CRUMB("pm:registerAll done");
 
     auto dir = getPresetDirectory();
     dir.createDirectory();
+    ANA_CRUMB("pm:createDirectory done");
 
     rebuildCache();
+    ANA_CRUMB("pm:exit");
 }
 
 //==============================================================================

@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "dsp/Crumb.h"
 #include <cmath>
 #include "dsp/effects/DelayEffect.h"
 #include "dsp/effects/ReverbEffect.h"
@@ -124,6 +125,8 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     : AudioProcessor(BusesProperties()
           .withOutput("Output", juce::AudioChannelSet::stereo(), true))
 {
+    ANA_CRUMB("ctor:body enter");
+
     // Flush-to-Zero and Denormals-Are-Zero for SSE
     // Prevents denormal numbers from crippling DSP performance
     // (resonant IIR filters, comb filters with feedback)
@@ -156,6 +159,7 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     presetManager.setVolumeAdsrRef(&volumeAdsr_);
     presetManager.setRandomizerRef(&randomizer_);
     presetManager.setMidiLearnRef(&midiLearn_);
+    ANA_CRUMB("ctor:refs wired");
 
     // Initialise the engine partials ref so morphPresets can read
     // partial data from the engine after loading each preset.
@@ -199,7 +203,9 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     modSlots_[15] = { ana::ModulationConnection(), &modTargetSpare_,            0.0f, "spare" };
 
     // Register all effect factories (static, safe in constructor)
+    ANA_CRUMB("ctor:registerAll begin");
     ana::ProcessorStore::registerAll();
+    ANA_CRUMB("ctor:exit");
 }
 
 //==============================================================================
@@ -371,6 +377,7 @@ bool AnaPlugAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) c
 
 void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    ANA_CRUMB("ptp:enter");
     juce::ignoreUnused(samplesPerBlock);
 
     // Ensure FTZ/DAZ is active (some hosts may reset FP control state
