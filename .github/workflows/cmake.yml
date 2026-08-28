@@ -91,6 +91,21 @@ jobs:
           test-names.txt
           forensics.txt
 
+    # Debug both crashing processes under cdb (first-chance AV → stack + analyze).
+    # The debugger script writes to stdout; PDBs from /Zi + /DEBUG give symbols.
+    - name: Debug test exe under cdb
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: |
+        cat > dbgscript.txt <<'EOF'
+        sxe -c "!analyze -v; .ecxr; kb 60; qd" av
+        g
+        EOF
+        "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
+          -y "D:\\a\\notitle\\notitle\\build;D:\\a\\notitle\\notitle\\build\\tests\\Release;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3\\Contents\\x86_64-win;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
+          -cf dbgscript.txt \
+          build/tests/Release/AnaPlugTests.exe 2>&1 | tail -n 150 || true
     - name: Run benchmarks (informational)
       run: ctest --test-dir build -C Release -R benchmark --output-on-failure || true
 
@@ -142,6 +157,21 @@ jobs:
         tail -n 40 pluginval.log || true
         exit "$code"
 
+    # Re-run pluginval UNDER cdb to capture the crash stack with symbols.
+    - name: Debug pluginval under cdb
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: |
+        cat > dbgscript2.txt <<'EOF'
+        sxe -c "!analyze -v; .ecxr; kb 60; qd" av
+        g
+        EOF
+        "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
+          -y "D:\\a\\notitle\\notitle\\build;D:\\a\\notitle\\notitle\\build\\AnaPlug_artefacts\\Release\\VST3\\Contents\\x86_64-win;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
+          -cf dbgscript2.txt \
+          pluginval_dir/pluginval.exe --validate-in-process --strictness-level 1 --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tail -n 150 || true
+
     # Analyse any minidumps produced this run (faulting module+offset+stack
     # when cdb.exe is available; dumps are always uploaded as artifacts).
     - name: Analyze crash dumps
@@ -156,7 +186,7 @@ jobs:
         foreach ($d in $dumps) {
           Write-Host "===== $($d.FullName) ($([math]::Round($d.Length/1KB)) KB) ====="
           if ($cdb) {
-            & $cdb -z $d.FullName -c "!analyze -v; q" 2>&1 | Select-Object -Last 120
+            & $cdb -z $d.FullName -y "D:\a\notitle\notitle\build;D:\a\notitle\notitle\build\tests\Release;D:\a\notitle\notitle\build\AnaPlug_artefacts\Release\VST3\Contents\x86_64-win;SRV*C:\symbols*https://msdl.microsoft.com/download/symbols" -c "!analyze -v; q" 2>&1 | Select-Object -Last 120
           } else {
             Write-Host "cdb.exe (x64) not found on runner; dump uploaded for manual analysis"
           }

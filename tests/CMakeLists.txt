@@ -173,6 +173,12 @@ target_include_directories(AnaPlugTests
         ${CMAKE_SOURCE_DIR}/src
 )
 
+# PDB symbols for CI crash-dump analysis (cdb !analyze)
+if(MSVC)
+    target_compile_options(AnaPlugTests PRIVATE /Zi)
+    target_link_options(AnaPlugTests PRIVATE /DEBUG)
+endif()
+
 target_link_libraries(AnaPlugTests
     PRIVATE
         Catch2::Catch2WithMain

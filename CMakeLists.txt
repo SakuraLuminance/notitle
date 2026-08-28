@@ -225,7 +225,9 @@ if(MSVC)
         /O2                    # Maximize speed
         /fp:fast               # Fast floating point
         /arch:AVX2             # For MSVC 64-bit, enable AVX2
+        /Zi                    # PDB symbols (CI crash-dump analysis)
     )
+    target_link_options(AnaPlug PRIVATE /DEBUG)
     # /GL and /LTCG not needed here — already set by juce_recommended_lto_flags (linked PUBLIC above)
     
     if(ENABLE_PGO_GENERATE)
