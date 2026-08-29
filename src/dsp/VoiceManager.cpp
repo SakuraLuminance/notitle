@@ -367,14 +367,15 @@ void VoiceManager::process(juce::AudioBuffer<float>& buffer)
 {
     // process() called before prepare(): push the default sample rate into
     // each voice individually.  We must NOT call MPESynthesiser's
-    // setCurrentPlaybackSampleRate here — it turns off all voices (kills any
-    // notes started before this call).  SynthesiserVoice's per-voice setter
-    // only stores the rate, so notes survive.  Without this, getSampleRate()
-    // is 0 inside renderNextBlock -> NaN rotation deltas -> silent output.
+    // setCurrentPlaybackSampleRate here — it calls turnOffAllVoices (kills any
+    // notes started before this call).  MPESynthesiserVoice::setCurrentSampleRate
+    // (what that method loops over internally) only stores the rate, so notes
+    // survive.  Without this, getSampleRate() is 0 inside renderNextBlock ->
+    // NaN rotation deltas -> silent output.
     if (! voicesPrepared_)
     {
         for (int i = 0; i < maxVoices; ++i)
-            getVoice(i)->setCurrentPlaybackSampleRate(sampleRate_);
+            getVoice(i)->setCurrentSampleRate(sampleRate_);
         voicesPrepared_ = true;
     }
 
