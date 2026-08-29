@@ -21,6 +21,9 @@ std::vector<float> ResynthesisEngine::resynthesize(
     const int hopSize = config.hopSize;
     const size_t numFrames = partialData.frames.size();
 
+    if (numFrames == 0)
+        return {};
+
     // Calculate output length
     const size_t outputLength = (numFrames - 1) * static_cast<size_t>(hopSize) + static_cast<size_t>(fftSize);
     std::vector<float> output(outputLength, 0.0f);

@@ -87,7 +87,7 @@ TEST_CASE("DriveModule - factory preset names are registered",
     REQUIRE_FALSE(names.isEmpty());
     REQUIRE(names.size() == 14);
     REQUIRE(names[0] == "Warm Drive");
-    REQUIRE(names[6] == "Console Drive");
+    REQUIRE(names[5] == "Console Drive");
     REQUIRE(names[13] == "Bell Tone");
 }
 

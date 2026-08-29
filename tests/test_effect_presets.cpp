@@ -412,7 +412,7 @@ TEST_CASE("Effect state serialization - RingModulatorEffect", "[effects][preset]
 TEST_CASE("Effect state serialization - AutoTuneEffect", "[effects][preset][serialize]")
 {
     AutoTuneEffect effect;
-    effect.setRetuneSpeed(25.0f);
+    effect.setRetuneSpeed(15.0f);   // impl clamps retune speed to [0.01, 20] ms
     effect.setAmount(0.8f);
     effect.setEnabled(true);
 
@@ -423,7 +423,7 @@ TEST_CASE("Effect state serialization - AutoTuneEffect", "[effects][preset][seri
     loaded.setState(state);
     auto reState = loaded.getState();
 
-    REQUIRE(static_cast<float>(reState.getProperty("retuneSpeed")) == Catch::Approx(25.0f));
+    REQUIRE(static_cast<float>(reState.getProperty("retuneSpeed")) == Catch::Approx(15.0f));
     REQUIRE(static_cast<float>(reState.getProperty("amount")) == Catch::Approx(0.8f));
     REQUIRE(static_cast<bool>(reState.getProperty("enabled")) == true);
 }

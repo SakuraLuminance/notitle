@@ -591,17 +591,10 @@ void SpectralDNAEvolver::replaceWorst(const SpectralDNA& dna)
 
 void SpectralDNAEvolver::evolveGeneration()
 {
-    // Edge case: population of 1 — mutate to create a second individual
+    // Edge case: population < 2 — evolution is a no-op (population size is
+    // a fixed contract; a single individual cannot recombine with itself)
     if (population_.size() < 2)
-    {
-        if (population_.size() == 1)
-        {
-            auto mutated = SpectralDNA::mutate(population_[0], rng_);
-            mutated.fitness = mutated.evaluateFitness();
-            population_.push_back(std::move(mutated));
-        }
         return;
-    }
 
     nextGeneration_.clear();
     nextGeneration_.reserve(population_.size());
