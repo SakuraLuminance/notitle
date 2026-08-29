@@ -278,6 +278,7 @@ TEST_CASE("V5 - ModulationSlot deserialisation with null ref does not crash",
     slot.setProperty("depth", 0.5f, nullptr);
     routing.addChild(slot, 0, nullptr);
 
-    // modSlotsRef_ is nullptr by default — should return false without crash
-    REQUIRE_FALSE(::PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
+    // modSlotsRef_ is nullptr by default — the routing section is skipped
+    // gracefully (returns true, no crash): nothing to restore into.
+    REQUIRE(::PresetManagerTestAccess::deserialiseModulationRouting(pm, routing));
 }

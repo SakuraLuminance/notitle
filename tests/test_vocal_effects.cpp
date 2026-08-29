@@ -245,22 +245,18 @@ TEST_CASE("VocalNoiseReducer lowers noise floor", "[vocal][noisereduce]")
     auto spec = makeSpec();
     reducer.prepare(spec);
 
+    // Noise-only signal: the effect's job is lowering the noise floor, so
+    // measure the reduction on noise directly.  (A tone+noise mix at high
+    // SNR caps the measurable RMS drop near 0.3 dB because most of the
+    // energy sits in the tone the reducer must preserve.)
     constexpr int kLen = 8192;
     juce::AudioBuffer<float> signal(1, kLen);
     signal.clear();
 
-    // Tone + noise.  The noise share is significant (-10 dB SNR): the best
-    // case RMS drop equals the noise power share, and a min-tracking noise
-    // estimator realistically removes 5-8 dB of it — with 0.15 the total
-    // RMS drop is capped near 0.2 dB and the assertion is unmeasurable.
     std::mt19937 rng(12345);
     std::normal_distribution<float> gauss;
     for (int i = 0; i < kLen; ++i)
-    {
-        float s = 0.5f * std::sin(2.0f * float(juce::MathConstants<double>::pi) * 440.0f * i / static_cast<float>(spec.sampleRate));
-        s += 0.30f * static_cast<float>(gauss(rng));
-        signal.setSample(0, i, s);
-    }
+        signal.setSample(0, i, 0.30f * static_cast<float>(gauss(rng)));
 
     float beforeRms = rmsDb(signal, 0);
 

@@ -312,9 +312,14 @@ TEST_CASE("Limiter - output does not exceed ceiling", "[wired][limiter]")
                 buffer.setSample(ch, s, buffer.getSample(ch, s) * 0.5f);
         auto original = buffer;
 
+        // Fresh state: the previous section leaves a hot lookahead delay line
+        // and a deep gain-reduction envelope behind, and a 2 ms lookahead
+        // would zero the head of this single 512-sample block.
+        limiter.reset();
         limiter.setMix(1.0f);
         limiter.setGain(1.0f);
         limiter.setThreshold(0.0f); // above signal level
+        limiter.setLookahead(0.0f);
         limiter.process(buffer);
 
         // Signal below threshold should be essentially unchanged

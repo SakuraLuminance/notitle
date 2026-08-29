@@ -669,10 +669,10 @@ TEST_CASE("Clean Rack preset round-trips through EffectsChain (EffectBase-compat
         REQUIRE(harness.presetManager.loadPresetFromFile(presetFile));
         REQUIRE(harness.effectsChain.getNumEffects() == 3);
 
-        // The XML file should have version "2.0"
+        // The XML file carries the manager's current format version
         auto xml = juce::XmlDocument::parse(presetFile);
         REQUIRE(xml != nullptr);
-        REQUIRE(xml->getStringAttribute("Version") == "2.0");
+        REQUIRE(xml->getStringAttribute("Version") == PresetManager::presetVersion);
     }
 
     cleanupTestDir(testDir);
@@ -716,7 +716,7 @@ TEST_CASE("Creative Rack preset round-trips through EffectsChain (EffectBase-com
 
         auto xml = juce::XmlDocument::parse(presetFile);
         REQUIRE(xml != nullptr);
-        REQUIRE(xml->getStringAttribute("Version") == "2.0");
+        REQUIRE(xml->getStringAttribute("Version") == PresetManager::presetVersion);
     }
 
     cleanupTestDir(testDir);

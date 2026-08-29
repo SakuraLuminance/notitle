@@ -88,10 +88,14 @@ int EffectsChain::addEffect(std::unique_ptr<EffectBase> effect, const juce::Stri
         if (slot.effect) slot.effect->prepare(currentSpec);
         slot.wetHPF.prepare(currentSpec);
         slot.wetLPF.prepare(currentSpec);
+        slot.wetHPF2.prepare(currentSpec);
+        slot.wetLPF2.prepare(currentSpec);
         auto hpfCoeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(currentSpec.sampleRate, slot.wetLowCut, 0.707);
         auto lpfCoeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass(currentSpec.sampleRate, slot.wetHighCut, 0.707);
         *slot.wetHPF.state = *hpfCoeffs;
         *slot.wetLPF.state = *lpfCoeffs;
+        *slot.wetHPF2.state = *hpfCoeffs;
+        *slot.wetLPF2.state = *lpfCoeffs;
     }
     slots.push_back(std::move(slot));
     return static_cast<int>(slots.size()) - 1;
