@@ -75,8 +75,11 @@ struct FilterSlot
     FilterParams params;
     bool bypassed = false;
 
-    // Used by LP, HP, BP, Notch, AllPass, Morph
-    juce::dsp::IIR::Filter<float> iirFilter;
+    // Used by LP, HP, BP, Notch, AllPass, Morph.
+    // ProcessorDuplicator gives the mono IIR one state per channel — a bare
+    // IIR::Filter would leave channels 1+ unprocessed (passthrough).
+    juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>,
+                                   juce::dsp::IIR::Coefficients<float>> iirFilter;
 
     // Used by Comb
     juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delayLine;
