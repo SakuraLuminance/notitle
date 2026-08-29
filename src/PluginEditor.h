@@ -15,8 +15,12 @@
 #include "gui/CyberpunkTheme.h"
 #include "gui/ModulationAssignPanel.h"
 #include "gui/EffectRackComponent.h"
-#include "gui/MacroKnob.h"
-#include "gui/StepCell.h"
+#include "gui/panels/TimbrePanel.h"
+#include "gui/panels/FilterPanel.h"
+#include "gui/panels/MacroPanel.h"
+#include "gui/panels/SequencerPanel.h"
+#include "gui/panels/TransportBar.h"
+#include "gui/panels/MasterSection.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <array>
 #include <map>
@@ -81,17 +85,9 @@ private:
     juce::TextButton presetButton_;
 
     //==============================================================================
-    // Left panel — Timbre A (Harmor-style)
-    juce::Slider aSubSlider_;        // Sub-harmonic amount
-    juce::Slider aBrightSlider_;     // Brightness
-    juce::Slider aBlurSlider_;       // Blur amount
-    juce::Slider aHpfSlider_;        // High-pass filter
-    juce::Label  aSubLabel_, aBrightLabel_, aBlurLabel_, aHpfLabel_;
-
-    //==============================================================================
-    // Right panel — Timbre B
-    juce::Slider bSubSlider_, bBrightSlider_, bBlurSlider_, bHpfSlider_;
-    juce::Label  bSubLabel_, bBrightLabel_, bBlurLabel_, bHpfLabel_;
+    // Left/right panels — Timbre A / B (Harmor-style)
+    ana::TimbrePanel timbreAPanel_;
+    ana::TimbrePanel timbreBPanel_;
 
     // Timbre blend
     juce::Slider timbreBlendSlider_;
@@ -107,15 +103,10 @@ private:
 
     //==============================================================================
     // Process panel — Filter
-    juce::ComboBox filterTypeCombo_;
-    juce::Slider filterCutoffSlider_;
-    juce::Slider filterResSlider_;
-    ana::FilterVisualization filterViz_;
-    juce::Label filterTitle_;
+    ana::FilterPanel filterPanel_;
 
     // Process panel — Macros (4 knobs)
-    ana::MacroKnob macroSliders_[4];
-    juce::Label  macroLabels_[4];
+    ana::MacroPanel macroPanel_;
 
     // Process panel — Effects rack (dynamic, replaces hardcoded slider stack)
     juce::ComboBox effectPresetCombo_;
@@ -161,23 +152,12 @@ private:
     juce::Label  arpTitle_;
 
     // Sample controls
-    juce::TextButton loadButton_{"LOAD"};
-    juce::TextButton playButton_{">"};
-    juce::TextButton stopButton_{"#"};
-    juce::TextButton flattenButton_{"FLATTEN"};
-    juce::Slider rootNoteKnob_;
-    juce::Slider rootFineTuneKnob_;
-    juce::Label  rootNoteLabel_;
-    juce::Label  rootFineTuneLabel_;
-    juce::Label  pitchDetectLabel_;
+    ana::TransportBar transportBar_;
     std::unique_ptr<juce::FileChooser> fileChooser_;
     juce::String loadedFileName_;
 
     // Master
-    juce::Slider masterVolSlider_;
-    juce::Slider masterPanSlider_;
-    juce::Label  masterVolLabel_;
-    juce::Label  masterPanLabel_;
+    ana::MasterSection masterSection_;
 
     // Status
     juce::Label statusLabel_;
@@ -196,22 +176,17 @@ private:
     //==============================================================================
     // Helpers
     void loadButtonClicked();
-    void playButtonClicked();
-    void stopButtonClicked();
     void flattenButtonClicked();
     void presetButtonClicked();
     void dnaButtonClicked();
     void creditsButtonClicked();
     void updateStatus();
-    void updatePitchDisplay(const juce::String& text);
     void onViewModeChanged();
 
     // Effect preset helpers
     void populateEffectPresets();
     void onEffectPresetSelected();
     void effectPresetRightClicked();
-
-    static juce::String midiNoteToName(int note);
 
     //==============================================================================
     // Knob builder helpers
@@ -222,19 +197,8 @@ private:
     juce::TextButton& addCyberButton(juce::TextButton& btn);
 
     //==============================================================================
-    // Step Sequencer UI
-    // StepCell lives in gui/StepCell.h
-
-    // Step sequencer controls
-    juce::Label seqTitle_;
-    juce::ComboBox seqPlayModeCombo_;
-    juce::ComboBox seqClockSourceCombo_;
-    juce::Slider seqBpmSlider_;
-    juce::Label  seqBpmLabel_;
-    juce::Slider seqRateSlider_;
-    juce::Label  seqRateLabel_;
-    std::array<std::unique_ptr<ana::StepCell>, 16> stepCells_;
-    juce::Label seqCurrentStepLabel_;
+    // Step Sequencer panel (gui/panels/SequencerPanel)
+    ana::SequencerPanel sequencerPanel_;
 
     //==============================================================================
     // MIDI Learn helpers

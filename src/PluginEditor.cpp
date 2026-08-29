@@ -1,4 +1,5 @@
 ﻿#include "PluginEditor.h"
+#include "gui/panels/PanelWidgets.h"
 #include "dsp/PitchCorrector.h"
 #include "dsp/Crumb.h"
 #include <cmath>
@@ -6,7 +7,11 @@
 
 //==============================================================================
 AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), meteringPanel_(p), modPanel_(p), effectRack_(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      timbreAPanel_(p, true), timbreBPanel_(p, false),
+      filterPanel_(p), macroPanel_(p), effectRack_(p),
+      transportBar_(p), masterSection_(p), sequencerPanel_(p),
+      meteringPanel_(p), modPanel_(p)
 {
     setLookAndFeel(&ana::CyberpunkTheme::getInstance());
     ANA_CRUMB("ed:laf");
@@ -31,37 +36,9 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     addAndMakeVisible(presetButton_);
 
     //==============================================================================
-    // Timbre A panel knobs
-    addCyberKnob(aSubSlider_, aSubLabel_,    "SUB",     0.0, 1.0, 0.0, 0.01);
-    addCyberKnob(aBrightSlider_, aBrightLabel_, "BRIGHT", 0.0, 1.0, 0.5, 0.01);
-    addCyberKnob(aBlurSlider_, aBlurLabel_,  "BLUR",    0.0, 1.0, 0.0, 0.01);
-    addCyberKnob(aHpfSlider_, aHpfLabel_,    "HPF",     20.0, 20000.0, 20.0, 1.0,
-                 juce::Slider::LinearHorizontal);
-    aHpfSlider_.setSkewFactor(0.3);
-    aSubSlider_.setTooltip("Sub level (0-100%)");
-    aBrightSlider_.setTooltip("Brightness (0-100%)");
-    aBlurSlider_.setTooltip("Blur amount (0-100%)");
-    aHpfSlider_.setTooltip("HPF cutoff (20-20000Hz)");
-    aSubSlider_.onValueChange = [this]() {
-        audioProcessor.setSubHarmonicLevel(static_cast<float>(aSubSlider_.getValue()));
-    };
-
-    //==============================================================================
-    // Timbre B panel knobs
-    addCyberKnob(bSubSlider_, bSubLabel_,    "SUB",     0.0, 1.0, 0.0, 0.01);
-    addCyberKnob(bBrightSlider_, bBrightLabel_, "BRIGHT", 0.0, 1.0, 0.5, 0.01);
-    addCyberKnob(bBlurSlider_, bBlurLabel_,  "BLUR",    0.0, 1.0, 0.0, 0.01);
-    addCyberKnob(bHpfSlider_, bHpfLabel_,    "HPF",     20.0, 20000.0, 20.0, 1.0,
-                 juce::Slider::LinearHorizontal);
-    bHpfSlider_.setSkewFactor(0.3);
-    bSubSlider_.setTooltip("Sub level (0-100%)");
-    bBrightSlider_.setTooltip("Brightness (0-100%)");
-    bBlurSlider_.setTooltip("Blur amount (0-100%)");
-    bHpfSlider_.setTooltip("HPF cutoff (20-20000Hz)");
-    bSubSlider_.onValueChange = [this]() {
-        audioProcessor.getSubHarmonicGenerator().setSubLevel(1,
-            static_cast<float>(bSubSlider_.getValue()));
-    };
+    // Timbre A/B panels
+    addAndMakeVisible(timbreAPanel_);
+    addAndMakeVisible(timbreBPanel_);
 
     // Timbre blend cross-fader
     addCyberKnob(timbreBlendSlider_, timbreBlendLabel_, "BLEND", 0.0, 1.0, 0.5, 0.01,
@@ -93,89 +70,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 
     //==============================================================================
     // Filter panel
-    filterTitle_.setText("FILTER", juce::dontSendNotification);
-    filterTitle_.setFont(ana::CyberpunkTheme::getCyberFont(11.0f, true));
-    filterTitle_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::cyan_);
-    addAndMakeVisible(filterTitle_);
-
-    filterTypeCombo_.addItem("LP", 1); filterTypeCombo_.addItem("HP", 2);
-    filterTypeCombo_.addItem("BP", 3); filterTypeCombo_.addItem("Notch", 4);
-    filterTypeCombo_.addItem("Comb", 5);
-    filterTypeCombo_.setSelectedId(1);
-    filterTypeCombo_.setTooltip("Filter type: LP/HP/BP/Notch/Comb");
-    addAndMakeVisible(filterTypeCombo_);
-
-    filterCutoffSlider_.setRange(20.0, 20000.0, 1.0);
-    filterCutoffSlider_.setValue(1000.0);
-    filterCutoffSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    filterCutoffSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    filterCutoffSlider_.setSkewFactor(0.3);
-    filterCutoffSlider_.setDoubleClickReturnValue(true, 1000.0);
-    filterCutoffSlider_.setTooltip("Filter cutoff frequency (20-20000Hz)");
-    addAndMakeVisible(filterCutoffSlider_);
-
-    filterResSlider_.setRange(0.0, 1.0, 0.01);
-    filterResSlider_.setValue(0.3);
-    filterResSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    filterResSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    filterResSlider_.setDoubleClickReturnValue(true, 0.3);
-    filterResSlider_.setTooltip("Filter resonance (0-100%)");
-    addAndMakeVisible(filterResSlider_);
-
-    addAndMakeVisible(filterViz_);
-
-    // Wire filter controls to MultiFilter
-    filterTypeCombo_.onChange = [this]() {
-        auto& slot = audioProcessor.getMultiFilter().getSlot(0);
-        switch (filterTypeCombo_.getSelectedId())
-        {
-            case 1: slot.type = ana::FilterType::LowPass;   break;
-            case 2: slot.type = ana::FilterType::HighPass;  break;
-            case 3: slot.type = ana::FilterType::BandPass;  break;
-            case 4: slot.type = ana::FilterType::Notch;     break;
-            case 5: slot.type = ana::FilterType::Comb;      break;
-            default: slot.type = ana::FilterType::LowPass;  break;
-        }
-        audioProcessor.getMultiFilter().markCoefficientsDirty();
-    };
-    filterCutoffSlider_.onValueChange = [this]() {
-        audioProcessor.getMultiFilter().getSlot(0).params.cutoff
-            = filterCutoffSlider_.getValue();
-        audioProcessor.getMultiFilter().markCoefficientsDirty();
-    };
-    filterResSlider_.onValueChange = [this]() {
-        audioProcessor.getMultiFilter().getSlot(0).params.resonance
-            = static_cast<float>(filterResSlider_.getValue());
-        audioProcessor.getMultiFilter().markCoefficientsDirty();
-    };
+    addAndMakeVisible(filterPanel_);
 
     //==============================================================================
     // Macros 鈥?wired to MacroController with visual curve feedback
-    static const char* macroNames[] = { "M1", "M2", "M3", "M4" };
-    for (int i = 0; i < 4; ++i)
-    {
-        macroSliders_[i].setRange(0.0, 1.0, 0.01);
-        macroSliders_[i].setValue(0.0);
-        macroSliders_[i].setDoubleClickReturnValue(true, 0.0);
-        macroSliders_[i].setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        macroSliders_[i].setTooltip("Macro " + juce::String(i + 1) + " (0-100%)");
-        addAndMakeVisible(macroSliders_[i]);
-
-        macroLabels_[i].setText(macroNames[i], juce::dontSendNotification);
-        macroLabels_[i].setFont(ana::CyberpunkTheme::getCyberFont(9.0f, false));
-        macroLabels_[i].setColour(juce::Label::textColourId,
-                                  ana::CyberpunkTheme::fg_.withAlpha(0.8f));
-        macroLabels_[i].setJustificationType(juce::Justification::centred);
-        addAndMakeVisible(macroLabels_[i]);
-
-        // Push slider changes to MacroController
-        const int idx = i;
-        macroSliders_[i].onValueChange = [this, idx]()
-        {
-            audioProcessor.getMacroController().setMacroValue(
-                idx, static_cast<float>(macroSliders_[idx].getValue()));
-        };
-    }
+    addAndMakeVisible(macroPanel_);
 
     //==============================================================================
     // XY Pad 鈥?morph control with smooth interpolation + MIDI Learn
@@ -388,152 +287,18 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     arpGateSlider_.setTooltip("Gate length (0.01-1.0)");
 
     //==============================================================================
-    // Step Sequencer
-    seqTitle_.setText("SEQ", juce::dontSendNotification);
-    seqTitle_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f, true));
-    seqTitle_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::yellow_);
-    addAndMakeVisible(seqTitle_);
-
-    seqPlayModeCombo_.addItem("FWD",  1);
-    seqPlayModeCombo_.addItem("BWD",  2);
-    seqPlayModeCombo_.addItem("P-P",  3);
-    seqPlayModeCombo_.addItem("RND",  4);
-    seqPlayModeCombo_.setSelectedId(1);
-    seqPlayModeCombo_.onChange = [this]()
-    {
-        auto& seq = audioProcessor.getStepSequencer();
-        switch (seqPlayModeCombo_.getSelectedId())
-        {
-            case 1: seq.setPlayMode(ana::SeqPlayMode::Forward);  break;
-            case 2: seq.setPlayMode(ana::SeqPlayMode::Backward); break;
-            case 3: seq.setPlayMode(ana::SeqPlayMode::PingPong); break;
-            case 4: seq.setPlayMode(ana::SeqPlayMode::Random);   break;
-        }
-    };
-    seqPlayModeCombo_.setTooltip("Sequencer play mode: FWD/BWD/PING-PONG/RANDOM");
-    addAndMakeVisible(seqPlayModeCombo_);
-
-    seqClockSourceCombo_.addItem("INT", 1);
-    seqClockSourceCombo_.addItem("EXT", 2);
-    seqClockSourceCombo_.setSelectedId(1);
-    seqClockSourceCombo_.onChange = [this]()
-    {
-        auto& seq = audioProcessor.getStepSequencer();
-        seq.setClockSource(seqClockSourceCombo_.getSelectedId() == 1
-            ? ana::SeqClockSource::Internal
-            : ana::SeqClockSource::External);
-    };
-    seqClockSourceCombo_.setTooltip("Sequencer clock: INT/EXT");
-    addAndMakeVisible(seqClockSourceCombo_);
-
-    addCyberKnob(seqBpmSlider_, seqBpmLabel_, "BPM", 20.0, 300.0, 120.0, 1.0,
-                 juce::Slider::RotaryVerticalDrag);
-    seqBpmSlider_.setTooltip("Sequencer BPM (20-300)");
-    seqBpmSlider_.onValueChange = [this]()
-    {
-        audioProcessor.getStepSequencer().setBpm(seqBpmSlider_.getValue());
-    };
-
-    addCyberKnob(seqRateSlider_, seqRateLabel_, "RATE", 0.125, 4.0, 0.25, 0.125,
-                 juce::Slider::RotaryVerticalDrag);
-    seqRateSlider_.setTooltip("Sequencer rate (0.125-4.0 beats)");
-    seqRateSlider_.onValueChange = [this]()
-    {
-        audioProcessor.getStepSequencer().setRateBeats(
-            static_cast<float>(seqRateSlider_.getValue()));
-    };
-
-    // Current step indicator
-    seqCurrentStepLabel_.setText("STEP: 0", juce::dontSendNotification);
-    seqCurrentStepLabel_.setFont(ana::CyberpunkTheme::getCyberFont(9.0f, false));
-    seqCurrentStepLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::cyan_);
-    seqCurrentStepLabel_.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(seqCurrentStepLabel_);
-
-    // 16 step cells
-    for (int i = 0; i < 16; ++i)
-    {
-        auto cell = std::make_unique<ana::StepCell>(i, audioProcessor);
-        const int idx = i;
-
-        cell->onGateChanged = [this, idx](int index, bool active)
-        {
-            audioProcessor.getStepSequencer().setStep(
-                index, active,
-                audioProcessor.getStepSequencer().getStep(index).value);
-        };
-
-        cell->onValueChanged = [this, idx](int index, float value)
-        {
-            audioProcessor.getStepSequencer().setStep(
-                index,
-                audioProcessor.getStepSequencer().getStep(index).active,
-                value);
-        };
-
-        addAndMakeVisible(cell.get());
-        stepCells_[i] = std::move(cell);
-    }
+    // Step Sequencer panel
+    addAndMakeVisible(sequencerPanel_);
 
     //==============================================================================
-    // Transport / Sample controls
-    addCyberButton(loadButton_);
-    loadButton_.setTooltip("Load sample (WAV file)");
-    loadButton_.onClick = [this]() { loadButtonClicked(); };
-
-    addCyberButton(playButton_);
-    playButton_.setTooltip("Play/pause");
-    playButton_.onClick = [this]() { playButtonClicked(); };
-    playButton_.setEnabled(false);
-
-    addCyberButton(stopButton_);
-    stopButton_.setTooltip("Stop");
-    stopButton_.onClick = [this]() { stopButtonClicked(); };
-    stopButton_.setEnabled(false);
-
-    addCyberButton(flattenButton_);
-    flattenButton_.setTooltip("Flatten to audio");
-    flattenButton_.onClick = [this]() { flattenButtonClicked(); };
-    flattenButton_.setEnabled(false);
-
-    addCyberKnob(rootNoteKnob_, rootNoteLabel_, "ROOT", 0.0, 127.0, 60.0, 1.0);
-    rootNoteKnob_.setTooltip("Root note (0-127)");
-    rootNoteKnob_.textFromValueFunction = [](double v) { return midiNoteToName(static_cast<int>(v)); };
-    rootNoteKnob_.setDoubleClickReturnValue(true, 60.0);
-    rootNoteKnob_.onValueChange = [this]() {
-        audioProcessor.setRootNote(static_cast<int>(rootNoteKnob_.getValue()));
-        updatePitchDisplay(midiNoteToName(static_cast<int>(rootNoteKnob_.getValue())));
-    };
-
-    addCyberKnob(rootFineTuneKnob_, rootFineTuneLabel_, "FINE", -50.0, 50.0, 0.0, 1.0);
-    rootFineTuneKnob_.setTooltip("Fine tune (-50 to +50 cents)");
-    rootFineTuneKnob_.setDoubleClickReturnValue(true, 0.0);
-    rootFineTuneKnob_.onValueChange = [this]() {
-        audioProcessor.setRootFineTune(static_cast<float>(rootFineTuneKnob_.getValue()));
-    };
-
-    pitchDetectLabel_.setText("--", juce::dontSendNotification);
-    pitchDetectLabel_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f, false));
-    pitchDetectLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::yellow_);
-    addAndMakeVisible(pitchDetectLabel_);
+    // Transport / Sample controls (load + flatten clicks stay in the editor:
+    // they touch the file chooser and the status label)
+    transportBar_.getLoadButton().onClick = [this]() { loadButtonClicked(); };
+    transportBar_.getFlattenButton().onClick = [this]() { flattenButtonClicked(); };
 
     //==============================================================================
     // Master
-    addCyberKnob(masterVolSlider_, masterVolLabel_, "VOL", 0.0, 2.0, 0.8, 0.01,
-                 juce::Slider::RotaryVerticalDrag);
-    masterVolSlider_.setTooltip("Master Volume (0-200%)");
-    masterVolSlider_.onValueChange = [this]()
-    {
-        audioProcessor.setMasterVol(static_cast<float>(masterVolSlider_.getValue()));
-    };
-
-    addCyberKnob(masterPanSlider_, masterPanLabel_, "PAN", -1.0, 1.0, 0.0, 0.01,
-                 juce::Slider::RotaryVerticalDrag);
-    masterPanSlider_.setTooltip("Pan: stereo balance (-100% to +100%)");
-    masterPanSlider_.onValueChange = [this]()
-    {
-        audioProcessor.setMasterPan(static_cast<float>(masterPanSlider_.getValue()));
-    };
+    addAndMakeVisible(masterSection_);
 
     //==============================================================================
     // Status
@@ -617,24 +382,24 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     //==============================================================================
     // Register sliders for MIDI Learn
     // Parameters with backing atomics in the processor
-    setupMidiLearnForSlider(aSubSlider_, "sub_a", &audioProcessor.getSubHarmonicLevelRef());
+    setupMidiLearnForSlider(timbreAPanel_.getSubSlider(), "sub_a", &audioProcessor.getSubHarmonicLevelRef());
 
     // Parameters without backing atomics yet 鈥?MIDI Learn will record the
     // mapping and the mappings persist across sessions. When a backing atomic
     // is added later, reconnect it via MidiLearn::reconnectTarget().
-    setupMidiLearnForSlider(aBrightSlider_, "bright_a");
-    setupMidiLearnForSlider(aBlurSlider_, "blur_a");
-    setupMidiLearnForSlider(aHpfSlider_, "hpf_a");
-    setupMidiLearnForSlider(bSubSlider_, "sub_b");
-    setupMidiLearnForSlider(bBrightSlider_, "bright_b");
-    setupMidiLearnForSlider(bBlurSlider_, "blur_b");
-    setupMidiLearnForSlider(bHpfSlider_, "hpf_b");
+    setupMidiLearnForSlider(timbreAPanel_.getBrightSlider(), "bright_a");
+    setupMidiLearnForSlider(timbreAPanel_.getBlurSlider(), "blur_a");
+    setupMidiLearnForSlider(timbreAPanel_.getHpfSlider(), "hpf_a");
+    setupMidiLearnForSlider(timbreBPanel_.getSubSlider(), "sub_b");
+    setupMidiLearnForSlider(timbreBPanel_.getBrightSlider(), "bright_b");
+    setupMidiLearnForSlider(timbreBPanel_.getBlurSlider(), "blur_b");
+    setupMidiLearnForSlider(timbreBPanel_.getHpfSlider(), "hpf_b");
     setupMidiLearnForSlider(timbreBlendSlider_, "timbre_blend");
-    setupMidiLearnForSlider(filterCutoffSlider_, "filter_cutoff");
-    setupMidiLearnForSlider(filterResSlider_, "filter_res");
+    setupMidiLearnForSlider(filterPanel_.getCutoffSlider(), "filter_cutoff");
+    setupMidiLearnForSlider(filterPanel_.getResonanceSlider(), "filter_res");
     for (int i = 0; i < 4; ++i)
     {
-        setupMidiLearnForSlider(macroSliders_[i],
+        setupMidiLearnForSlider(macroPanel_.getMacroSlider(i),
                                 "macro_" + juce::String(i + 1),
                                 audioProcessor.getMacroController().getMacroValuePtr(i));
     }
@@ -644,12 +409,12 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     setupMidiLearnForSlider(portamentoTimeSlider_, "portamento_time");
     setupMidiLearnForSlider(arpRateSlider_, "arp_rate");
     setupMidiLearnForSlider(arpGateSlider_, "arp_gate");
-    setupMidiLearnForSlider(seqBpmSlider_, "seq_bpm");
-    setupMidiLearnForSlider(seqRateSlider_, "seq_rate");
-    setupMidiLearnForSlider(rootNoteKnob_, "root_note");
-    setupMidiLearnForSlider(rootFineTuneKnob_, "root_fine");
-    setupMidiLearnForSlider(masterVolSlider_, "master_vol");
-    setupMidiLearnForSlider(masterPanSlider_, "master_pan");
+    setupMidiLearnForSlider(sequencerPanel_.getBpmSlider(), "seq_bpm");
+    setupMidiLearnForSlider(sequencerPanel_.getRateSlider(), "seq_rate");
+    setupMidiLearnForSlider(transportBar_.getRootNoteSlider(), "root_note");
+    setupMidiLearnForSlider(transportBar_.getRootFineTuneSlider(), "root_fine");
+    setupMidiLearnForSlider(masterSection_.getVolumeSlider(), "master_vol");
+    setupMidiLearnForSlider(masterSection_.getPanSlider(), "master_pan");
 
     // Volume ADSR MIDI Learn
 
@@ -753,30 +518,9 @@ void AnaPlugAudioProcessorEditor::resized()
     titleLabel_.setBounds(titleRect.removeFromLeft(260));
     presetButton_.setBounds(titleRect.removeFromRight(150));
 
-    // -- Timbre A (left panel) --
-    auto ta = r.timbreAPanel.reduced(6, pad * 2);
-    int knobSize = (ta.getWidth() - pad * 2) / 2;
-    auto taRow = [&](juce::Slider& s, juce::Label& l) {
-        auto cell = ta.removeFromTop(knobSize + 14).reduced(pad);
-        s.setBounds(cell.removeFromTop(knobSize));
-        l.setBounds(cell);
-    };
-    taRow(aSubSlider_, aSubLabel_);
-    taRow(aBrightSlider_, aBrightLabel_);
-    aHpfSlider_.setBounds(ta.removeFromTop(16).reduced(pad));
-    aHpfLabel_.setBounds(ta.removeFromTop(12).reduced(pad));
-
-    // -- Timbre B (right panel) 鈥?
-    auto tb = r.timbreBPanel.reduced(6, pad * 2);
-    auto tbRow = [&](juce::Slider& s, juce::Label& l) {
-        auto cell = tb.removeFromTop(knobSize + 14).reduced(pad);
-        s.setBounds(cell.removeFromTop(knobSize));
-        l.setBounds(cell);
-    };
-    tbRow(bSubSlider_, bSubLabel_);
-    tbRow(bBrightSlider_, bBrightLabel_);
-    bHpfSlider_.setBounds(tb.removeFromTop(16).reduced(pad));
-    bHpfLabel_.setBounds(tb.removeFromTop(12).reduced(pad));
+    // -- Timbre A/B panels --
+    timbreAPanel_.setBounds(r.timbreAPanel);
+    timbreBPanel_.setBounds(r.timbreBPanel);
 
     // Timbre blend at center-between
     auto blendArea = r.centerPanel.removeFromBottom(20).reduced(40, 0);
@@ -798,24 +542,10 @@ void AnaPlugAudioProcessorEditor::resized()
     auto pa = r.processArea.reduced(6, pad);
 
     // Filter section (22% 鈥?narrower to give effects more room)
-    auto filterArea = pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.22f)).reduced(pad);
-    filterTitle_.setBounds(filterArea.removeFromTop(14));
-    filterTypeCombo_.setBounds(filterArea.removeFromTop(18).reduced(pad));
-    filterCutoffSlider_.setBounds(filterArea.removeFromTop(16).reduced(pad));
-    filterResSlider_.setBounds(filterArea.removeFromTop(16).reduced(pad));
-    filterViz_.setBounds(filterArea.reduced(pad));
+    filterPanel_.setBounds(pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.22f)));
 
     // Macros section (40% of remaining 鈥?narrower for effects)
-    auto macroArea = pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.40f)).reduced(pad);
-    auto macroTitle = macroArea.removeFromTop(14);
-    auto mkArea = macroArea.reduced(pad);
-    int mkW = mkArea.getWidth() / 4;
-    for (int i = 0; i < 4; ++i)
-    {
-        auto cell = mkArea.removeFromLeft(mkW).reduced(2);
-        macroSliders_[i].setBounds(cell.removeFromTop(cell.getWidth()));
-        macroLabels_[i].setBounds(cell);
-    }
+    macroPanel_.setBounds(pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.40f)));
 
     // Effects section (right remainder) 鈥?dynamic effect rack
     auto fxArea = pa.reduced(pad);
@@ -843,9 +573,9 @@ void AnaPlugAudioProcessorEditor::resized()
     auto uniArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.14f)).reduced(pad);
     auto voiceArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.14f)).reduced(pad);
     auto arpArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.14f)).reduced(pad);
-    auto seqArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.18f)).reduced(pad);
-    auto smpArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.26f)).reduced(pad);
-    auto mstArea = ba.reduced(pad);
+    sequencerPanel_.setBounds(ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.18f)));
+    transportBar_.setBounds(ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.26f)));
+    masterSection_.setBounds(ba);
 
     // Unison
     unisonTitle_.setBounds(uniArea.removeFromTop(14));
@@ -892,67 +622,6 @@ void AnaPlugAudioProcessorEditor::resized()
     arpGateSlider_.setBounds(arpCell2.removeFromTop(arpCell2.getWidth()));
     arpGateLabel_.setBounds(arpCell2);
 
-    // Step Sequencer
-    seqTitle_.setBounds(seqArea.removeFromTop(14));
-    auto seqControlRow = seqArea.removeFromTop(16).reduced(1, 0);
-    seqPlayModeCombo_.setBounds(seqControlRow.removeFromLeft(seqControlRow.getWidth() / 3).reduced(1));
-    seqClockSourceCombo_.setBounds(seqControlRow.removeFromLeft(seqControlRow.getWidth() / 2).reduced(1));
-    seqCurrentStepLabel_.setBounds(seqControlRow.reduced(1));
-    auto seqParamRow = seqArea.removeFromTop(18).reduced(1, 0);
-    seqBpmSlider_.setBounds(seqParamRow.removeFromLeft(seqParamRow.getWidth() / 3).reduced(1));
-    seqBpmLabel_.setBounds(seqBpmSlider_.getBounds().translated(0, -12));
-    seqRateSlider_.setBounds(seqParamRow.removeFromLeft(seqParamRow.getWidth() / 2).reduced(1));
-    seqRateLabel_.setBounds(seqRateSlider_.getBounds().translated(0, -12));
-    // 16 step cells in 2 rows of 8
-    auto seqGridArea = seqArea.reduced(1, 0);
-    auto seqRow1 = seqGridArea.removeFromTop(seqGridArea.getHeight() / 2);
-    auto seqRow2 = seqGridArea;
-    int cellW = seqRow1.getWidth() / 8;
-    for (int i = 0; i < 8; ++i)
-    {
-        stepCells_[i]->setBounds(seqRow1.removeFromLeft(cellW).reduced(1));
-        stepCells_[i + 8]->setBounds(seqRow2.removeFromLeft(cellW).reduced(1));
-    }
-
-    // Sample / transport
-    auto smpTop = smpArea.removeFromTop(22).reduced(pad);
-    int btnW = smpTop.getWidth() / 4;
-    auto loadRect = smpTop.removeFromLeft(btnW).reduced(pad);
-    loadButton_.setBounds(loadRect);
-    auto playRect = smpTop.removeFromLeft(btnW).reduced(1, pad);
-    playButton_.setBounds(playRect);
-    auto stopRect = smpTop.removeFromLeft(btnW).reduced(1, pad);
-    stopButton_.setBounds(stopRect);
-    auto flattenRect = smpTop.reduced(pad);
-    flattenButton_.setBounds(flattenRect);
-
-    pitchDetectLabel_.setBounds(smpArea.removeFromTop(14).reduced(pad));
-    auto rootArea = smpArea.reduced(pad);
-    int rkW = rootArea.getWidth() / 2;
-    
-    auto rootCell1 = rootArea.removeFromLeft(rkW).reduced(2);
-    rootNoteKnob_.setBounds(rootCell1.removeFromTop(rootCell1.getWidth()));
-    rootNoteLabel_.setBounds(rootCell1);
-    
-    auto rootCell2 = rootArea.reduced(2);
-    rootFineTuneKnob_.setBounds(rootCell2.removeFromTop(rootCell2.getWidth()));
-    rootFineTuneLabel_.setBounds(rootCell2);
-
-    // Master 鈥?compact single column (max 150w, Vol+Pan stacked with inline labels)
-    mstArea = mstArea.withWidth(juce::jmin(mstArea.getWidth(), 150));
-    mstArea.removeFromTop(4);
-    {
-        auto volRow = mstArea.removeFromTop(50).reduced(2, 0);
-        masterVolSlider_.setBounds(volRow.removeFromLeft(volRow.getWidth() - 28));
-        masterVolLabel_.setBounds(volRow);
-        masterVolLabel_.setJustificationType(juce::Justification::centredRight);
-    }
-    {
-        auto panRow = mstArea.removeFromTop(50).reduced(2, 0);
-        masterPanSlider_.setBounds(panRow.removeFromLeft(panRow.getWidth() - 28));
-        masterPanLabel_.setBounds(panRow);
-        masterPanLabel_.setJustificationType(juce::Justification::centredRight);
-    }
     // -- Status bar (compact 35px) --
     auto sb = r.statusBar.reduced(4, 1);
     meteringPanel_.setBounds(sb.removeFromRight(340).reduced(1));  // thinner metering
@@ -1010,25 +679,7 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         statusLabel_.setText(">> PITCH FLATTENING <<", juce::dontSendNotification);
 
     // --- Macro visual update: sync slider from controller, update ring colours ---
-    {
-        auto& macroCtrl = audioProcessor.getMacroController();
-        for (int i = 0; i < 4; ++i)
-        {
-            const auto data = macroCtrl.getVisualData(i);
-
-            // Sync slider position if it differs from the controller value
-            const double currentSlider = macroSliders_[i].getValue();
-            if (std::abs(currentSlider - static_cast<double>(data.value)) > 0.001)
-            {
-                macroSliders_[i].setValue(static_cast<double>(data.value),
-                                          juce::dontSendNotification);
-            }
-
-            // Update the curve exponent for ring colour
-            macroSliders_[i].setCurveExponent(data.curveExponent);
-            macroSliders_[i].repaint();
-        }
-    }
+    macroPanel_.updateFromController();
 
     // XY Pad 鈫?processor parameter mapping
     // X axis is already written to morphAmount via setXParameter binding
@@ -1041,17 +692,17 @@ void AnaPlugAudioProcessorEditor::timerCallback()
             case ana::XYPad::YTarget::Cutoff:
             {
                 const float cutoff = 20.0f * std::pow(20000.0f / 20.0f, yVal);
-                if (std::abs(static_cast<float>(filterCutoffSlider_.getValue()) - cutoff) > 1.0f)
-                    filterCutoffSlider_.setValue(static_cast<double>(cutoff), juce::dontSendNotification);
+                if (std::abs(static_cast<float>(filterPanel_.getCutoffSlider().getValue()) - cutoff) > 1.0f)
+                    filterPanel_.getCutoffSlider().setValue(static_cast<double>(cutoff), juce::dontSendNotification);
                 break;
             }
             case ana::XYPad::YTarget::Resonance:
-                if (std::abs(static_cast<float>(filterResSlider_.getValue()) - yVal) > 0.005f)
-                    filterResSlider_.setValue(static_cast<double>(yVal), juce::dontSendNotification);
+                if (std::abs(static_cast<float>(filterPanel_.getResonanceSlider().getValue()) - yVal) > 0.005f)
+                    filterPanel_.getResonanceSlider().setValue(static_cast<double>(yVal), juce::dontSendNotification);
                 break;
             case ana::XYPad::YTarget::Volume:
-                if (std::abs(static_cast<float>(masterVolSlider_.getValue()) - yVal) > 0.005f)
-                    masterVolSlider_.setValue(static_cast<double>(yVal), juce::dontSendNotification);
+                if (std::abs(static_cast<float>(masterSection_.getVolumeSlider().getValue()) - yVal) > 0.005f)
+                    masterSection_.getVolumeSlider().setValue(static_cast<double>(yVal), juce::dontSendNotification);
                 break;
             case ana::XYPad::YTarget::LFORate:
             case ana::XYPad::YTarget::LFODepth:
@@ -1063,37 +714,10 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     modPanel_.syncFromProcessor();
 
     // --- Step Sequencer: sync UI from processor state ---
-    {
-        auto& seq = audioProcessor.getStepSequencer();
-        // Update current step indicator
-        seqCurrentStepLabel_.setText("STEP: " + juce::String(seq.getCurrentStep()),
-                                     juce::dontSendNotification);
-        // Sync step cells from sequencer state
-        for (int i = 0; i < 16; ++i)
-        {
-            const auto& step = seq.getStep(i);
-            stepCells_[i]->setActive(step.active);
-            stepCells_[i]->setValue(step.value);
-        }
-    }
+    sequencerPanel_.updateFromSequencer();
 
     // --- Update filter visualization with live frequency response ---
-    {
-        // Generate log-spaced frequencies once (100 points, 20 Hz - 20 kHz)
-        static const std::vector<float> vizFrequencies = []()
-        {
-            std::vector<float> freqs;
-            freqs.reserve(100);
-            constexpr float minF = 20.0f;
-            constexpr float maxF = 20000.0f;
-            for (int i = 0; i < 100; ++i)
-                freqs.push_back(minF * std::pow(maxF / minF, i / 99.0f));
-            return freqs;
-        }();
-
-        auto magnitudes = audioProcessor.getMultiFilter().getFrequencyResponse(vizFrequencies);
-        filterViz_.setFrequencyResponse(vizFrequencies, magnitudes);
-    }
+    filterPanel_.updateFrequencyResponse();
 }
 
 //==============================================================================
@@ -1156,8 +780,8 @@ void AnaPlugAudioProcessorEditor::loadButtonClicked()
                 {
                     loadedFileName_ = file.getFileName();
                     auto& engine = audioProcessor.getEngine();
-                    playButton_.setEnabled(true);
-                    flattenButton_.setEnabled(true);
+                    transportBar_.getPlayButton().setEnabled(true);
+                    transportBar_.getFlattenButton().setEnabled(true);
 
                     ana::PitchCorrector pitchDetector;
                     const auto& audioData = engine.getAudioData();
@@ -1166,29 +790,15 @@ void AnaPlugAudioProcessorEditor::loadButtonClicked()
                     {
                         int midiNote = static_cast<int>(std::round(detectedNote));
                         audioProcessor.setRootNote(midiNote);
-                        rootNoteKnob_.setValue(static_cast<double>(midiNote), juce::dontSendNotification);
-                        updatePitchDisplay(midiNoteToName(midiNote));
+                        transportBar_.getRootNoteSlider().setValue(static_cast<double>(midiNote), juce::dontSendNotification);
+                        transportBar_.updatePitchDisplay(ana::TransportBar::midiNoteToName(midiNote));
                     }
-                    else updatePitchDisplay(midiNoteToName(60));
+                    else transportBar_.updatePitchDisplay(ana::TransportBar::midiNoteToName(60));
                     updateStatus();
                 }
                 else statusLabel_.setText(">> FAILED TO LOAD <<", juce::dontSendNotification);
             }
         });
-}
-
-void AnaPlugAudioProcessorEditor::playButtonClicked()
-{
-    audioProcessor.startPlayback();
-    stopButton_.setEnabled(true);
-    playButton_.setEnabled(false);
-}
-
-void AnaPlugAudioProcessorEditor::stopButtonClicked()
-{
-    audioProcessor.stopPlayback();
-    playButton_.setEnabled(true);
-    stopButton_.setEnabled(false);
 }
 
 void AnaPlugAudioProcessorEditor::flattenButtonClicked()
@@ -1243,10 +853,10 @@ void AnaPlugAudioProcessorEditor::updateStatus()
     if (!audioProcessor.isEngineLoaded())
     {
         statusLabel_.setText(">> NO FILE LOADED <<", juce::dontSendNotification);
-        flattenButton_.setEnabled(false);
+        transportBar_.getFlattenButton().setEnabled(false);
         return;
     }
-    flattenButton_.setEnabled(true);
+    transportBar_.getFlattenButton().setEnabled(true);
     const auto& engine = audioProcessor.getEngine();
     const auto& audioData = engine.getAudioData();
     double dur = static_cast<double>(audioData.samples.size()) / audioData.sampleRate;
@@ -1256,13 +866,6 @@ void AnaPlugAudioProcessorEditor::updateStatus()
         + "  |  " + juce::String(dur, 2) + "s"
         + "  |  " + juce::String(partialCount) + " partials <<";
     statusLabel_.setText(s, juce::dontSendNotification);
-}
-
-void AnaPlugAudioProcessorEditor::updatePitchDisplay(const juce::String& text)
-{
-    float freq = 440.0f * std::pow(2.0f, (audioProcessor.getRootNote() - 69) / 12.0f);
-    pitchDetectLabel_.setText(text + " " + juce::String(freq, 1) + "Hz",
-                              juce::dontSendNotification);
 }
 
 //==============================================================================
@@ -1443,34 +1046,12 @@ void AnaPlugAudioProcessorEditor::addCyberKnob(juce::Slider& slider, juce::Label
                                                 double init, double step,
                                                 juce::Slider::SliderStyle style)
 {
-    slider.setRange(min, max, step);
-    slider.setValue(init);
-    slider.setSliderStyle(style);
-    slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    slider.setDoubleClickReturnValue(true, init);
-    addAndMakeVisible(slider);
-
-    label.setText(name, juce::dontSendNotification);
-    label.setFont(ana::CyberpunkTheme::getCyberFont(9.0f, false));
-    label.setColour(juce::Label::textColourId, ana::CyberpunkTheme::fg_.withAlpha(0.8f));
-    label.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(label);
+    ana::panelwidgets::cyberKnob(*this, slider, label, name, min, max, init, step, style);
 }
 
 juce::TextButton& AnaPlugAudioProcessorEditor::addCyberButton(juce::TextButton& btn)
 {
-    addAndMakeVisible(btn);
-    btn.setColour(juce::TextButton::buttonColourId, ana::CyberpunkTheme::cyan_.darker(0.7f));
-    btn.setColour(juce::TextButton::textColourOffId, ana::CyberpunkTheme::fg_);
-    return btn;
-}
-
-//==============================================================================
-juce::String AnaPlugAudioProcessorEditor::midiNoteToName(int note)
-{
-    note = juce::jlimit(0, 127, note);
-    static const char* nn[] = { "C","C#","D","D#","E","F","F#","G","G#","A","A#","B" };
-    return juce::String(nn[note % 12]) + juce::String(note / 12 - 1);
+    return ana::panelwidgets::cyberButton(*this, btn);
 }
 
 //==============================================================================
