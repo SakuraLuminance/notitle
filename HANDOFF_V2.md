@@ -5,69 +5,37 @@
 
 ---
 
-## 0. 交接时刻的实时状态（2026-08-29，接手者先读这里）
+## 0. 交接时刻的实时状态（2026-08-30 更新：测试全绿达成）
 
-**用户已指示暂停修复，交接给下一个 AI。进度冻结在 Batch 2 中途。**
+**当前状态：536 用例 0 失败 + pluginval 绿（Run #96, 2026-08-30）。Batch 1-6 全部完成。剩余：Batch 7 收尾（UI 重构 Phase 3 等）。**
 
 ### 0.1 Git / CI 坐标
 
 | 项 | 值 |
 |---|---|
-| 本地 HEAD（已推送） | `2a34afb` docs: HANDOFF_V2 + test: arpeggiator advanceSteps 时序修复 |
-| 前一提交 | `517621c` fix: MultiFilter ProcessorDuplicator（**尚未经 CI 确认**） |
-| 再前 | `b63b560` ProcessSpec 零初始化 + TestHarness prepare + Delay 测试修正 → Run #87 |
-| Run #84 | **里程碑全绿**（pluginval 绿，产物已下载到 `F:\anaplug\artifacts\84\`） |
-| Run #86 | `33207910631` completed/**success**（a2651f7） |
-| Run #87 | `33209217295` completed/**success**（b63b560） |
-| Run #88/#89 | 分别对应 517621c / 2a34afb，**交接时未核验状态**——接手第一件事：`runs?head_sha=<sha>` 查这两轮，确认 MultiFilter LP 与 Arpeggiator 6 用例是否转绿 |
+| 全绿里程碑 | **Run #96**（`33268789728`，HEAD `52b14a0`）："All tests passed (331214 assertions in 536 test cases)" + pluginval strictness 1 绿 |
+| 测试基线变化 | 二进制实际 536 用例；源码提取名 545（含未编译的 UI 测试文件与逗号名，per-test 循环记 SKIP-UNMATCHED） |
+| 全量 XML 运行 | 注意曾于 300s 超时截断（只跑到 ~420）——workflow 已提至 900s 并加 `~[benchmark]` 过滤（Run #97 起） |
+| 本轮关键提交 | `52b14a0`(Batch5pt2) → `b9f7c45`(Batch4pt2+5+6) → `a6fe4c6`(Batch4pt1) → `89520cd`(Batch3) → `78a11ff`/`d2caa8b`(Batch2) → `f7f2a41`(removeSlot修复) → `5364d2a`(Batch1) → `26e4610`(MultiFilter编译修复) |
 
-### 0.2 Run #87 取证产物坐标（已在本地，勿重复下载）
+### 0.2 本轮修复的根因教训（新jar可复用）
 
-- 本地目录：`$env:TEMP\forensics87\`（forensics.txt / test-names.txt / test-results.xml / test-stderr.log / test-stdout.log）
-- Artifact ID：test-forensics `9701385680`、pluginval-log `9701411318`、VST3 `9701396457`、CLAP `9701396950`（run 33209217295）
-- `test-results.xml` 解析模板见 §6.5。
+- **JUCE 8 AudioBuffer(ch, n) 构造不清零**（裸 malloc）：任何"fresh buffer 应静音"的路径必须先 `output.clear()`（Granular 空 source 能量 1.56 = 堆垃圾）。
+- **MPESynthesiserVoice 的逐 voice 方法是 `setCurrentSampleRate`**；`setCurrentPlaybackSampleRate` 是 instrument 级（会 turnOffAllVoices）。
+- **ProcessorDuplicator 不可拷贝/赋值**（user-declared move ctor）：含它的 struct 不能 `vector::erase`；系数指针是 `.state` 不是 `.coefficients`；**每个 duplicator 都必须各自 prepare**（空 processors 数组解引用 = SIGSEGV，Run #95 wet 滤波器崩溃）。
+- **YIN 阈值穿越后必须下潜到 dip 局部极小**（边缘穿越会锁高 ~10% 频率）。
+- **分频带重构必须相位相干**（Butterworth LP+HP 对；`dry + high*(gain-1)` 在截止点会变成 +0.9dB 增益）。
+- **测试间共享效果器对象的状态泄漏**（lookahead 延迟线 + 增益包络）是断言失败的常见根因——先 reset() 再断言。
+- **Per-test 隔离循环**会把"全量运行被截断而未跑到"的用例暴露出来——全量绿 ≠ 全部绿，看 forensics.txt 的 CRASH-OR-FAIL（SKIP-UNMATCHED = 过滤器伪失败，已自动跳过）。
+- Catch2 测试名含**逗号**（如 "(finite, non-NaN)"）无法通过单过滤器运行（被切分）；含 **±** 等非 ASCII 字符经 shell 传递也不匹配——均由 SKIP-UNMATCHED 兜底。
 
-### 0.3 工作区有未提交的 Batch 1 修复（本地 F:\anaplug，已编辑、未 CI 验证、未提交）
+### 0.3 剩余工作（Batch 7）
 
-接手者可选择直接提交推送验证，或先审查。**文件与内容**：
+- [x] ~~Batch 1-6~~（全部完成，经 CI 验证）
+- [ ] **UI 重构 Phase 3**（§9）：PluginEditor 1623 行拆分为 panels/；外观零变化；补主题缺口（WaveformDisplay、ModulationMatrixPanel）；重新启用 test_ui_* （需 clap-juce-extensions include 路径）
+- [ ] pluginval strictness 1→5 渐进（当前 strictness 1）
+- [ ] 重启 UI 后考虑移除 SKIP-UNMATCHED 兜底（重新启用 UI 测试文件后）
 
-1. `src/dsp/ResynthesisEngine.cpp`（resynthesize 开头）— `if (numFrames == 0) return {};`
-   根因：`(numFrames - 1) * hopSize + fftSize` 在 numFrames=0 时 **size_t 下溢** → 返回非空垃圾缓冲。
-   修 2 个用例：ResynthEngine - empty partial data returns empty result；ResynthesisEngine - resynthesize empty data。
-2. `src/dsp/SpectralDNA.cpp`（evolveGeneration 开头）— 种群 <2 直接 return（原来会克隆扩容到 2）。
-   修：Edge cases: single individual。设计取舍已定：种群大小是固定契约，单个体无法与自己重组；EvolutionPanel 只在 popSize>0 时调用，不受影响。
-3. `tests/test_consolidated_effects.cpp:90` — `names[6]` → `names[5]`
-   工厂表实测序（PresetFactory.cpp:1211-1217）：0 Warm Drive / 1 Edge Of Breakup / 2 Tube Scream / 3 British Plexi / 4 Tape Saturate / **5 Console Drive** / 6 Hard Clipper / 7 Fuzz Face / 8 Fold Synth / 9 Octa Fold / 10 Lo-Fi Crush / 11 8 Bit / 12 Tremolo Ring / 13 Bell Tone。测试原期望与工厂序矛盾，以实现为准（与 UI 类型分组注释一致）。
-4. `tests/test_effect_presets.cpp`（AutoTuneEffect 序列化用例）— `setRetuneSpeed(25)` → `15`，期望同步改 15。
-   实现 clamp 到 [0.01, 20] ms（AutoTuneEffect.cpp:33）是有意契约；测试原值越界。
-
-### 0.4 Batch 2 根因侦察结果（VoiceManager — 4 个 bug 已定位，修复代码未写）
-
-以下结论已通过读实现 + JUCE 8 源码（`juce-test-clone/` 本地副本）核实，**接手者可直接照写**：
-
-1. **oldest-first allocation**（test_voice_manager.cpp:558，`getVoice(0)->note==72 => 60`）
-   `findFreeVoice`（VoiceManager.cpp:434-484）三个分支全部只 CAS `VoiceState::free`——**idle 声音永不复用**。slot 0 释放转 idle 后，noteOn(72) 找不到 free → 走 steal 抢了 sustain 的 slot 1。
-   修法：三个分配分支（roundRobin/oldestFirst/random）的 CAS 改为接受 free **或** idle（先用 `expected = free` CAS，失败则 `expected = idle` 再 CAS）。注意 VoiceManager.cpp:508 的 `allocateVoice()` 本就处理 idle，但 findFreeVoice 路径根本没走它（疑似死代码——顺手确认后二选一收敛）。
-2. **noteOff releaseStartLevel**（test_voice_manager.cpp:112，`> 0 => 0`）
-   遗留 noteOff（:1051）→ `noteStopped(true)` → noteStopped 存当前 `envelopeLevel`（:83）。但该测试 noteOn 后**没 process 就 noteOff**，envelopeLevel 必为 0 → 期望永不可能满足。
-   修法：**改测试**——noteOn 后先 `vm.process(makeBuffer(int(0.005 * testSampleRate)))`（默认 attack 0.01s → env≈0.5）再 noteOff，`releaseStartLevel ≈ 0.5 > 0` 成立，测试意图（"noteOff 记录释放起点电平"）不变。
-3. **envelope attack phase**（test_voice_manager.cpp:268-276，`state == decay => {?}==2`）
-   逐样本 float 累加 attackDt 恰好在 4410 步（=100ms）时累加误差 ~1e-4 → `env >= 1.0f` 判定失败 → 状态停在 attack。
-   修法（VoiceManager.cpp:252）：阈值加容差 `if (env >= 0.999f)`，进入时 `envelopeLevel = 1.0f` 钳位不变。50ms 用例（env≈0.5）无误触发风险。
-4. **process called before prepare**（test_voice_manager.cpp:806，`hasAudio => false`）
-   JUCE 8 源码核实：`MPESynthesiserBase::renderNextBlock` 对 sampleRate==0 只有 jassert（release 下无效）→ 照常渲染；`AnaVoice` 用 `getSampleRate()`（VoiceManager.cpp:139）= 0 → sinDelta/cosDelta = NaN → 输出 NaN → `abs(NaN)>0` 为 false → 静音。
-   **关键**：不能在 process() 里调 `setCurrentPlaybackSampleRate`——`MPESynthesiser::setCurrentPlaybackSampleRate` 会 `turnOffAllVoices(false)` + base 层 `instrument.releaseAllNotes()`（测试先 noteOn 后 process，会杀掉音符）。
-   修法：VoiceManager 加 `bool voicesPrepared_ = false;` 成员；`process()` 开头 `if (!voicesPrepared_) { for (i…) getVoice(i)->setCurrentPlaybackSampleRate(sampleRate_); voicesPrepared_ = true; }`（`SynthesiserVoice::setCurrentPlaybackSampleRate` 是 public，逐 voice 设置不触发杀音符）；`prepare()` 里置 true。
-   注意 testSampleRate 常量在 test 文件内（44100），与 VoiceManager 默认 sampleRate_=44100 一致。
-
-### 0.5 其余批次的侦察线索（未开工，见 §5/§7 全量清单）
-
-- MultiPointEnvelope ADSR shape（test_wired_modules.cpp:497，sustain 0.43 vs 0.65 / vSustain 0.12 vs 0.5）：a2651f7 把段曲线改为取**段末**断点——ADSR 段可能需要曲线归属**段起点**断点；需做契约决断并同步 a2651f7 的对齐。
-- MultiPointEnvelope loop modes（test_multi_point_envelope.cpp:328）：循环结束后 isActive 仍 true + 循环点值 0 vs 1.0。
-- LFO tempo sync（test_lfo_system.cpp:272）：相位边界 0.00028 vs 1.0（wrap off-by-one 嫌疑）。
-- Volume ADSR（test_modulation.cpp:397）：0.031 vs <0.01（release 尾巴）。
-- Batch 3（ENV pool vals 映射 / LFO+ModBus / MPE voiceIdx / Source switching）、Batch 4（DSP 精度族 13 项）、Batch 5（Preset round-trip ×4）、Batch 6（日志级 12 条）完全未开工。
-- UI 重构（Phase 3，§9）未开工。
 
 ## 1. 项目是什么
 

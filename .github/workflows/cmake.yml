@@ -64,7 +64,9 @@ jobs:
       run: |
         exe="build/tests/Release/AnaPlugTests.exe"
         ls -la "$(dirname "$exe")" || true
-        timeout 300 "$exe" --reporter xml::out=test-results.xml > test-stdout.log 2> test-stderr.log || echo "full-run exit: $?"
+        # ~[benchmark] keeps the slow Catch2 BENCHMARK cases out of the single
+        # full pass (they still run isolated in the loop below)
+        timeout 900 "$exe" "~[benchmark]" --reporter xml::out=test-results.xml > test-stdout.log 2> test-stderr.log || echo "full-run exit: $?"
         # Name list straight from the sources (Catch2 list-mode proved unreliable here)
         grep -rhoE 'TEST_CASE\("([^"]+)"' tests --include='*.cpp' \
           | sed -E 's/^TEST_CASE\("//; s/"$//' | sort -u > test-names.txt
