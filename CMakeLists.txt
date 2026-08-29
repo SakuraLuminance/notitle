@@ -133,6 +133,7 @@ target_sources(AnaPlug
         src/gui/ModulationAssignPanel.cpp
         src/gui/EffectRackComponent.cpp
         src/gui/CreditsPanel.cpp
+        src/gui/StepCell.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
         src/dsp/DualTimbre.cpp

@@ -15,6 +15,8 @@
 #include "gui/CyberpunkTheme.h"
 #include "gui/ModulationAssignPanel.h"
 #include "gui/EffectRackComponent.h"
+#include "gui/MacroKnob.h"
+#include "gui/StepCell.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <array>
 #include <map>
@@ -112,80 +114,7 @@ private:
     juce::Label filterTitle_;
 
     // Process panel — Macros (4 knobs)
-    /** A macro knob that paints a coloured arc based on its mapping curve. */
-    class MacroKnob : public juce::Slider
-    {
-    public:
-        MacroKnob() { setSliderStyle(juce::Slider::RotaryVerticalDrag); }
-
-        void setCurveExponent(float exp) noexcept { curveExp_ = exp; }
-        float getCurveExponent() const noexcept { return curveExp_; }
-
-        juce::Colour getCurveColour() const
-        {
-            // Linear (1.0) → cyan_ (neon purple)
-            // Exponential (2.0) → magenta_ (electric magenta-purple)
-            // S-curve (0.5) → yellow_ (cool lavender)
-            // Other → fg_ (light lavender)
-            if (curveExp_ > 1.5f)
-                return ana::CyberpunkTheme::magenta_;
-            if (curveExp_ < 0.75f)
-                return ana::CyberpunkTheme::yellow_;
-            if (curveExp_ == 1.0f)
-                return ana::CyberpunkTheme::cyan_;
-            return ana::CyberpunkTheme::fg_;
-        }
-
-        void paint(juce::Graphics& g) override
-        {
-            const auto bounds = getLocalBounds().toFloat().reduced(2);
-            const auto centre = bounds.getCentre();
-            const float radius = juce::jmin(bounds.getWidth() * 0.5f,
-                                             bounds.getHeight() * 0.5f);
-            const float startAngle = juce::MathConstants<float>::pi * 1.25f;
-            const float endAngle   = juce::MathConstants<float>::pi * 0.25f;
-            const float sliderPos = static_cast<float>(
-                getValue() - getMinimum()) / static_cast<float>(getMaximum() - getMinimum());
-            const float arcAngle = juce::jmap(sliderPos, 0.0f, 1.0f, startAngle, endAngle);
-
-            // Background track
-            g.setColour(ana::CyberpunkTheme::bg_.brighter(0.15f));
-            g.fillEllipse(centre.getX() - radius, centre.getY() - radius,
-                          radius * 2, radius * 2);
-
-            // Active arc with curve-specific colour
-            const auto arcColour = getCurveColour();
-            juce::Path arc;
-            arc.addArc(centre.getX() - radius + 5, centre.getY() - radius + 5,
-                       radius * 2 - 10, radius * 2 - 10,
-                       startAngle, arcAngle, true);
-            g.setColour(arcColour);
-            g.strokePath(arc, juce::PathStrokeType(2.5f));
-
-            // Glow
-            g.setColour(arcColour.withAlpha(0.15f));
-            g.strokePath(arc, juce::PathStrokeType(6.0f));
-
-            // Thumb dot
-            const float thumbAngle = juce::jmap(sliderPos, 0.0f, 1.0f,
-                                                 startAngle, endAngle);
-            const float dotX = centre.getX() + (radius - 9) * std::cos(thumbAngle);
-            const float dotY = centre.getY() + (radius - 9) * std::sin(thumbAngle);
-            g.setColour(arcColour);
-            g.fillEllipse(dotX - 3, dotY - 3, 6, 6);
-
-            // Center cap
-            g.setColour(ana::CyberpunkTheme::bg_.brighter(0.3f));
-            g.fillEllipse(centre.getX() - 4, centre.getY() - 4, 8, 8);
-            g.setColour(arcColour.withAlpha(0.5f));
-            g.drawEllipse(centre.getX() - 4, centre.getY() - 4, 8, 8, 1.0f);
-        }
-
-    private:
-        float curveExp_ = 1.0f;
-    };
-
-    MacroKnob macroSliders_[4];
+    ana::MacroKnob macroSliders_[4];
     juce::Label  macroLabels_[4];
 
     // Process panel — Effects rack (dynamic, replaces hardcoded slider stack)
@@ -294,29 +223,7 @@ private:
 
     //==============================================================================
     // Step Sequencer UI
-    /** A single step cell: gate toggle button + vertical value slider. */
-    class StepCell : public juce::Component
-    {
-    public:
-        StepCell(int index, AnaPlugAudioProcessor& p);
-
-        void resized() override;
-        void paint(juce::Graphics& g) override;
-
-        void setActive(bool active);
-        void setValue(float val);
-        bool isActive() const { return gateButton_.getToggleState(); }
-        float getValue() const { return static_cast<float>(valueSlider_.getValue()); }
-
-        std::function<void(int, bool)> onGateChanged;
-        std::function<void(int, float)> onValueChanged;
-
-    private:
-        int index_;
-        AnaPlugAudioProcessor& processor_;
-        juce::ToggleButton gateButton_;
-        juce::Slider valueSlider_;
-    };
+    // StepCell lives in gui/StepCell.h
 
     // Step sequencer controls
     juce::Label seqTitle_;
@@ -326,7 +233,7 @@ private:
     juce::Label  seqBpmLabel_;
     juce::Slider seqRateSlider_;
     juce::Label  seqRateLabel_;
-    std::array<std::unique_ptr<StepCell>, 16> stepCells_;
+    std::array<std::unique_ptr<ana::StepCell>, 16> stepCells_;
     juce::Label seqCurrentStepLabel_;
 
     //==============================================================================

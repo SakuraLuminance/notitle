@@ -1,75 +1,8 @@
-#include "PluginEditor.h"
+﻿#include "PluginEditor.h"
 #include "dsp/PitchCorrector.h"
 #include "dsp/Crumb.h"
 #include <cmath>
 
-//==============================================================================
-// StepSequencer UI — StepCell implementation
-//==============================================================================
-AnaPlugAudioProcessorEditor::StepCell::StepCell(int index, AnaPlugAudioProcessor& p)
-    : index_(index), processor_(p)
-{
-    // Gate toggle button
-    gateButton_.setToggleState(true, juce::dontSendNotification);
-    gateButton_.setColour(juce::ToggleButton::tickColourId, ana::CyberpunkTheme::cyan_);
-    gateButton_.setColour(juce::ToggleButton::tickDisabledColourId, ana::CyberpunkTheme::fg_.withAlpha(0.3f));
-    gateButton_.onClick = [this]()
-    {
-        if (onGateChanged)
-            onGateChanged(index_, gateButton_.getToggleState());
-    };
-    addAndMakeVisible(gateButton_);
-
-    // Value slider
-    valueSlider_.setRange(0.0, 1.0, 0.01);
-    valueSlider_.setValue(static_cast<double>(index_) / 15.0);
-    valueSlider_.setSliderStyle(juce::Slider::LinearVertical);
-    valueSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    valueSlider_.setColour(juce::Slider::thumbColourId, ana::CyberpunkTheme::magenta_);
-    valueSlider_.setColour(juce::Slider::trackColourId, ana::CyberpunkTheme::magenta_.withAlpha(0.5f));
-    valueSlider_.setColour(juce::Slider::backgroundColourId, ana::CyberpunkTheme::bg_.brighter(0.15f));
-    valueSlider_.onValueChange = [this]()
-    {
-        if (onValueChanged)
-            onValueChanged(index_, static_cast<float>(valueSlider_.getValue()));
-    };
-    addAndMakeVisible(valueSlider_);
-}
-
-void AnaPlugAudioProcessorEditor::StepCell::resized()
-{
-    auto b = getLocalBounds();
-    // Gate button at top 40%
-    auto gateArea = b.removeFromTop(static_cast<int>(b.getHeight() * 0.4f));
-    gateButton_.setBounds(gateArea.reduced(2, 0));
-    // Value slider fills the rest
-    valueSlider_.setBounds(b.reduced(2, 0));
-}
-
-void AnaPlugAudioProcessorEditor::StepCell::paint(juce::Graphics& g)
-{
-    // Highlight background if this step is the current one
-    auto& seq = processor_.getStepSequencer();
-    if (seq.getCurrentStep() == index_)
-    {
-        g.setColour(ana::CyberpunkTheme::cyan_.withAlpha(0.15f));
-        g.fillRect(getLocalBounds().reduced(1));
-    }
-
-    // Border
-    g.setColour(ana::CyberpunkTheme::fg_.withAlpha(0.1f));
-    g.drawRect(getLocalBounds(), 1);
-}
-
-void AnaPlugAudioProcessorEditor::StepCell::setActive(bool active)
-{
-    gateButton_.setToggleState(active, juce::dontSendNotification);
-}
-
-void AnaPlugAudioProcessorEditor::StepCell::setValue(float val)
-{
-    valueSlider_.setValue(static_cast<double>(val), juce::dontSendNotification);
-}
 
 //==============================================================================
 AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& p)
@@ -136,7 +69,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     timbreBlendSlider_.setTooltip("A/B timbre blend (0-100%)");
 
     //==============================================================================
-    // Center — Visual feedback + view selector
+    // Center 鈥?Visual feedback + view selector
     ANA_CRUMB("ed:center-start");
     addAndMakeVisible(feedbackPanel_);
     addAndMakeVisible(waterfallDisplay_);
@@ -217,7 +150,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     };
 
     //==============================================================================
-    // Macros — wired to MacroController with visual curve feedback
+    // Macros 鈥?wired to MacroController with visual curve feedback
     static const char* macroNames[] = { "M1", "M2", "M3", "M4" };
     for (int i = 0; i < 4; ++i)
     {
@@ -245,7 +178,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     }
 
     //==============================================================================
-    // XY Pad — morph control with smooth interpolation + MIDI Learn
+    // XY Pad 鈥?morph control with smooth interpolation + MIDI Learn
     xyPad_ = std::make_unique<ana::XYPad>(audioProcessor);
     xyPad_->setXParameter(&audioProcessor.getMorphAmountRef(), "MORPH");
     addAndMakeVisible(xyPad_.get());
@@ -346,7 +279,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     addAndMakeVisible(vocalCharacterCombo_);
 
     //==============================================================================
-    // Dynamic Effect Rack — replaces the old hardcoded effect slider stack
+    // Dynamic Effect Rack 鈥?replaces the old hardcoded effect slider stack
     ANA_CRUMB("ed:rack");
     addAndMakeVisible(effectRack_);
 
@@ -520,7 +453,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     // 16 step cells
     for (int i = 0; i < 16; ++i)
     {
-        auto cell = std::make_unique<StepCell>(i, audioProcessor);
+        auto cell = std::make_unique<ana::StepCell>(i, audioProcessor);
         const int idx = i;
 
         cell->onGateChanged = [this, idx](int index, bool active)
@@ -622,7 +555,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     creditsButton_.setColour(juce::TextButton::textColourOffId, ana::CyberpunkTheme::fg_.withAlpha(0.5f));
     creditsButton_.onClick = [this] { creditsButtonClicked(); };
 
-    // Randomizer — RANDOMIZE button + range selector
+    // Randomizer 鈥?RANDOMIZE button + range selector
     {
         addCyberButton(randomizeButton_);
         randomizeButton_.setButtonText("RANDOM");
@@ -644,7 +577,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
         rangeCombo_.addItem("\u00B125%", 3);
         rangeCombo_.addItem("\u00B150%", 4);
         rangeCombo_.setSelectedId(3);
-        rangeCombo_.setTooltip("Randomize range: ±5/10/25/50%");
+        rangeCombo_.setTooltip("Randomize range: 卤5/10/25/50%");
         rangeCombo_.setColour(juce::ComboBox::backgroundColourId,
                               ana::CyberpunkTheme::bg_.brighter(0.15f));
         rangeCombo_.setColour(juce::ComboBox::textColourId,
@@ -686,7 +619,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     // Parameters with backing atomics in the processor
     setupMidiLearnForSlider(aSubSlider_, "sub_a", &audioProcessor.getSubHarmonicLevelRef());
 
-    // Parameters without backing atomics yet — MIDI Learn will record the
+    // Parameters without backing atomics yet 鈥?MIDI Learn will record the
     // mapping and the mappings persist across sessions. When a backing atomic
     // is added later, reconnect it via MidiLearn::reconnectTarget().
     setupMidiLearnForSlider(aBrightSlider_, "bright_a");
@@ -720,7 +653,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 
     // Volume ADSR MIDI Learn
 
-    // Effect rack — MIDI Learn for the rack controls is handled internally
+    // Effect rack 鈥?MIDI Learn for the rack controls is handled internally
 
     updateStatus();
     ANA_CRUMB("ed:exit");
@@ -742,13 +675,13 @@ void AnaPlugAudioProcessorEditor::computeRegions(juce::Rectangle<int> bounds, Re
     // Title bar at top
     r.titleBar = bounds.removeFromTop(28);
 
-    // Reserve status bar at bottom (compact 35px — was ~65px)
+    // Reserve status bar at bottom (compact 35px 鈥?was ~65px)
     r.statusBar = bounds.removeFromBottom(35);
 
     // Main 3-column area (42% of remaining height)
     r.mainArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.42f));
 
-    // Process panel (filter + macros + effects) — increased from 32% to 46%
+    // Process panel (filter + macros + effects) 鈥?increased from 32% to 46%
     // to give effect rack room for 3-4 visible modules
     r.processArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.46f));
 
@@ -833,7 +766,7 @@ void AnaPlugAudioProcessorEditor::resized()
     aHpfSlider_.setBounds(ta.removeFromTop(16).reduced(pad));
     aHpfLabel_.setBounds(ta.removeFromTop(12).reduced(pad));
 
-    // -- Timbre B (right panel) —
+    // -- Timbre B (right panel) 鈥?
     auto tb = r.timbreBPanel.reduced(6, pad * 2);
     auto tbRow = [&](juce::Slider& s, juce::Label& l) {
         auto cell = tb.removeFromTop(knobSize + 14).reduced(pad);
@@ -864,7 +797,7 @@ void AnaPlugAudioProcessorEditor::resized()
     // -- Process panel: FILTER (left) | MACROS (center) | EFFECTS (right) --
     auto pa = r.processArea.reduced(6, pad);
 
-    // Filter section (22% — narrower to give effects more room)
+    // Filter section (22% 鈥?narrower to give effects more room)
     auto filterArea = pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.22f)).reduced(pad);
     filterTitle_.setBounds(filterArea.removeFromTop(14));
     filterTypeCombo_.setBounds(filterArea.removeFromTop(18).reduced(pad));
@@ -872,7 +805,7 @@ void AnaPlugAudioProcessorEditor::resized()
     filterResSlider_.setBounds(filterArea.removeFromTop(16).reduced(pad));
     filterViz_.setBounds(filterArea.reduced(pad));
 
-    // Macros section (40% of remaining — narrower for effects)
+    // Macros section (40% of remaining 鈥?narrower for effects)
     auto macroArea = pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.40f)).reduced(pad);
     auto macroTitle = macroArea.removeFromTop(14);
     auto mkArea = macroArea.reduced(pad);
@@ -884,13 +817,13 @@ void AnaPlugAudioProcessorEditor::resized()
         macroLabels_[i].setBounds(cell);
     }
 
-    // Effects section (right remainder) — dynamic effect rack
+    // Effects section (right remainder) 鈥?dynamic effect rack
     auto fxArea = pa.reduced(pad);
     // Effect preset combo at top of effects section
     auto fxPresetRow = fxArea.removeFromTop(16).reduced(2, 0);
     fxPresetLabel_.setBounds(fxPresetRow.removeFromLeft(52));
     effectPresetCombo_.setBounds(fxPresetRow.reduced(0, 1));
-    // Spectral effect toggles — single compact row (was 3×20px rows)
+    // Spectral effect toggles 鈥?single compact row (was 3脳20px rows)
     auto specRow = fxArea.removeFromTop(18).reduced(pad);
     prismButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 3).reduced(1));
     blurButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 2).reduced(1));
@@ -899,7 +832,7 @@ void AnaPlugAudioProcessorEditor::resized()
     auto vocalRow = fxArea.removeFromTop(18).reduced(pad);
     vocalCharacterLabel_.setBounds(vocalRow.removeFromLeft(34));
     vocalCharacterCombo_.setBounds(vocalRow.reduced(0, 1));
-    // Dynamic effect rack fills remaining — show 3-4 modules at a time
+    // Dynamic effect rack fills remaining 鈥?show 3-4 modules at a time
     effectRack_.setBounds(fxArea.reduced(1, pad));
 
     // -- Modulation assignment panel (scrollable Viewport) --
@@ -1005,7 +938,7 @@ void AnaPlugAudioProcessorEditor::resized()
     rootFineTuneKnob_.setBounds(rootCell2.removeFromTop(rootCell2.getWidth()));
     rootFineTuneLabel_.setBounds(rootCell2);
 
-    // Master — compact single column (max 150w, Vol+Pan stacked with inline labels)
+    // Master 鈥?compact single column (max 150w, Vol+Pan stacked with inline labels)
     mstArea = mstArea.withWidth(juce::jmin(mstArea.getWidth(), 150));
     mstArea.removeFromTop(4);
     {
@@ -1097,9 +1030,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         }
     }
 
-    // XY Pad → processor parameter mapping
+    // XY Pad 鈫?processor parameter mapping
     // X axis is already written to morphAmount via setXParameter binding
-    // Y axis → apply based on selected target
+    // Y axis 鈫?apply based on selected target
     if (xyPad_ != nullptr)
     {
         const float yVal = xyPad_->getY();
@@ -1178,25 +1111,25 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
 
     switch (mode)
     {
-        case 1: // PARTIALS — classic bar display
+        case 1: // PARTIALS 鈥?classic bar display
             feedbackPanel_.setVisible(true);
             break;
 
-        case 2: // WATERFALL — 3D waterfall spectral view
+        case 2: // WATERFALL 鈥?3D waterfall spectral view
             waterfallDisplay_.setVisible(true);
             break;
 
-        case 3: // EDITOR — 2D spectrum editor canvas
+        case 3: // EDITOR 鈥?2D spectrum editor canvas
             spectrumEditorCanvas_.setVisible(true);
             spectrumEditorCanvas_.set3DEnabled(false);
             break;
 
-        case 4: // 3D — spectrum editor with OpenGL 3D waterfall
+        case 4: // 3D 鈥?spectrum editor with OpenGL 3D waterfall
             spectrumEditorCanvas_.setVisible(true);
             spectrumEditorCanvas_.set3DEnabled(true);
             break;
 
-        case 5: // SCOPE — real-time oscilloscope
+        case 5: // SCOPE 鈥?real-time oscilloscope
             if (waveformDisplay_)
                 waveformDisplay_->setVisible(true);
             break;
@@ -1371,7 +1304,7 @@ void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     juce::PopupMenu menu;
     auto& midiLearn = audioProcessor.getMidiLearn();
 
-    // --- Check if this is a macro slider → add curve submenu ---
+    // --- Check if this is a macro slider 鈫?add curve submenu ---
     if (info.paramId.startsWith("macro_"))
     {
         const int macroIdx = info.paramId.getTrailingIntValue() - 1;
@@ -1406,11 +1339,11 @@ void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 
     if (midiLearn.isLearning())
     {
-        menu.addItem("MIDI Learn (in progress…)", false, false, {});
+        menu.addItem("MIDI Learn (in progress鈥?", false, false, {});
     }
     else
     {
-        // Copy info by value — the lambda fires asynchronously so the
+        // Copy info by value 鈥?the lambda fires asynchronously so the
         // original iterator may have been invalidated by then.
         const auto infoCopy = info;
         menu.addItem("MIDI Learn", [this, slider, infoCopy]()
@@ -1459,7 +1392,7 @@ void AnaPlugAudioProcessorEditor::updateMidiLearnState()
     // --- Indicator blink ---
     if (midiLearn.isLearning())
     {
-        // Blink at ≈5 Hz (toggle every ~100 ms at 30 Hz timer)
+        // Blink at 鈮? Hz (toggle every ~100 ms at 30 Hz timer)
         const bool on = ((juce::Time::getMillisecondCounter() / 100) % 2) == 0;
         midiLearnIndicator_.setVisible(on);
     }
@@ -1561,7 +1494,7 @@ void AnaPlugAudioProcessorEditor::onEffectPresetSelected()
 
     if (id == -1)
     {
-        // "Save As..." — show text input dialog
+        // "Save As..." 鈥?show text input dialog
         auto* alert = new juce::AlertWindow("Save Effect Preset",
                                             "Enter a name for the current effect state:",
                                             juce::MessageBoxIconType::QuestionIcon);
