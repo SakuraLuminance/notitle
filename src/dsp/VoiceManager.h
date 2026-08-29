@@ -383,6 +383,14 @@ public:
      */
     void allVoicesOff();
 
+    /**
+     * Overrides the base MIDI dispatcher so that, while MPE is enabled, a
+     * pitch-wheel message on a per-note channel (2-15) retunes ONLY the
+     * voice(s) holding that channel, and a master-channel (1) pitch wheel
+     * never leaks into per-note voices.
+     */
+    void handleMidiEvent(const juce::MidiMessage& m) override;
+
 protected:
     //==============================================================================
     /**
@@ -442,6 +450,13 @@ private:
 
     /** Applies the velocity curve mapping to a raw velocity value. */
     float applyVelocityCurve(float velocity) const;
+
+    /**
+     * Returns a free MPE per-note channel (2-15): the first channel not held
+     * by a sounding voice, or — when all 14 are held — a round-robin choice
+     * from the global note counter.
+     */
+    int allocatePerNoteChannel() const;
 
     /** Converts a MIDI note number to frequency in Hz. */
     static float noteToFrequency(int note);

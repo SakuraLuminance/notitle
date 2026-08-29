@@ -337,10 +337,10 @@ TEST_CASE("Source switching during playback", "[mod][switch][routing]")
         // LFO at phase 0.5 = 0.0 => no modulation
         REQUIRE(result == Catch::Approx(1000.0f).margin(0.01f));
 
-        // Advance LFO to quarter cycle (peak = 1.0) - verify clean continuation
+        // Advance LFO another quarter cycle: phase 0.5 -> 0.75 (trough = -1.0)
         runLfoPool(lfoPool, samplesPerCycle(2.0f) / 4, lfoVals);
         float result2 = applyModulation(slot, lfoVals, envVals);
-        REQUIRE(result2 == Catch::Approx(1000.5f).margin(0.01f));
+        REQUIRE(result2 == Catch::Approx(999.5f).margin(0.01f));
     }
 
     SECTION("Switch source twice during playback (no crash)")
@@ -849,6 +849,13 @@ TEST_CASE("ENV pool isolation", "[mod][env][isolation]")
         envPool[0].setDecay(0.01f);
         envPool[0].setSustain(0.0f);
         envPool[0].setRelease(0.01f);
+
+        // ENV2 gets its own (equally short) ADSR — trigger() is a no-op on an
+        // envelope without breakpoints, so it must be configured first
+        envPool[1].setAttack(0.01f);
+        envPool[1].setDecay(0.01f);
+        envPool[1].setSustain(0.0f);
+        envPool[1].setRelease(0.01f);
 
         envPool[0].trigger();
         runEnvPool(envPool, static_cast<int>(0.1 * TEST_SR), {});

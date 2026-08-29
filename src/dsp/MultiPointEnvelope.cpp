@@ -186,8 +186,18 @@ void MultiPointEnvelope::rebuildADSR()
     // release() is called, then run the release ramp.  Without this the
     // envelope would start sliding from sustain toward zero immediately after
     // the decay ends — there is no dedicated sustain HOLD segment between them.
-    setLoopMode(LoopMode::Sustain);
-    setLoopEnd(2);
+    // A zero sustain is a self-terminating (percussive) envelope: no hold, it
+    // runs through the release ramp and finishes on its own.
+    if (sustain_ > 0.0f)
+    {
+        setLoopMode(LoopMode::Sustain);
+        setLoopEnd(2);
+    }
+    else
+    {
+        setLoopMode(LoopMode::None);
+        setLoopEnd(-1);
+    }
 }
 
 //==============================================================================

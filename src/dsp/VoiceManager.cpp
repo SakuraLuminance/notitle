@@ -698,6 +698,59 @@ float VoiceManager::applyVelocityCurve(float velocity) const
     return velocity + (expo - velocity) * velocityCurveAmount_;
 }
 
+int VoiceManager::allocatePerNoteChannel() const
+{
+    // Lower-zone per-note channels are 2..15 (1 is the master channel).
+    // Prefer a channel no sounding voice currently holds; if all 14 are
+    // held, recycle round-robin from the global note counter.
+    for (int ch = 2; ch <= 15; ++ch)
+    {
+        bool inUse = false;
+        for (int i = 0; i < maxVoices; ++i)
+        {
+            const auto st = getVoice(i)->state.load(std::memory_order_relaxed);
+            if (st == VoiceState::free || st == VoiceState::idle)
+                continue;
+            if (getVoice(i)->midiChannel == ch)
+            {
+                inUse = true;
+                break;
+            }
+        }
+        if (! inUse)
+            return ch;
+    }
+    return 2 + static_cast<int>(globalNoteCounter_.load(std::memory_order_relaxed) % 14);
+}
+
+void VoiceManager::handleMidiEvent(const juce::MidiMessage& m)
+{
+    if (m.isPitchWheel() && mpeEnabled_.load(std::memory_order_relaxed))
+    {
+        const int ch = m.getChannel();
+        // Per-note bend: retune only the voice(s) holding that MPE channel,
+        // using the project mapping [-1, 1] -> [0.5, 2.0] (exp2f, ±12 st).
+        // Notes started through the legacy noteOn API are not tracked by the
+        // MPEInstrument (its zone layout is empty), so the base dispatcher
+        // would drop these events — handle them here instead.  Master-channel
+        // (1) bend is deliberately suppressed: per contract it must not leak
+        // into per-note voices.
+        if (ch >= 2 && ch <= 15)
+        {
+            const float normalized =
+                static_cast<float>(m.getPitchWheelValue() - 8192) / 8192.0f;
+            for (int i = 0; i < maxVoices; ++i)
+            {
+                if (getVoice(i)->midiChannel == ch)
+                    setVoicePitchBend(i, normalized);
+            }
+        }
+        return;
+    }
+
+    MPESynthesiser::handleMidiEvent(m);
+}
+
 //==============================================================================
 // MIDI conversion
 //==============================================================================
@@ -1035,6 +1088,8 @@ void VoiceManager::noteOn(int note, float velocity)
         {
             startVoice(i, note, velocity);
             getVoice(i)->state.store(VoiceState::attack, std::memory_order_release);
+            if (mpeEnabled_.load(std::memory_order_relaxed))
+                getVoice(i)->midiChannel = allocatePerNoteChannel();
             return;
         }
     }
@@ -1050,6 +1105,8 @@ void VoiceManager::noteOn(int note, float velocity)
         voice->noteStopped(false);
         startVoice(stealIdx, note, velocity);
         voice->state.store(VoiceState::attack, std::memory_order_release);
+        if (mpeEnabled_.load(std::memory_order_relaxed))
+            voice->midiChannel = allocatePerNoteChannel();
     }
 }
 

@@ -44,9 +44,13 @@ void ModulationBus::processBlock(int numSamples)
         if (route.targetParam == nullptr || route.sourceValue == nullptr)
             continue;
 
-        // Read source value, scale by depth, write to target atomic
-        const float modValue = (*route.sourceValue) * route.depth;
-        route.targetParam->store(modValue, std::memory_order_relaxed);
+        // Additive modulation: read the target's current value as the base,
+        // scale the source by depth, and write the sum back.  The previous
+        // implementation OVERWROTE the target with (source * depth), so a
+        // zero-depth route zeroed the parameter instead of leaving it alone.
+        const float base = route.targetParam->load(std::memory_order_relaxed);
+        route.targetParam->store(base + (*route.sourceValue) * route.depth,
+                                 std::memory_order_relaxed);
     }
 }
 
