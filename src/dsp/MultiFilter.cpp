@@ -133,7 +133,18 @@ int MultiFilter::addSlot(FilterType type, const FilterParams& params)
 void MultiFilter::removeSlot(int index)
 {
     if (index >= 0 && index < static_cast<int>(slots.size()))
-        slots.erase(slots.begin() + index);
+    {
+        // FilterSlot holds a ProcessorDuplicator whose user-declared move
+        // constructor deletes copy/move assignment, so vector::erase (which
+        // needs move-assignable elements) cannot compile.  Rebuild the vector
+        // in order via the move constructor instead.
+        std::vector<FilterSlot> remaining;
+        remaining.reserve(slots.size() - 1);
+        for (int i = 0; i < static_cast<int>(slots.size()); ++i)
+            if (i != index)
+                remaining.push_back(std::move(slots[i]));
+        slots = std::move(remaining);
+    }
     invalidateFreqResponseCache();
 }
 
