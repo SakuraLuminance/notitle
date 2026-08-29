@@ -8,19 +8,23 @@
 static constexpr double TEST_SR = 44100.0;
 
 /**
- * Process enough samples for the arpeggiator to advance through
- * the given number of steps at the configured rate.
+ * Advance the arpeggiator so that it lands on the Nth step of the sequence
+ * while that note is still inside its gate window.
+ *
+ * Timing model (120 bpm, 1/16 notes, 44.1 kHz): a step is 5512.5 samples and
+ * the first advance happens immediately at t=0 (currentStep starts at -1),
+ * so "step N" is reached after N-1 step boundaries.  We process 5513 samples
+ * per boundary — just past it — leaving the freshly triggered note active.
  */
 static void advanceSteps(ana::Arpeggiator& arp, int steps)
 {
     if (steps <= 0)
         return;
 
-    // Process a generous number of samples to ensure we hit all steps.
-    // Each step at 120 bpm / 16th note is ~5512 samples at 44.1 kHz.
-    const int samplesPerStep = static_cast<int>(5512.5);
-    for (int i = 0; i < steps * 3; ++i)
-        arp.process(samplesPerStep);
+    arp.process(1);             // trigger the first advance (note 1 starts at t=0)
+    const int stepSamples = 5513;
+    for (int i = 1; i < steps; ++i)
+        arp.process(stepSamples);
 }
 
 // ---------------------------------------------------------------------------
@@ -358,9 +362,10 @@ TEST_CASE("Arpeggiator - swing affects step timing", "[arp][swing]")
     SECTION("zero swing makes both steps equal duration")
     {
         arp.setSwing(0.0f);
-        // With swing=0, even and odd steps have the same duration (~5512.5)
-        // Advance first step
-        arp.process(static_cast<int>(5512.5) + 1);
+        // With swing=0 both steps last ~5512.5 samples.  Step 0 starts at
+        // t=0; crossing its boundary triggers step 1 (note 64).
+        arp.process(1);
+        arp.process(5513);
         REQUIRE(arp.getCurrentNote() == 64);
     }
 
@@ -369,15 +374,12 @@ TEST_CASE("Arpeggiator - swing affects step timing", "[arp][swing]")
         arp.setSwing(50.0f);
         // Even step (0): 5512.5 * 1.5 = ~8268.75
         // Odd step (1):  5512.5 * 0.5 = ~2756.25
-        //
-        // At 6000 samples we should still be on step 0 (8269 > 6000)
-        arp.process(6000);
-        REQUIRE(arp.getCurrentNote() == 60);
-
-        // Process another 6000 samples -> should have advanced through
-        // step 0 (ended at ~8269) and step 1 (ended at ~8269+2756=11025)
-        arp.process(6000);
+        arp.process(1);       // step 0 -> note 60
+        arp.process(8269);    // cross the long step 0 -> step 1 -> 64
         REQUIRE(arp.getCurrentNote() == 64);
+
+        arp.process(2757);    // cross the short step 1 -> step 2 -> 60
+        REQUIRE(arp.getCurrentNote() == 60);
     }
 }
 
