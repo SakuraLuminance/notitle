@@ -23,6 +23,24 @@ constexpr int clampInt(int value, int min, int max)
 
 constexpr float twoPi = 6.2831853071795864769f;
 
+// Claim a voice slot that is either free or idle (a released voice whose
+// envelope tail has finished is reusable) and transition it to attack.
+// The previous code only accepted free, so idle slots were never reused
+// and every reallocation degenerated into stealing a sounding voice.
+inline bool claimVoice(AnaVoice* voice) noexcept
+{
+    VoiceState expected = VoiceState::free;
+    if (voice->state.compare_exchange_strong(expected, VoiceState::attack,
+                                             std::memory_order_release,
+                                             std::memory_order_relaxed))
+        return true;
+
+    expected = VoiceState::idle;
+    return voice->state.compare_exchange_strong(expected, VoiceState::attack,
+                                                std::memory_order_release,
+                                                std::memory_order_relaxed);
+}
+
 } // namespace
 
 //==============================================================================
@@ -249,7 +267,10 @@ void AnaVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
             {
                 float env = envelopeLevel + attackDt;
                 envelopeLevel = env;
-                if (env >= 1.0f)
+                // 0.999f tolerance: accumulating attackDt one sample at a time
+                // lands ~1e-4 short of 1.0 after attackSeconds*sampleRate steps
+                // (exact 1.0f is never reached for most attack lengths).
+                if (env >= 0.999f)
                 {
                     envelopeLevel = 1.0f;
                     state.store(VoiceState::decay, std::memory_order_relaxed);
@@ -335,6 +356,7 @@ void VoiceManager::prepare(double sampleRate_)
 {
     this->sampleRate_ = sampleRate_ > 0.0 ? sampleRate_ : 44100.0;
     setCurrentPlaybackSampleRate(this->sampleRate_);
+    voicesPrepared_ = true;
 }
 
 //==============================================================================
@@ -343,6 +365,19 @@ void VoiceManager::prepare(double sampleRate_)
 
 void VoiceManager::process(juce::AudioBuffer<float>& buffer)
 {
+    // process() called before prepare(): push the default sample rate into
+    // each voice individually.  We must NOT call MPESynthesiser's
+    // setCurrentPlaybackSampleRate here — it turns off all voices (kills any
+    // notes started before this call).  SynthesiserVoice's per-voice setter
+    // only stores the rate, so notes survive.  Without this, getSampleRate()
+    // is 0 inside renderNextBlock -> NaN rotation deltas -> silent output.
+    if (! voicesPrepared_)
+    {
+        for (int i = 0; i < maxVoices; ++i)
+            getVoice(i)->setCurrentPlaybackSampleRate(sampleRate_);
+        voicesPrepared_ = true;
+    }
+
     buffer.clear();
     juce::MidiBuffer empty;
     renderNextBlock(buffer, empty, 0, buffer.getNumSamples());
@@ -450,8 +485,7 @@ juce::MPESynthesiserVoice* VoiceManager::findFreeVoice(juce::MPENote /*noteToFin
         {
             const int candidate = (nextVoiceIndex_.load(std::memory_order_relaxed) + i) % maxVoices;
             auto* voice = getVoice(candidate);
-            VoiceState expected = VoiceState::free;
-            if (voice->state.compare_exchange_strong(expected, VoiceState::attack))
+            if (claimVoice(voice))
             {
                 nextVoiceIndex_.store((candidate + 1) % maxVoices, std::memory_order_relaxed);
                 return voice;
@@ -463,8 +497,7 @@ juce::MPESynthesiserVoice* VoiceManager::findFreeVoice(juce::MPENote /*noteToFin
         for (int i = 0; i < maxVoices; ++i)
         {
             auto* voice = getVoice(i);
-            VoiceState expected = VoiceState::free;
-            if (voice->state.compare_exchange_strong(expected, VoiceState::attack))
+            if (claimVoice(voice))
                 return voice;
         }
     }
@@ -474,8 +507,7 @@ juce::MPESynthesiserVoice* VoiceManager::findFreeVoice(juce::MPENote /*noteToFin
         {
             const int candidate = juce::Random::getSystemRandom().nextInt(maxVoices);
             auto* voice = getVoice(candidate);
-            VoiceState expected = VoiceState::free;
-            if (voice->state.compare_exchange_strong(expected, VoiceState::attack))
+            if (claimVoice(voice))
             {
                 nextVoiceIndex_.store((candidate + 1) % maxVoices, std::memory_order_relaxed);
                 return voice;
@@ -483,11 +515,7 @@ juce::MPESynthesiserVoice* VoiceManager::findFreeVoice(juce::MPENote /*noteToFin
         }
     }
 
-    // Phase 2: find an IDLE voice (youngest first)
-    if (const int idx = allocateVoice(); idx >= 0)
-        return getVoice(idx);
-
-    // Phase 3: steal if allowed
+    // Phase 2: steal if allowed
     if (stealIfNoneAvailable)
         return findVoiceToSteal(juce::MPENote());
 
@@ -504,35 +532,6 @@ juce::MPESynthesiserVoice* VoiceManager::findVoiceToSteal(juce::MPENote /*noteTo
 //==============================================================================
 // Custom allocation helpers
 //==============================================================================
-
-int VoiceManager::allocateVoice() const
-{
-    int      bestIdx = -1;
-    uint64_t bestAge = 0;
-
-    for (int i = 0; i < maxVoices; ++i)
-    {
-        VoiceState expected = VoiceState::idle;
-        if (getVoice(i)->state.compare_exchange_strong(expected, VoiceState::attack))
-        {
-            if (bestIdx < 0 || getVoice(i)->noteOnIndex < bestAge)
-            {
-                // Release previously claimed idle, keep this better one
-                if (bestIdx >= 0)
-                    getVoice(bestIdx)->state.store(VoiceState::idle, std::memory_order_relaxed);
-                bestIdx = i;
-                bestAge = getVoice(i)->noteOnIndex;
-            }
-            else
-            {
-                // This claim is worse, release it
-                getVoice(i)->state.store(VoiceState::idle, std::memory_order_relaxed);
-            }
-        }
-    }
-
-    return bestIdx;
-}
 
 int VoiceManager::stealVoice() const
 {
@@ -674,7 +673,8 @@ void VoiceManager::startVoice(int voiceIndex, int note, float velocity)
     v->sustainLevel   = defaultSustain_;
     v->releaseSeconds = defaultRelease_ * v->envScale;
 
-    // State is already set to attack by allocateVoice() via CAS
+    // State is set to attack by the caller (claimVoice CAS on the MPE path,
+    // explicit store on the legacy path)
 }
 
 //==============================================================================
@@ -1023,10 +1023,14 @@ void VoiceManager::noteOn(int note, float velocity)
         return;
     velocity = clampFloat(velocity, 0.0f, 1.0f);
 
-    // Phase 1: find a free voice
+    // Phase 1: find a free or idle voice.  Idle = release tail finished,
+    // envelope at 0 — silent and reusable (same contract as findFreeVoice).
+    // The old isVoiceActive() check counted idle as active, so finished
+    // voices were never reused and allocation skipped ahead to fresh slots.
     for (int i = 0; i < maxVoices; ++i)
     {
-        if (!isVoiceActive(i))
+        const auto st = getVoice(i)->state.load(std::memory_order_relaxed);
+        if (st == VoiceState::free || st == VoiceState::idle)
         {
             startVoice(i, note, velocity);
             getVoice(i)->state.store(VoiceState::attack, std::memory_order_release);

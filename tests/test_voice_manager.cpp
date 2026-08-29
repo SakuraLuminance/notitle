@@ -117,7 +117,14 @@ TEST_CASE("VoiceManager - noteOff triggers release phase", "[voice][release]")
     vm.noteOn(60, 0.5f);
     REQUIRE(vm.getVoice(0)->state == VoiceState::attack);
 
+    // Drive the envelope up (default attack 0.01s -> ~0.5 after 5ms) so the
+    // release start level records a non-zero value.  noteOff without any
+    // processing leaves envelopeLevel at 0 and releaseStartLevel is
+    // legitimately 0.
+    vm.process(makeBuffer(static_cast<int>(0.005 * testSampleRate)));
+
     vm.noteOff(60);
+
     REQUIRE(vm.getVoice(0)->state == VoiceState::release);
     REQUIRE(vm.getVoice(0)->releaseStartLevel > 0.0f);
 }

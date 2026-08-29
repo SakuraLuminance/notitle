@@ -419,9 +419,6 @@ protected:
 
 private:
     //==============================================================================
-    /** Allocates a voice slot using the current allocation mode. Returns index or -1. */
-    int allocateVoice() const;
-
     /**
      * Steals a voice when no free or idle voices are available.
      * Prefers stealing voices in this order: sustain > release > decay > attack.
@@ -462,6 +459,7 @@ private:
 
     //==============================================================================
     double                    sampleRate_       = 44100.0;
+    bool                      voicesPrepared_   = false; /**< Set by prepare(); process() lazily pushes the default rate into each voice when false. */
     std::atomic<AllocationMode> allocationMode_{ AllocationMode::roundRobin };
     mutable std::atomic<int>  nextVoiceIndex_{0};
     mutable std::atomic<uint64_t> globalNoteCounter_{0};
