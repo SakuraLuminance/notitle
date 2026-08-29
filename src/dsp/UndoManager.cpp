@@ -127,14 +127,21 @@ void UndoManager::clear()
     delete currentComposite_;
     currentComposite_ = nullptr;
     inComposite_ = false;
+    compositeDepth_ = 0;
 }
 
 //==============================================================================
 void UndoManager::beginComposite(const juce::String& description)
 {
-    // Nested composites are not supported — silently ignore.
+    // Nested composites are not supported — the inner beginComposite() is
+    // ignored, but it is COUNTED so the matching endComposite() closes only
+    // the nested pair and leaves the outer composite open (otherwise the
+    // inner end would prematurely close the outer one).
     if (inComposite_)
+    {
+        ++compositeDepth_;
         return;
+    }
 
     currentComposite_ = new UndoStep();  // Will be owned by undoStack_
     currentComposite_->description = description;
@@ -145,6 +152,13 @@ void UndoManager::endComposite()
 {
     if (! inComposite_ || currentComposite_ == nullptr)
         return;
+
+    // This end belongs to an ignored nested begin: close only that pair.
+    if (compositeDepth_ > 0)
+    {
+        --compositeDepth_;
+        return;
+    }
 
     // If nothing was added during the composite, discard the empty step.
     if (currentComposite_->undoActions.empty())

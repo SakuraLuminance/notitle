@@ -108,11 +108,14 @@ void SpectralMorpher::morphWeighted(PartialDataSIMD& output,
 
     for (int i = 0; i < PartialDataSIMD::kMaxPartials; ++i)
     {
-        // Effective morph factor: higher total amplitude -> faster transition
+        // Effective morph factor: higher TOTAL amplitude -> faster transition.
+        // The sum (not the mean) is the contract: at t=0.3 a 0.9-amplitude
+        // partial must already be past halfway toward B, while a 0.01-amplitude
+        // partial barely leaves A.  Unit amplitudes sum to 2 and clamp t=1 to
+        // a pure B (t*sum >= 1).
         const float ampA   = sanitise(a.amplitude[i]);
         const float ampB   = sanitise(b.amplitude[i]);
-        const float avgAmp = (ampA + ampB) * 0.5f;
-        const float tEff   = clamp(tClamped * avgAmp, 0.0f, 1.0f);
+        const float tEff   = clamp(tClamped * (ampA + ampB), 0.0f, 1.0f);
 
         output.frequency[i] = sanitise(
             a.frequency[i] + (b.frequency[i] - a.frequency[i]) * tEff);

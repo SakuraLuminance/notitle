@@ -614,7 +614,10 @@ TEST_CASE("UndoManager - many execute/undo cycles do not leak",
     {
         for (int i = 0; i < 20; ++i)
             um.execute(makeCmd(1));
-        for (int i = 0; i < 20; ++i)
+        // The manager holds 16 steps; the 4 oldest were evicted (documented
+        // eviction contract — see "max depth eviction frees memory"), so only
+        // 16 undos are possible and they must undo everything that remains.
+        for (int i = 0; i < 16; ++i)
             um.undo();
     }
 

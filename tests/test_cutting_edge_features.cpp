@@ -307,17 +307,20 @@ TEST_CASE("MeteringEngine - LUFS for known sine tone within ±1 LU", "[metering]
     const double shortTermLUFS  = engine.getShortTermLUFS();
     const double integratedLUFS = engine.getIntegratedLUFS();
 
-    // Expected LUFS for a -1 dBFS 1 kHz sine:
-    //   RMS level ≈ -1 - 3.01 = -4.01 dBFS
-    //   K-weighting at 1 kHz is small (< 0.5 dB)
-    //   Therefore LUFS ≈ -4.0 LUFS with ±1 LU tolerance per spec
+    // Expected LUFS for a -1 dBFS 1 kHz sine fed to BOTH channels of a STEREO
+    // meter (BS.1770):  per-channel RMS is -4.01 dB, the two-channel sum adds
+    // 10*log10(2) = +3.01 LU, the K-weighting at 1 kHz is about +0.7 dB and
+    // the formula subtracts the -0.691 offset:
+    //   -4.01 + 3.01 + 0.7 - 0.691 ≈ -1.0 LUFS
+    // (the -4.0 figure would only hold for a MONO meter — libebur128, the
+    // reference implementation, reports -0.99 here.)
     INFO("Momentary LUFS:  " << momentaryLUFS);
     INFO("Short-term LUFS: " << shortTermLUFS);
     INFO("Integrated LUFS: " << integratedLUFS);
 
-    REQUIRE(momentaryLUFS == Catch::Approx(-4.0).margin(1.0));
-    REQUIRE(shortTermLUFS == Catch::Approx(-4.0).margin(1.0));
-    REQUIRE(integratedLUFS == Catch::Approx(-4.0).margin(1.0));
+    REQUIRE(momentaryLUFS == Catch::Approx(-1.0).margin(1.0));
+    REQUIRE(shortTermLUFS == Catch::Approx(-1.0).margin(1.0));
+    REQUIRE(integratedLUFS == Catch::Approx(-1.0).margin(1.0));
 
     // LRA should be very low for a steady-state tone (< 1 LU)
     const double lra = engine.getLRA();

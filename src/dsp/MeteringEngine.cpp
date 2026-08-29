@@ -126,7 +126,12 @@ double MeteringEngine::getTruePeak(int channel) const noexcept
 {
     if (channel < 0 || channel >= kMaxChannels)
         return -HUGE_VAL;
-    return truePeak_[static_cast<size_t>(channel)].load();
+    // libebur128 reports true peak as a LINEAR amplitude; the metering family
+    // here (and the UI) works in dB, so convert to dBTP.
+    const double linear = truePeak_[static_cast<size_t>(channel)].load();
+    if (linear <= 0.0)
+        return -HUGE_VAL;
+    return 20.0 * std::log10(linear);
 }
 
 } // namespace ana

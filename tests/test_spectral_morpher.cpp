@@ -257,9 +257,12 @@ TEST_CASE("SpectralMorpher::morphMulti - three sources weighted blend",
         const float expectedAmp  = 0.5f * s1.amplitude[i]
                                  + 0.3f * s2.amplitude[i]
                                  + 0.2f * s3.amplitude[i];
-        const float expectedPhase = 0.5f * s1.phase[i]
-                                  + 0.3f * s2.phase[i]
-                                  + 0.2f * s3.phase[i];
+        // Phases are angles: the morph output is wrapped into [-pi, pi]
+        // (std::remainder), so the expected linear sum must be wrapped too.
+        const float linearPhase  = 0.5f * s1.phase[i]
+                                 + 0.3f * s2.phase[i]
+                                 + 0.2f * s3.phase[i];
+        const float expectedPhase = std::remainder(linearPhase, 6.28318530717958647692f);
 
         CHECK(out.frequency[i] == Catch::Approx(expectedFreq));
         CHECK(out.amplitude[i] == Catch::Approx(expectedAmp));

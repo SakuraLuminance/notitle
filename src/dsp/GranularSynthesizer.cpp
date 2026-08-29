@@ -70,25 +70,17 @@ void GranularSynthesizer::process(juce::AudioBuffer<float>& output)
     const int numSamples  = output.getNumSamples();
     const int numChannels = output.getNumChannels();
 
+    // JUCE 8's AudioBuffer(ch, samples) constructor is a bare malloc — NOT
+    // zero-initialised — so the output must be cleared before ANY early
+    // return, otherwise heap garbage leaks into the caller's buffer.
+    output.clear();
     if (sourceBuffer.empty() || numSamples <= 0)
         return;
 
-    // Clear output before writing
-    output.clear();
-
     //==========================================================================
-    // 1. Schedule new grains based on density
+    // 1. Grains are scheduled sample-accurately inside the render loop below
     //==========================================================================
     const double grainsPerSample = static_cast<double>(density_) / sampleRate_;
-    grainAccumulator_ += grainsPerSample * static_cast<double>(numSamples);
-
-    while (grainAccumulator_ >= 1.0)
-    {
-        if (!spawnGrain())
-            break; // no free slots available
-        grainAccumulator_ -= 1.0;
-    }
-
     //==========================================================================
     // 2. Render each sample by summing all active grains
     //==========================================================================
@@ -98,6 +90,18 @@ void GranularSynthesizer::process(juce::AudioBuffer<float>& output)
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        // Sample-accurate grain scheduling: spawn as the density accumulator
+        // crosses 1.0.  (Spawning the whole block up-front filled the 256-slot
+        // pool before any grain could finish, capping totalGrainsSpawned_ at
+        // 256 and starting every grain at the block boundary.)
+        grainAccumulator_ += grainsPerSample;
+        while (grainAccumulator_ >= 1.0)
+        {
+            grainAccumulator_ -= 1.0;
+            if (! spawnGrain())
+                break; // pool full — the scheduled grain is dropped, not deferred
+        }
+
         float left  = 0.0f;
         float right = 0.0f;
 

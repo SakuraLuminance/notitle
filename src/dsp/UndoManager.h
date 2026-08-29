@@ -145,6 +145,7 @@ private:
     // Composite state
     UndoStep* currentComposite_ = nullptr;
     bool inComposite_ = false;
+    int  compositeDepth_ = 0; /**< Counts ignored nested beginComposite() calls so their endComposite() does not close the outer composite. */
 
     /** Enforces max depth by removing the oldest undo steps. */
     void enforceMaxDepth();
