@@ -297,8 +297,9 @@ TEST_CASE("LFOSystem - tempo sync", "[lfo][sync]")
         lfo.setRateBeats(0.5f); // eighth note
         REQUIRE(lfo.isSyncEnabled());
 
-        // 4 Hz → quarter cycle at 11025/2 = 5512 samples → sin(π/2) = 1
-        float val = lfo.process(static_cast<int>(TEST_SR / 8.0)); // 1/8 second = quarter cycle
+        // 4 Hz → period is 11025 samples, so a QUARTER cycle is 11025/4 ≈ 2756
+        // samples → sin(π/2) = 1  (5512 samples would be a HALF cycle: sin(π)=0)
+        float val = lfo.process(static_cast<int>(TEST_SR / 16.0)); // 1/16 second = quarter cycle
         REQUIRE(val == Catch::Approx(1.0f).margin(0.01f));
     }
 

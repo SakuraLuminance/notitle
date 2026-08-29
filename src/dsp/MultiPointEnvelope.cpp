@@ -181,6 +181,13 @@ void MultiPointEnvelope::rebuildADSR()
     addBreakpoint(attack_, 1.0f, CurveType::Linear);
     addBreakpoint(attack_ + decay_, sustain_, CurveType::Linear);
     addBreakpoint(attack_ + decay_ + release_, 0.0f, CurveType::Exponential);
+
+    // Standard ADSR semantics: hold at the sustain level (breakpoint 2) until
+    // release() is called, then run the release ramp.  Without this the
+    // envelope would start sliding from sustain toward zero immediately after
+    // the decay ends — there is no dedicated sustain HOLD segment between them.
+    setLoopMode(LoopMode::Sustain);
+    setLoopEnd(2);
 }
 
 //==============================================================================
@@ -254,8 +261,16 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
     const double loopEndSec = (loopEndIndex > loopStartIndex)
         ? timeToSeconds(breakpoints[loopEndIndex].time)
         : totalEndSec;
+    // Forward/PingPong only actually loop when a loop range was configured
+    // (setLoopEnd).  Mode selected but range left at its default (-1) means
+    // "play once and stop" — otherwise there is no boundary to loop within.
+    const bool loopConfigured = loopEndIndex >= 0;
 
-    timePosSeconds += deltaSeconds;
+    // PingPong traverses time in BOTH directions; all other modes march forward.
+    if (loopMode == LoopMode::PingPong && loopConfigured && direction < 0)
+        timePosSeconds -= deltaSeconds;
+    else
+        timePosSeconds += deltaSeconds;
 
     // --- Boundary handling ---
     // Sustain: hold at loop end point until released
@@ -270,6 +285,11 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
         {
             case LoopMode::Forward:
             {
+                if (! loopConfigured)
+                {
+                    handleEnvelopeEnd();
+                    return;
+                }
                 // Wrap back to loop start
                 const double wrapRange = totalEndSec - loopStartSec;
                 if (wrapRange > 0.0)
@@ -285,6 +305,11 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
             }
             case LoopMode::PingPong:
             {
+                if (! loopConfigured)
+                {
+                    handleEnvelopeEnd();
+                    return;
+                }
                 // Reverse direction, reflect overshoot
                 direction = -1;
                 const double overshoot = timePosSeconds - totalEndSec;
@@ -309,6 +334,8 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
         direction = 1;
         const double undershoot = loopStartSec - timePosSeconds;
         timePosSeconds = loopStartSec + std::min(undershoot, loopEndSec - loopStartSec);
+        if (timePosSeconds > loopEndSec)
+            timePosSeconds = loopEndSec;
     }
 
     // --- Find current segment ---
@@ -337,6 +364,9 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
     }
 
     // --- Compute progress and value ---
+    // Value is purely position-based: a ping-pong traversal passing a point
+    // backwards must read the same value as the forward pass through it (the
+    // direction is already expressed by the time position itself).
     const double segStart = timeToSeconds(breakpoints[segment].time);
     const double segEnd   = timeToSeconds(breakpoints[segment + 1].time);
     const double segDur   = segEnd - segStart;
@@ -345,22 +375,12 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
                        static_cast<float>((timePosSeconds - segStart) / segDur))
         : 0.0f;
 
-    if (direction > 0)
-    {
-        // The curve stored on a breakpoint shapes the segment that ENDS at
-        // it (this matches addBreakpoint usage and the built-in ADSR setup).
-        currentValue = interpolateValue(
-            breakpoints[segment].value,
-            breakpoints[segment + 1].value, p,
-            breakpoints[segment + 1].curve);
-    }
-    else
-    {
-        currentValue = interpolateValue(
-            breakpoints[segment + 1].value,
-            breakpoints[segment].value, p,
-            breakpoints[segment + 1].curve);
-    }
+    // The curve stored on a breakpoint shapes the segment that ENDS at
+    // it (this matches addBreakpoint usage and the built-in ADSR setup).
+    currentValue = interpolateValue(
+        breakpoints[segment].value,
+        breakpoints[segment + 1].value, p,
+        breakpoints[segment + 1].curve);
 }
 
 //==============================================================================

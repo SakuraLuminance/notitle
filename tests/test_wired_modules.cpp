@@ -545,6 +545,11 @@ TEST_CASE("MultiPointEnvelope - ADSR output shape", "[wired][envelope][adsr]")
         // Call release (in Sustain mode, or just process past sustain point)
         float valBeforeRelease = env.getValue();
 
+        // Release the held sustain, then process the remaining release time.
+        // ADSR semantics: the envelope holds at sustain until release() is
+        // called, so without the call the value would stay at sustain forever.
+        env.release();
+
         // Process the remaining release time
         env.process(static_cast<int>(48000.0 * 0.5)); // 0.5s should cover release
         float valAfterRelease = env.getValue();

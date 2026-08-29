@@ -516,8 +516,11 @@ TEST_CASE("Volume ADSR independent", "[mod][volume][adsr]")
 
         // Release independently
         volumeAdsr.release();
-        // After release, envelope should eventually decay to 0
-        float finalVal = volumeAdsr.process(static_cast<int>(0.5 * TEST_SR));
+        // After release, envelope should eventually decay to 0.  Release just
+        // lets the envelope continue through its pre-baked shape, which ends
+        // at attack+decay+release = 0.6s — process past it so the tail is
+        // fully consumed ("eventually").
+        float finalVal = volumeAdsr.process(static_cast<int>(0.7 * TEST_SR));
         REQUIRE(finalVal < 0.01f);
     }
 }

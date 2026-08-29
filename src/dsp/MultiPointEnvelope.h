@@ -30,7 +30,7 @@ struct Breakpoint
 {
     float time = 0.0f;               /**< Time position (seconds, or beats if sync enabled). */
     float value = 0.0f;              /**< Value at this point (0.0 to 1.0). */
-    CurveType curve = CurveType::Linear; /**< Curve type for segment from this point to the next. */
+    CurveType curve = CurveType::Linear; /**< Curve type for the segment ENDING at this point (i.e. from the previous point to this one). */
 };
 
 //==============================================================================
@@ -88,7 +88,7 @@ public:
         Breakpoints are kept sorted by time.
         @param time   Time position (0-10s, or beats if sync enabled)
         @param value  Value at this point (0.0 to 1.0)
-        @param curve  Curve type for the segment from this point to the next
+        @param curve  Curve type for the segment ENDING at this breakpoint
         @return true if breakpoint was added, false if at maximum capacity
     */
     bool addBreakpoint(float time, float value, CurveType curve = CurveType::Linear);
@@ -189,6 +189,8 @@ public:
     /** Rebuilds breakpoints from the current ADSR parameters
         using a standard 4-point envelope:
           (0,0) → (attack, 1.0) → (attack+decay, sustain) → (attack+decay+release, 0)
+        and configures Sustain mode holding at the sustain level until
+        release() is called, then running the release ramp to zero.
     */
     void rebuildADSR();
 
