@@ -7,3 +7,4 @@ _artefacts/
 Debug/
 Release/
 cmake-build-*/
+artifacts/

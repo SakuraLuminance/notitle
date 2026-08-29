@@ -184,34 +184,38 @@ void MultiFilter::updateCoefficients(FilterSlot& slot)
 
     switch (slot.type)
     {
+        // ProcessorDuplicator shares one Coefficients object across all
+        // per-channel mono filters: copy-assign INTO it (never replace the
+        // Ptr — the mono filters keep their own copies of the pointer), then
+        // reset() so each filter re-derives its order from the new coefficients.
         case FilterType::LowPass:
-            slot.iirFilter.coefficients =
-                juce::dsp::IIR::Coefficients<float>::makeLowPass(
+            *slot.iirFilter.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(
                     currentSampleRate, p.cutoff, q);
+            slot.iirFilter.reset();
             break;
 
         case FilterType::HighPass:
-            slot.iirFilter.coefficients =
-                juce::dsp::IIR::Coefficients<float>::makeHighPass(
+            *slot.iirFilter.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(
                     currentSampleRate, p.cutoff, q);
+            slot.iirFilter.reset();
             break;
 
         case FilterType::BandPass:
-            slot.iirFilter.coefficients =
-                juce::dsp::IIR::Coefficients<float>::makeBandPass(
+            *slot.iirFilter.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(
                     currentSampleRate, p.cutoff, q);
+            slot.iirFilter.reset();
             break;
 
         case FilterType::Notch:
-            slot.iirFilter.coefficients =
-                juce::dsp::IIR::Coefficients<float>::makeNotch(
+            *slot.iirFilter.state = *juce::dsp::IIR::Coefficients<float>::makeNotch(
                     currentSampleRate, p.cutoff, q);
+            slot.iirFilter.reset();
             break;
 
         case FilterType::AllPass:
-            slot.iirFilter.coefficients =
-                juce::dsp::IIR::Coefficients<float>::makeAllPass(
+            *slot.iirFilter.state = *juce::dsp::IIR::Coefficients<float>::makeAllPass(
                     currentSampleRate, p.cutoff, q);
+            slot.iirFilter.reset();
             break;
 
         case FilterType::Comb:
@@ -307,8 +311,8 @@ void MultiFilter::updateMorphCoefficients(FilterSlot& slot)
     float a1 = srcData[3] + t * (dstData[3] - srcData[3]);
     float a2 = srcData[4] + t * (dstData[4] - srcData[4]);
 
-    slot.iirFilter.coefficients = juce::dsp::IIR::Coefficients<float>::Ptr(
-        new juce::dsp::IIR::Coefficients<float>(b0, b1, b2, 1.0f, a1, a2));
+    *slot.iirFilter.state = juce::dsp::IIR::Coefficients<float>(b0, b1, b2, 1.0f, a1, a2);
+    slot.iirFilter.reset();
 }
 
 //==============================================================================
@@ -815,17 +819,17 @@ float MultiFilter::evalSlotResponse(const FilterSlot& slot, float frequency) con
 
         case FilterType::Morph:
         {
-            if (slot.iirFilter.coefficients != nullptr)
+            if (slot.iirFilter.state != nullptr)
                 return evalBiquadResponse(frequency, currentSampleRate,
-                                           *slot.iirFilter.coefficients);
+                                           *slot.iirFilter.state);
             return 1.0f;
         }
 
         default:
         {
-            if (slot.iirFilter.coefficients != nullptr)
+            if (slot.iirFilter.state != nullptr)
                 return evalBiquadResponse(frequency, currentSampleRate,
-                                           *slot.iirFilter.coefficients);
+                                           *slot.iirFilter.state);
             return 1.0f;
         }
     }
