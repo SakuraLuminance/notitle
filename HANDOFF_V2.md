@@ -5,6 +5,70 @@
 
 ---
 
+## 0. 交接时刻的实时状态（2026-08-29，接手者先读这里）
+
+**用户已指示暂停修复，交接给下一个 AI。进度冻结在 Batch 2 中途。**
+
+### 0.1 Git / CI 坐标
+
+| 项 | 值 |
+|---|---|
+| 本地 HEAD（已推送） | `2a34afb` docs: HANDOFF_V2 + test: arpeggiator advanceSteps 时序修复 |
+| 前一提交 | `517621c` fix: MultiFilter ProcessorDuplicator（**尚未经 CI 确认**） |
+| 再前 | `b63b560` ProcessSpec 零初始化 + TestHarness prepare + Delay 测试修正 → Run #87 |
+| Run #84 | **里程碑全绿**（pluginval 绿，产物已下载到 `F:\anaplug\artifacts\84\`） |
+| Run #86 | `33207910631` completed/**success**（a2651f7） |
+| Run #87 | `33209217295` completed/**success**（b63b560） |
+| Run #88/#89 | 分别对应 517621c / 2a34afb，**交接时未核验状态**——接手第一件事：`runs?head_sha=<sha>` 查这两轮，确认 MultiFilter LP 与 Arpeggiator 6 用例是否转绿 |
+
+### 0.2 Run #87 取证产物坐标（已在本地，勿重复下载）
+
+- 本地目录：`$env:TEMP\forensics87\`（forensics.txt / test-names.txt / test-results.xml / test-stderr.log / test-stdout.log）
+- Artifact ID：test-forensics `9701385680`、pluginval-log `9701411318`、VST3 `9701396457`、CLAP `9701396950`（run 33209217295）
+- `test-results.xml` 解析模板见 §6.5。
+
+### 0.3 工作区有未提交的 Batch 1 修复（本地 F:\anaplug，已编辑、未 CI 验证、未提交）
+
+接手者可选择直接提交推送验证，或先审查。**文件与内容**：
+
+1. `src/dsp/ResynthesisEngine.cpp`（resynthesize 开头）— `if (numFrames == 0) return {};`
+   根因：`(numFrames - 1) * hopSize + fftSize` 在 numFrames=0 时 **size_t 下溢** → 返回非空垃圾缓冲。
+   修 2 个用例：ResynthEngine - empty partial data returns empty result；ResynthesisEngine - resynthesize empty data。
+2. `src/dsp/SpectralDNA.cpp`（evolveGeneration 开头）— 种群 <2 直接 return（原来会克隆扩容到 2）。
+   修：Edge cases: single individual。设计取舍已定：种群大小是固定契约，单个体无法与自己重组；EvolutionPanel 只在 popSize>0 时调用，不受影响。
+3. `tests/test_consolidated_effects.cpp:90` — `names[6]` → `names[5]`
+   工厂表实测序（PresetFactory.cpp:1211-1217）：0 Warm Drive / 1 Edge Of Breakup / 2 Tube Scream / 3 British Plexi / 4 Tape Saturate / **5 Console Drive** / 6 Hard Clipper / 7 Fuzz Face / 8 Fold Synth / 9 Octa Fold / 10 Lo-Fi Crush / 11 8 Bit / 12 Tremolo Ring / 13 Bell Tone。测试原期望与工厂序矛盾，以实现为准（与 UI 类型分组注释一致）。
+4. `tests/test_effect_presets.cpp`（AutoTuneEffect 序列化用例）— `setRetuneSpeed(25)` → `15`，期望同步改 15。
+   实现 clamp 到 [0.01, 20] ms（AutoTuneEffect.cpp:33）是有意契约；测试原值越界。
+
+### 0.4 Batch 2 根因侦察结果（VoiceManager — 4 个 bug 已定位，修复代码未写）
+
+以下结论已通过读实现 + JUCE 8 源码（`juce-test-clone/` 本地副本）核实，**接手者可直接照写**：
+
+1. **oldest-first allocation**（test_voice_manager.cpp:558，`getVoice(0)->note==72 => 60`）
+   `findFreeVoice`（VoiceManager.cpp:434-484）三个分支全部只 CAS `VoiceState::free`——**idle 声音永不复用**。slot 0 释放转 idle 后，noteOn(72) 找不到 free → 走 steal 抢了 sustain 的 slot 1。
+   修法：三个分配分支（roundRobin/oldestFirst/random）的 CAS 改为接受 free **或** idle（先用 `expected = free` CAS，失败则 `expected = idle` 再 CAS）。注意 VoiceManager.cpp:508 的 `allocateVoice()` 本就处理 idle，但 findFreeVoice 路径根本没走它（疑似死代码——顺手确认后二选一收敛）。
+2. **noteOff releaseStartLevel**（test_voice_manager.cpp:112，`> 0 => 0`）
+   遗留 noteOff（:1051）→ `noteStopped(true)` → noteStopped 存当前 `envelopeLevel`（:83）。但该测试 noteOn 后**没 process 就 noteOff**，envelopeLevel 必为 0 → 期望永不可能满足。
+   修法：**改测试**——noteOn 后先 `vm.process(makeBuffer(int(0.005 * testSampleRate)))`（默认 attack 0.01s → env≈0.5）再 noteOff，`releaseStartLevel ≈ 0.5 > 0` 成立，测试意图（"noteOff 记录释放起点电平"）不变。
+3. **envelope attack phase**（test_voice_manager.cpp:268-276，`state == decay => {?}==2`）
+   逐样本 float 累加 attackDt 恰好在 4410 步（=100ms）时累加误差 ~1e-4 → `env >= 1.0f` 判定失败 → 状态停在 attack。
+   修法（VoiceManager.cpp:252）：阈值加容差 `if (env >= 0.999f)`，进入时 `envelopeLevel = 1.0f` 钳位不变。50ms 用例（env≈0.5）无误触发风险。
+4. **process called before prepare**（test_voice_manager.cpp:806，`hasAudio => false`）
+   JUCE 8 源码核实：`MPESynthesiserBase::renderNextBlock` 对 sampleRate==0 只有 jassert（release 下无效）→ 照常渲染；`AnaVoice` 用 `getSampleRate()`（VoiceManager.cpp:139）= 0 → sinDelta/cosDelta = NaN → 输出 NaN → `abs(NaN)>0` 为 false → 静音。
+   **关键**：不能在 process() 里调 `setCurrentPlaybackSampleRate`——`MPESynthesiser::setCurrentPlaybackSampleRate` 会 `turnOffAllVoices(false)` + base 层 `instrument.releaseAllNotes()`（测试先 noteOn 后 process，会杀掉音符）。
+   修法：VoiceManager 加 `bool voicesPrepared_ = false;` 成员；`process()` 开头 `if (!voicesPrepared_) { for (i…) getVoice(i)->setCurrentPlaybackSampleRate(sampleRate_); voicesPrepared_ = true; }`（`SynthesiserVoice::setCurrentPlaybackSampleRate` 是 public，逐 voice 设置不触发杀音符）；`prepare()` 里置 true。
+   注意 testSampleRate 常量在 test 文件内（44100），与 VoiceManager 默认 sampleRate_=44100 一致。
+
+### 0.5 其余批次的侦察线索（未开工，见 §5/§7 全量清单）
+
+- MultiPointEnvelope ADSR shape（test_wired_modules.cpp:497，sustain 0.43 vs 0.65 / vSustain 0.12 vs 0.5）：a2651f7 把段曲线改为取**段末**断点——ADSR 段可能需要曲线归属**段起点**断点；需做契约决断并同步 a2651f7 的对齐。
+- MultiPointEnvelope loop modes（test_multi_point_envelope.cpp:328）：循环结束后 isActive 仍 true + 循环点值 0 vs 1.0。
+- LFO tempo sync（test_lfo_system.cpp:272）：相位边界 0.00028 vs 1.0（wrap off-by-one 嫌疑）。
+- Volume ADSR（test_modulation.cpp:397）：0.031 vs <0.01（release 尾巴）。
+- Batch 3（ENV pool vals 映射 / LFO+ModBus / MPE voiceIdx / Source switching）、Batch 4（DSP 精度族 13 项）、Batch 5（Preset round-trip ×4）、Batch 6（日志级 12 条）完全未开工。
+- UI 重构（Phase 3，§9）未开工。
+
 ## 1. 项目是什么
 
 **AnaPlug** — JUCE 8.0.17 合成器/效果器插件（VST3 + CLAP，Windows x64，静态 CRT /MT）。
@@ -86,8 +150,8 @@ artifacts/84/              本地已下载的绿色构建产物（VST3 + CLAP）
 ## 5. 遗留失败全景（当前 58 = 46 断言 + 12 日志级）
 
 > 来源：Run #87 (b63b560) 取证产物 `test-results.xml` + forensics 日志。536 用例 → 478 过。
-> 注意：MultiFilter LP/frequency-response 已由 517621c（ProcessorDuplicator）修复，Run #88 待确认。
-> **test_arpeggiator.cpp 已有未提交修复**（advanceSteps 时序模型：首步在 t=0 触发，之后每 5513 样本过一个边界——原测试一次灌 steps*3×5512 样本跑过门限窗口导致 getCurrentNote()==-1）。
+> 注意：MultiFilter LP/frequency-response 已由 517621c（ProcessorDuplicator）修复，**待 Run #88 确认**（见 §0.1）。
+> **test_arpeggiator.cpp 的 advanceSteps 时序修复已随 2a34afb 提交**（首步 t=0 触发，之后每 5513 样本过一个边界——原测试一次灌 steps*3×5512 样本跑过门限窗口导致 getCurrentNote()==-1），待 Run #89 确认。
 
 ### A. 断言失败（46 条，按模块分组；格式：测试名 / 文件:行 / 实际 vs 期望 / 策略）
 
@@ -180,19 +244,19 @@ CyberpunkTheme static paint helpers（headless 下 paint 崩？）/ SpectrumDisp
 
 ## 7. 执行计划（剩余工作，按批次）
 
-**Batch 1（最小确定性修复，先清场）**：提交 test_arpeggiator 时序修复；ResynthesisEngine 空数据早退 ×2；DriveModule 测试索引 [6]→[5]；AutoTuneEffect clamp/序列化对齐；SpectralDNA pop-1 不扩容。→ 推 CI（连同已推的 517621c 验证 MultiFilter）。
+**Batch 1（最小确定性修复，先清场）— ✅ 代码完成，状态见 §0.3**：ResynthesisEngine 空数据早退 ×2、SpectralDNA pop-1 不扩容、DriveModule 测试索引 [6]→[5]、AutoTuneEffect 测试值对齐 clamp——**以上 4 项已编辑进工作区但未提交**；test_arpeggiator 时序修复已随 2a34afb 推送。→ 接手动作：审查 §0.3 后一并提交推 CI（连同已推的 517621c 验证 MultiFilter）。
 
-**Batch 2（状态机/时序族）**：VoiceManager ×4 + Volume ADSR + MultiPointEnvelope（ADSR curve 归属决断 + loop isActive）+ LFO tempo sync。
+**Batch 2（状态机/时序族）— 🔶 侦察完成，修复未写**：VoiceManager ×4 的根因与修法已核实（**直接照 §0.4 写**）+ Volume ADSR + MultiPointEnvelope（ADSR curve 归属决断 + loop isActive）+ LFO tempo sync（线索见 §0.5）。
 
-**Batch 3（路由/接线族）**：ENV pool vals 映射 + LFO+ModBus + MPE voiceIdx + Source switching。
+**Batch 3（路由/接线族）— ⬜ 未开工**：ENV pool vals 映射 + LFO+ModBus + MPE voiceIdx + Source switching。
 
-**Batch 4（DSP 精度族）**：Bitcrusher ×2 + DeEsser + DynamicsModule gate + Limiter energy + MeteringEngine ×2（单位！）+ RingMod + SampleProcessor ×2 + VocalNoiseReducer + Wet HPF + Granular ×2 + SpectralMorpher weighted + UndoManager ×2。
+**Batch 4（DSP 精度族）— ⬜ 未开工**：Bitcrusher ×2 + DeEsser + DynamicsModule gate + Limiter energy + MeteringEngine ×2（单位！）+ RingMod + SampleProcessor ×2 + VocalNoiseReducer + Wet HPF + Granular ×2 + SpectralMorpher weighted + UndoManager ×2。
 
-**Batch 5（round-trip 族）**：Preset round-trip ×4（loadPresetFromFile false——一条根因概率高）。
+**Batch 5（round-trip 族）— ⬜ 未开工**：Preset round-trip ×4（loadPresetFromFile false——一条根因概率高）。
 
-**Batch 6（日志级 12 条）**：先取 forensics.txt 尾迹再逐条。
+**Batch 6（日志级 12 条）— ⬜ 未开工**：先取 forensics.txt 尾迹再逐条（本地已有 $env:TEMP\forensics87\forensics.txt）。
 
-**Batch 7（收尾）**：benchmark 用 `[benchmark]` tag 分离默认运行；pluginval strictness 1→5 渐进；pluginval 全绿后**重启 UI 重构（Phase 3，见 §9）**；更新本文档。
+**Batch 7（收尾）— ⬜ 未开工**：benchmark 用 `[benchmark]` tag 分离默认运行；pluginval strictness 1→5 渐进；pluginval 全绿后**重启 UI 重构（Phase 3，见 §9）**；更新本文档。
 
 每批一轮 CI。全绿标准：**536 用例 0 失败 + pluginval 绿**。
 
@@ -221,7 +285,8 @@ CyberpunkTheme static paint helpers（headless 下 paint 崩？）/ SpectrumDisp
 
 ## 10. 给下一个 AI 的守则
 
+- 用户已于 2026-08-29 指示**暂停修复、交接**——进度冻结点：Batch 1 代码在工作区未提交（§0.3），Batch 2 根因已侦察（§0.4），其余未开工。
 - 别再"循环纠正"测试期望 vs 实现——每次先取证（§6），断言值对不上就找语义归属（实现契约 or 测试过时），在 commit message 里写明决断理由。
 - 改动一批 → 推一轮 → 取证 → 再改。禁止凭空猜测式大改。
-- 会话中断无损失：全部状态在 git + 本文档 + `$env:TEMP\forensics87\`。
+- 会话中断无损失：全部状态在 git + 本文档 + `$env:TEMP\forensics87\` + 本地工作区。
 - PAT 永远来自用户会话，不落盘；HANDOFF.md 里那个旧 token 已失效且应删除。
