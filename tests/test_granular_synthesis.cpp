@@ -120,14 +120,20 @@ TEST_CASE("GranularSynthesizer - grain duration", "[granular]")
     const int expectedSamples = static_cast<int>(expectedMs * 48.0f); // 960 @ 48 kHz
 
     synth.setGrainSize(expectedMs);
-    synth.setDensity(1000.0f);          // high density ensures grains are spawned
+    // One grain per grain-duration so grains do NOT overlap: the span of
+    // non-zero output then measures exactly one window.  (At high density
+    // the sample-accurate scheduler spreads overlapping grains and the
+    // non-zero span covers the whole buffer.)
+    synth.setDensity(48000.0f / expectedSamples);
     synth.setPosition(0.5f);
     synth.setPitch(0.0f);
     synth.setAmplitude(0.5f);
     synth.setWindowType(ana::GrainWindowType::Triangle);
 
-    // Process enough samples to capture the grain envelope
-    juce::AudioBuffer<float> output(1, expectedSamples + 128);
+    // Process exactly two grain-durations: the first grain spawns when the
+    // density accumulator first crosses 1.0 (≈ sample 960) and ends just
+    // before the buffer end; the second spawn falls outside the buffer.
+    juce::AudioBuffer<float> output(1, 2 * expectedSamples);
     synth.process(output);
 
     const float* data = output.getReadPointer(0);

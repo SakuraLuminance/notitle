@@ -14,10 +14,14 @@ void EffectsChain::prepare(const juce::dsp::ProcessSpec& spec) {
         if (s.effect) s.effect->prepare(spec);
         s.wetHPF.prepare(spec);
         s.wetLPF.prepare(spec);
+        s.wetHPF2.prepare(spec);
+        s.wetLPF2.prepare(spec);
         auto hpfCoeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(spec.sampleRate, s.wetLowCut, 0.707);
         auto lpfCoeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass(spec.sampleRate, s.wetHighCut, 0.707);
         *s.wetHPF.state = *hpfCoeffs;
         *s.wetLPF.state = *lpfCoeffs;
+        *s.wetHPF2.state = *hpfCoeffs;
+        *s.wetLPF2.state = *lpfCoeffs;
     }
 }
 
@@ -44,12 +48,14 @@ void EffectsChain::process(juce::AudioBuffer<float>& buffer) {
         // Process wet signal through the effect
         s.effect->process(buffer);
 
-        // Apply HPF + LPF to the wet signal
+        // Apply HPF + LPF to the wet signal (4th order: two cascaded stages)
         if (needFilter) {
             juce::dsp::AudioBlock<float> block(buffer);
             juce::dsp::ProcessContextReplacing<float> context(block);
             s.wetHPF.process(context);
+            s.wetHPF2.process(context);
             s.wetLPF.process(context);
+            s.wetLPF2.process(context);
         }
 
         // Blend dry + filtered wet
@@ -69,6 +75,8 @@ void EffectsChain::reset() {
         if (s.effect) s.effect->reset();
         s.wetHPF.reset();
         s.wetLPF.reset();
+        s.wetHPF2.reset();
+        s.wetLPF2.reset();
     }
 }
 
@@ -135,6 +143,7 @@ void EffectsChain::setWetLowCut(int index, float hz) {
         if (currentSpec.sampleRate > 0) {
             auto coeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(currentSpec.sampleRate, hz, 0.707);
             *it->wetHPF.state = *coeffs;
+            *it->wetHPF2.state = *coeffs;
         }
     }
 }
@@ -147,6 +156,7 @@ void EffectsChain::setWetHighCut(int index, float hz) {
         if (currentSpec.sampleRate > 0) {
             auto coeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass(currentSpec.sampleRate, hz, 0.707);
             *it->wetLPF.state = *coeffs;
+            *it->wetLPF2.state = *coeffs;
         }
     }
 }

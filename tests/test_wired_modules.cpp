@@ -303,7 +303,13 @@ TEST_CASE("Limiter - output does not exceed ceiling", "[wired][limiter]")
 
     SECTION("low level signal passes through unaffected")
     {
+        // Half-level sine: peaks sit 6 dB BELOW the 0 dBFS threshold, so the
+        // gain computer must stay at unity (a full-scale sine touches the
+        // threshold on every peak and legitimately triggers reduction).
         auto buffer = createSineBuffer(2, 512, 440.0f, static_cast<float>(TEST_SR));
+        for (int ch = 0; ch < 2; ++ch)
+            for (int s = 0; s < 512; ++s)
+                buffer.setSample(ch, s, buffer.getSample(ch, s) * 0.5f);
         auto original = buffer;
 
         limiter.setMix(1.0f);

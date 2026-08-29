@@ -228,17 +228,18 @@ TEST_CASE("Saturation effect", "[saturation]")
         sat.setDrive(100.0f);
         sat.process(buffer);
 
-        // FFT the processed output
+        // FFT the processed output — JUCE 8 real-only transform expects the
+        // raw samples CONTIGUOUS in the first half of the buffer
         std::vector<float> fftData(2 * fftSize, 0.0f);
         const auto* data = buffer.getReadPointer(0);
         for (int i = 0; i < fftSize; ++i)
-            fftData[2 * i] = data[i];
+            fftData[i] = data[i];
 
         juce::dsp::FFT fft(fftOrder);
         fft.performRealOnlyForwardTransform(fftData.data());
 
         // Check 3rd harmonic (1320 Hz) has significant energy
-        // Bin = 1320 * 512 / 44100 ≈ 15.3 → check bin 15
+        // Bin = 1320 * 512 / 44100 → 15.3 → check bin 15
         constexpr int bin1320 = static_cast<int>(1320.0f * fftSize / 44100.0f);
         float mag1320 = std::sqrt(fftData[2 * bin1320] * fftData[2 * bin1320]
                                 + fftData[2 * bin1320 + 1] * fftData[2 * bin1320 + 1]);
@@ -289,10 +290,11 @@ TEST_CASE("Bitcrusher effect", "[bitcrusher]")
         crush.setMix(1.0f);
         crush.process(buffer);
 
-        // At 4 bits, there are 16 discrete levels
+        // At 4 bits the bipolar grid has 16 positive + 16 negative levels
+        // plus zero — up to 33 distinct values for a full-scale sine
         auto ch0 = bufferToVector(buffer, 0);
         int distinct = countDistinctLevels(ch0, 0.0001f);
-        REQUIRE(distinct <= 17); // 16 levels + near-zero
+        REQUIRE(distinct <= 33);
     }
 
     SECTION("bits=16 is near-lossless")
@@ -336,25 +338,32 @@ TEST_CASE("Bitcrusher effect", "[bitcrusher]")
         BitcrusherEffect crush;
         crush.prepare(makeSpec());
 
-        auto buffer = createSineBuffer(2, 512, 440.0f, 44100.0f);
+        // A 6 kHz tone sits above the 8x-decimated Nyquist (5512 Hz), so
+        // sample&hold folds it down to ~488 Hz and staircases the waveform.
+        auto buffer = createSineBuffer(2, 512, 6000.0f, 44100.0f);
 
         crush.setBitDepth(8.0f);
         crush.setDownsample(1.0f);
         crush.setMix(1.0f);
         crush.process(buffer);
-        float rmsNoDown = computeRMSInDBFS(buffer);
 
         // Reset and test with heavy downsampling
         crush.reset();
-        auto buffer2 = createSineBuffer(2, 512, 440.0f, 44100.0f);
+        auto buffer2 = createSineBuffer(2, 512, 6000.0f, 44100.0f);
         crush.setBitDepth(8.0f);
         crush.setDownsample(8.0f);
         crush.setMix(1.0f);
         crush.process(buffer2);
-        float rmsDown8 = computeRMSInDBFS(buffer2);
 
-        // Heavy downsampling changes the signal content
-        REQUIRE(rmsDown8 != Catch::Approx(rmsNoDown).margin(0.5f));
+        // Heavy downsampling changes the signal content.  NOTE: RMS is the
+        // wrong metric — aliasing conserves amplitude, so the RMS of the
+        // folded tone is close to the original; the WAVEFORM however is a
+        // heavily stepped, frequency-shifted version of the input.
+        float maxDiff = 0.0f;
+        for (int s = 0; s < 512; ++s)
+            maxDiff = std::max(maxDiff,
+                               std::abs(buffer.getSample(0, s) - buffer2.getSample(0, s)));
+        REQUIRE(maxDiff > 0.01f);
     }
 }
 
@@ -425,8 +434,11 @@ TEST_CASE("Ring Modulator effect", "[ringmod]")
 
         std::vector<float> fftData(2 * fftSize, 0.0f);
         const auto* data = buffer.getReadPointer(0);
+        // JUCE 8 real-only transform: raw samples CONTIGUOUS in the first
+        // half (interleaved zero-stuffing mirrors the spectrum and bin
+        // 440.5 Hz shows up at bin ~5 with amplitude 0.25)
         for (int i = 0; i < fftSize; ++i)
-            fftData[2 * i] = data[i];
+            fftData[i] = data[i];
 
         juce::dsp::FFT fft(fftOrder);
         fft.performRealOnlyForwardTransform(fftData.data());

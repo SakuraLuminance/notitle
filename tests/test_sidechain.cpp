@@ -208,11 +208,14 @@ TEST_CASE("DynamicsModule - sidechain gate opens/closes from sidechain signal",
         const auto* data = mainBuffer.getReadPointer(ch);
         for (int s = 0; s < 128; ++s)
             firstHalfRms += data[s] * data[s];
-        for (int s = 128; s < 256; ++s)
+        // Measure the LAST 32 samples: the gate release floor is 1 ms
+        // (setter clamp → ~48-sample time constant), so right after the
+        // sidechain drops the envelope is still decaying through the tail.
+        for (int s = 224; s < 256; ++s)
             secondHalfRms += data[s] * data[s];
     }
     firstHalfRms = std::sqrt(firstHalfRms / (128.0f * 2));
-    secondHalfRms = std::sqrt(secondHalfRms / (128.0f * 2));
+    secondHalfRms = std::sqrt(secondHalfRms / (32.0f * 2));
 
     // First half should be significantly louder than second half
     REQUIRE(firstHalfRms > secondHalfRms * 5.0f);

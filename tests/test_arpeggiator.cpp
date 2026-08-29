@@ -8,23 +8,33 @@
 static constexpr double TEST_SR = 44100.0;
 
 /**
- * Advance the arpeggiator so that it lands on the Nth step of the sequence
- * while that note is still inside its gate window.
+ * Advance the arpeggiator by exactly `steps` steps from wherever it is.
  *
- * Timing model (120 bpm, 1/16 notes, 44.1 kHz): a step is 5512.5 samples and
- * the first advance happens immediately at t=0 (currentStep starts at -1),
- * so "step N" is reached after N-1 step boundaries.  We process 5513 samples
- * per boundary — just past it — leaving the freshly triggered note active.
+ * Timing model (120 bpm, 1/16 notes, 44.1 kHz): a step is 5512.5 samples.
+ * A fresh arpeggiator fires its first step immediately at t=0 (currentStep
+ * starts at -1), so the very first advance is free — one process(1) call.
+ * Every further step costs one step-boundary crossing; 5514 samples per
+ * process guarantees the crossing while the freshly triggered note is still
+ * inside its gate window.
  */
 static void advanceSteps(ana::Arpeggiator& arp, int steps)
 {
     if (steps <= 0)
         return;
 
-    arp.process(1);             // trigger the first advance (note 1 starts at t=0)
-    const int stepSamples = 5513;
-    for (int i = 1; i < steps; ++i)
-        arp.process(stepSamples);
+    // The t=0 trigger is only available while no step has fired yet
+    // (getCurrentNote() still -1); afterwards every step is one boundary.
+    if (arp.getCurrentNote() < 0)
+    {
+        arp.process(1); // fires step 1 at t=0
+        for (int i = 1; i < steps; ++i)
+            arp.process(5514);
+    }
+    else
+    {
+        for (int i = 0; i < steps; ++i)
+            arp.process(5514);
+    }
 }
 
 // ---------------------------------------------------------------------------

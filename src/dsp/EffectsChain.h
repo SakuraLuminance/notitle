@@ -29,6 +29,11 @@ struct EffectSlot {
     float wetHighCut = 20000.0f;
     juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> wetHPF;
     juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> wetLPF;
+    // Second biquad stages: the wet cut filters are 4th order (two cascaded
+    // Butterworth sections, ~24 dB/oct) — a single 2nd-order section only
+    // reaches ~12 dB two octaves in.
+    juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> wetHPF2;
+    juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> wetLPF2;
     juce::String name;
 };
 

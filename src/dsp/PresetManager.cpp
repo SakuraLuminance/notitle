@@ -1,4 +1,4 @@
-#include "PresetManager.h"
+﻿#include "PresetManager.h"
 #include "PresetFactory.h"
 #include "ProcessorStore.h"
 #include "Randomizer.h"
@@ -222,7 +222,7 @@ static ModulationTarget stringToModTarget(const juce::String& s)
 }
 
 //==============================================================================
-// ModSource (ModulationEngine.h) string conversion — used by ModulationRouting
+// ModSource (ModulationEngine.h) string conversion 鈥?used by ModulationRouting
 //==============================================================================
 
 static juce::String modSourceNewToString(ModSource src)
@@ -645,7 +645,7 @@ bool PresetManager::deserialiseState(const juce::ValueTree& tree)
     auto mod = tree.getChildWithName("Modulation");
     if (mod.isValid()) ok &= deserialiseModulation(mod);
 
-    // New sections (v1.2+) — gracefully absent in old presets
+    // New sections (v1.2+) 鈥?gracefully absent in old presets
     auto modRouting = tree.getChildWithName("ModulationRouting");
     if (modRouting.isValid()) ok &= deserialiseModulationRouting(modRouting);
     // If no ModulationRouting, slots remain at default (source=OFF)
@@ -709,7 +709,9 @@ juce::ValueTree PresetManager::serialiseSTFTConfig() const
 
 bool PresetManager::deserialiseSTFTConfig(const juce::ValueTree& tree)
 {
-    if (stftConfigRef == nullptr || !tree.isValid())
+    if (stftConfigRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     stftConfigRef->fftSize         = juce::jlimit(256, 65536, (int)tree.getProperty("FFTSize", 2048));
@@ -760,7 +762,9 @@ juce::ValueTree PresetManager::serialiseFilters() const
 
 bool PresetManager::deserialiseFilters(const juce::ValueTree& tree)
 {
-    if (multiFilterRef == nullptr || !tree.isValid())
+    if (multiFilterRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     multiFilterRef->setRoutingMode(stringToRoutingMode(tree.getProperty("RoutingMode", "Serial").toString()));
@@ -832,7 +836,9 @@ juce::ValueTree PresetManager::serialiseEnvelope() const
 
 bool PresetManager::deserialiseEnvelope(const juce::ValueTree& tree)
 {
-    if (envelopeRef == nullptr || !tree.isValid())
+    if (envelopeRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     envelopeRef->setLoopMode(stringToLoopMode(tree.getProperty("LoopMode", "None").toString()));
@@ -885,7 +891,9 @@ juce::ValueTree PresetManager::serialiseLFO() const
 
 bool PresetManager::deserialiseLFO(const juce::ValueTree& tree)
 {
-    if (lfoRef == nullptr || !tree.isValid())
+    if (lfoRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     lfoRef->setWaveform(stringToWaveform(tree.getProperty("Waveform", "Sine").toString()));
@@ -928,7 +936,9 @@ juce::ValueTree PresetManager::serialiseGranular() const
 
 bool PresetManager::deserialiseGranular(const juce::ValueTree& tree)
 {
-    if (granularRef == nullptr || !tree.isValid())
+    if (granularRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     granularRef->setGrainSize(tree.getProperty("GrainSize", 50.0f));
@@ -968,7 +978,9 @@ juce::ValueTree PresetManager::serialiseUnison() const
 
 bool PresetManager::deserialiseUnison(const juce::ValueTree& tree)
 {
-    if (unisonRef == nullptr || !tree.isValid())
+    if (unisonRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     unisonRef->setVoiceCount(juce::jlimit(1, 64, (int)tree.getProperty("VoiceCount", 1)));
@@ -1001,7 +1013,9 @@ juce::ValueTree PresetManager::serialiseVoiceManager() const
 
 bool PresetManager::deserialiseVoiceManager(const juce::ValueTree& tree)
 {
-    if (voiceManagerRef == nullptr || !tree.isValid())
+    if (voiceManagerRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     float attack  = juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("Attack", 0.01f));
@@ -1050,7 +1064,9 @@ juce::ValueTree PresetManager::serialiseModulation() const
 
 bool PresetManager::deserialiseModulation(const juce::ValueTree& tree)
 {
-    if (filterModRef == nullptr || !tree.isValid())
+    if (filterModRef == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     filterModRef->clearAll();
@@ -1103,7 +1119,9 @@ juce::ValueTree PresetManager::serialiseModulationRouting() const
 
 bool PresetManager::deserialiseModulationRouting(const juce::ValueTree& tree)
 {
-    if (modSlotsRef_ == nullptr || !tree.isValid())
+    if (modSlotsRef_ == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     // Reset all slots to OFF before loading
@@ -1173,7 +1191,9 @@ juce::ValueTree PresetManager::serialiseLFOConfig() const
 
 bool PresetManager::deserialiseLFOConfig(const juce::ValueTree& tree)
 {
-    if (lfoPoolRef_ == nullptr || !tree.isValid())
+    if (lfoPoolRef_ == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     for (int i = 0; i < tree.getNumChildren(); ++i)
@@ -1232,7 +1252,9 @@ juce::ValueTree PresetManager::serialiseENVConfig() const
 
 bool PresetManager::deserialiseENVConfig(const juce::ValueTree& tree)
 {
-    if (envPoolRef_ == nullptr || !tree.isValid())
+    if (envPoolRef_ == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     for (int i = 0; i < tree.getNumChildren(); ++i)
@@ -1276,7 +1298,9 @@ juce::ValueTree PresetManager::serialiseVolumeADSR() const
 
 bool PresetManager::deserialiseVolumeADSR(const juce::ValueTree& tree)
 {
-    if (volumeAdsrRef_ == nullptr || !tree.isValid())
+    if (volumeAdsrRef_ == nullptr)
+        return true; // destination not wired - skip section gracefully
+    if (!tree.isValid())
         return false;
 
     volumeAdsrRef_->setAttack(juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("attack", 0.01f)));
@@ -1318,7 +1342,7 @@ bool PresetManager::deserialiseEffects(const juce::ValueTree& tree)
     if (effectsChain_ == nullptr || !tree.isValid())
         return true;
 
-    // Clear the current chain — we will reconstruct from scratch
+    // Clear the current chain 鈥?we will reconstruct from scratch
     effectsChain_->clear();
 
     for (int i = 0; i < tree.getNumChildren(); ++i)
@@ -1331,7 +1355,7 @@ bool PresetManager::deserialiseEffects(const juce::ValueTree& tree)
         if (child.hasType("EffectSlot"))
         {
             // Old format: <EffectSlot slotIndex="0" name="TypeName" ...>
-            // Read the "name" property — it holds the display/type name
+            // Read the "name" property 鈥?it holds the display/type name
             typeName = child.getProperty("name").toString();
         }
         else
@@ -1348,7 +1372,7 @@ bool PresetManager::deserialiseEffects(const juce::ValueTree& tree)
         auto effect = ProcessorStore::create(typeName);
         if (effect == nullptr)
         {
-            // Unrecognised type — skip this child (fallback);
+            // Unrecognised type 鈥?skip this child (fallback);
             // the PluginProcessor will set up its default chain.
             continue;
         }
@@ -1387,7 +1411,7 @@ void PresetManager::writeFactoryPreset(const juce::String& name, const juce::Str
     else if (category == "FX")    params = PresetFactory::createFactoryFX();
     else if (category == "Vocal")
     {
-        // "Pop Lead" — use first preset from createVocalPresets
+        // "Pop Lead" 鈥?use first preset from createVocalPresets
         auto vocalPresets = PresetFactory::createVocalPresets();
         if (!vocalPresets.empty())
             params = vocalPresets[0].second;
@@ -1435,7 +1459,7 @@ bool PresetManager::morphPresets(const juce::String& presetA,
     // Validate that we have a partial data source from the engine
     if (enginePartialsRef_ == nullptr)
     {
-        jassertfalse;   // Engine partials ref not set — call setEnginePartialsRef()
+        jassertfalse;   // Engine partials ref not set 鈥?call setEnginePartialsRef()
         return false;
     }
 

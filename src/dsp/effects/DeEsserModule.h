@@ -69,11 +69,17 @@ private:
     juce::dsp::ProcessorDuplicator<
         juce::dsp::IIR::Filter<float>,
         juce::dsp::IIR::Coefficients<float>> hpf_;
+    /** LPF producing the low band (matched Butterworth pair: LP+HP sums
+        flat, so the split-band reconstruction stays phase-coherent). */
+    juce::dsp::ProcessorDuplicator<
+        juce::dsp::IIR::Filter<float>,
+        juce::dsp::IIR::Coefficients<float>> lpf_;
     bool filtersDirty_ = true;
 
     //==============================================================================
     /** Pre-allocated processing buffers. */
     juce::AudioBuffer<float> highBand_;   // HPF output (sibilance band)
+    juce::AudioBuffer<float> lowBand_;    // LPF output (low band)
     juce::AudioBuffer<float> dryBuffer_;  // copy of input for reconstruction
 
     //==============================================================================

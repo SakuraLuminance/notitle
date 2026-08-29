@@ -277,8 +277,10 @@ TEST_CASE("MeteringEngine - LUFS for known sine tone within ±1 LU", "[metering]
 {
     // Use 48 kHz for the metering engine
     constexpr double metRate = 48000.0;
-    // Generate 1.5 s of audio (enough for momentary + short-term convergence)
-    constexpr int durationSamples = static_cast<int>(1.5 * metRate);
+    // Generate 3.5 s of audio — the SHORT-TERM window is 3 s, so the signal
+    // must outlast it or the meter averages in window silence (-3 dB for a
+    // half-filled window)
+    constexpr int durationSamples = static_cast<int>(3.5 * metRate);
     constexpr int blockSize = 512;
 
     // -1 dBFS 1 kHz sine

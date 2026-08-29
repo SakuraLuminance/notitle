@@ -15,8 +15,9 @@ void DeEsserModule::prepare(const juce::dsp::ProcessSpec& spec)
     blockSize_  = static_cast<int>(spec.maximumBlockSize);
     const int numCh = static_cast<int>(spec.numChannels);
 
-    // --- HPF for sibilance band ---
+    // --- HPF + LPF for split-band processing ---
     hpf_.prepare(spec);
+    lpf_.prepare(spec);
     filtersDirty_ = true;
     updateFilters();
 
@@ -33,6 +34,7 @@ void DeEsserModule::prepare(const juce::dsp::ProcessSpec& spec)
 
     // --- Pre-allocate processing buffers ---
     highBand_.setSize(numCh, blockSize_, false, false, true);
+    lowBand_.setSize(numCh, blockSize_, false, false, true);
     dryBuffer_.setSize(numCh, blockSize_, false, false, true);
 }
 
@@ -42,6 +44,7 @@ void DeEsserModule::reset()
 {
     envelope_ = 0.0f;
     hpf_.reset();
+    lpf_.reset();
 }
 
 //==============================================================================
@@ -73,12 +76,21 @@ void DeEsserModule::process(juce::AudioBuffer<float>& buffer)
     //--- Step 1: Save dry (full-range) signal for later reconstruction ---
     dryBuffer_.makeCopyOf(buffer, true);
 
-    //--- Step 2: Extract the sibilance band via HPF ---
+    //--- Step 2: Extract the sibilance band via HPF, and the low band via a
+    // matched LPF.  The old reconstruction (dry - high) assumed the high band
+    // was in phase with the dry signal; an IIR HPF shifts phase, so at the
+    // crossover the "reduction" actually ADDED energy (+0.9 dB on a 6 kHz
+    // sine).  A Butterworth LP/HP pair with the same cutoff sums flat.
     highBand_.makeCopyOf(buffer, true);
+    lowBand_.makeCopyOf(buffer, true);
     {
-        juce::dsp::AudioBlock<float> block(highBand_);
-        juce::dsp::ProcessContextReplacing<float> ctx(block);
-        hpf_.process(ctx);
+        juce::dsp::AudioBlock<float> highBlock(highBand_);
+        juce::dsp::ProcessContextReplacing<float> highCtx(highBlock);
+        hpf_.process(highCtx);
+
+        juce::dsp::AudioBlock<float> lowBlock(lowBand_);
+        juce::dsp::ProcessContextReplacing<float> lowCtx(lowBlock);
+        lpf_.process(lowCtx);
     }
 
     //--- Step 3: Envelope detection + gain reduction on the high band ---
@@ -120,7 +132,6 @@ void DeEsserModule::process(juce::AudioBuffer<float>& buffer)
         //--- Step 4: Reconstruction ---
         for (int ch = 0; ch < numCh; ++ch)
         {
-            const float drySample = dryBuffer_.getSample(ch, s);
             const float highSample = highBand_.getSample(ch, s);
             float* out = buffer.getWritePointer(ch);
 
@@ -132,11 +143,11 @@ void DeEsserModule::process(juce::AudioBuffer<float>& buffer)
             else
             {
                 // Split-band reconstruction:
-                //   lowBand  = drySample - highSample
-                //   highBand = highSample * gainLin
-                //   output   = lowBand + highBand
-                //            = drySample + highSample * (gainLin - 1)
-                out[s] = drySample + highSample * (gainLin - 1.0f);
+                //   output = lowBand + highBand * gainLin
+                // with both bands produced by a matched (power-complementary)
+                // Butterworth LP/HP pair, so gainLin == 1 reconstructs the
+                // input exactly.
+                out[s] = lowBand_.getSample(ch, s) + highSample * gainLin;
             }
         }
     }
@@ -149,9 +160,13 @@ void DeEsserModule::updateFilters()
     if (sampleRate_ <= 0.0)
         return;
 
-    auto coeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(
+    auto hpCoeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(
         sampleRate_, frequency_, 0.707);  // Butterworth Q
-    *hpf_.state = *coeffs;
+    *hpf_.state = *hpCoeffs;
+
+    auto lpCoeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass(
+        sampleRate_, frequency_, 0.707);  // matched Butterworth pair
+    *lpf_.state = *lpCoeffs;
 }
 
 //==============================================================================

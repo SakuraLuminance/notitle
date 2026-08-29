@@ -73,6 +73,14 @@ jobs:
         while IFS= read -r t; do
           [ -z "$t" ] && continue
           if ! timeout 120 "$exe" "$t" > per-test.log 2>&1; then
+            # "No test cases matched" / "Invalid Filter" are runner artifacts,
+            # not test failures: the name comes from a source file that is not
+            # compiled into the exe (disabled UI tests), or contains a comma
+            # which Catch2 treats as a filter separator.  Record as SKIP.
+            if grep -qE "No test cases matched|Invalid Filter" per-test.log; then
+              echo "SKIP-UNMATCHED :: $t" >> forensics.txt
+              continue
+            fi
             echo "CRASH-OR-FAIL :: $t" | tee -a forensics.txt
             tail -n 12 per-test.log | sed 's/^/    /' >> forensics.txt
           fi

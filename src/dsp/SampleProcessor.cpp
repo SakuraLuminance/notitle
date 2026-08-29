@@ -220,7 +220,7 @@ float SampleProcessor::yinPitchDetection(const float* audio, int n,
     double runningSum = 0.0;
     double bestNormVal = 1.0;
     int    bestLag = minLag;
-    bool   thresholdFound = false;
+    int    firstCross = -1;
 
     for (int tau = 1; tau <= maxLag; ++tau)
     {
@@ -229,19 +229,33 @@ float SampleProcessor::yinPitchDetection(const float* audio, int n,
         if (runningSum > 0.0)
             normVal = normVal * static_cast<double>(tau) / runningSum;
 
-        // YIN absolute threshold: find FIRST minimum below threshold
-        if (!thresholdFound && tau >= minLag && normVal < threshold)
+        // YIN absolute threshold: remember the FIRST lag below threshold
+        if (firstCross < 0 && tau >= minLag && normVal < threshold)
+            firstCross = tau;
+
+        // Global-minimum fallback while no crossing has happened
+        if (firstCross < 0 && normVal < bestNormVal)
         {
-            bestLag = tau;
             bestNormVal = normVal;
-            thresholdFound = true;
+            bestLag = tau;
         }
 
-        // Track global minimum as fallback
-        if (!thresholdFound && normVal < bestNormVal)
+        if (firstCross >= 0)
         {
-            bestNormVal = normVal;
-            bestLag = tau;
+            // Descend into the first dip below the threshold and stop at its
+            // local minimum (de Cheveigné & Kawahara 2002, step 3).  Without
+            // the descent a marginal early crossing on the shoulder of the
+            // true dip (e.g. CMND == threshold a few lags short of the
+            // period) locks the estimate ~10% high in frequency.
+            if (normVal < bestNormVal)
+            {
+                bestNormVal = normVal;
+                bestLag = tau;
+            }
+            else if (tau > firstCross && normVal > bestNormVal)
+            {
+                break; // past the dip minimum
+            }
         }
     }
 
