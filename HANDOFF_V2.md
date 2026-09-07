@@ -17,6 +17,7 @@
 | Phase 3 step 1 | **Run #98**（`33270272521`，HEAD `c45b61b`）绿：MacroKnob/StepCell 外提 |
 | Phase 3 step 2 | **Run #99**（`33280283374`，HEAD `e292cfb`）绿：PluginEditor 1564→1145 行拆分 src/gui/panels/（TimbrePanel A/B、FilterPanel、MacroPanel、SequencerPanel、TransportBar、MasterSection + PanelWidgets.h）；成品在 `artifacts/99/`（VST3 + CLAP） |
 | strictness 2 + UI 测试 | **Run #100**（`34085229509`，HEAD `5ad3303`）红→**两次编辑器构造崩溃修复**：xyPad_ ctor 顺序空解引用（0d5366d，Run #101 仍红）+ FilterPanel 空 slots OOB（2c62d81）→ **Run #102**（`34088507356`）全绿：**539 用例（含 test_ui_paint×2 + test_ui_colors）0 失败 + pluginval strictness 2 exit 0（含 Editor 冷/热开合）**；成品在 `artifacts/102/`。教训见 §0.2 最后两条 |
+| **P1 实时频谱** | Run #103-#105 红（三连：C1083 include 层级错 + **测试目标无 clap-juce-extensions include 路径**（任何测试编译文件 include PluginProcessor.h 即触发，§9 预警成真，539 用例级联 CRASH-OR-FAIL）→ 解法：**LiveSpectrumPanel 与 processor 解耦成哑组件**）→ **Run #106**（`34111724472`，HEAD `993aadf`）全绿：**541 用例 0 失败（+2 LiveSpectrumPanel headless）+ strictness 2 绿（editor 冷 334ms/热 250ms）**；成品 `artifacts/106/`，已装 VST3 + 清 REAPER 缓存。LIVE 为默认视图 |
 | 测试基线变化 | 二进制实际 536 用例；源码提取名 545（含未编译的 UI 测试文件与逗号名，per-test 循环记 SKIP-UNMATCHED） |
 | 全量 XML 运行 | 注意曾于 300s 超时截断（只跑到 ~420）——workflow 已提至 900s 并加 `~[benchmark]` 过滤（Run #97 起） |
 | 本轮关键提交 | `52b14a0`(Batch5pt2) → `b9f7c45`(Batch4pt2+5+6) → `a6fe4c6`(Batch4pt1) → `89520cd`(Batch3) → `78a11ff`/`d2caa8b`(Batch2) → `f7f2a41`(removeSlot修复) → `5364d2a`(Batch1) → `26e4610`(MultiFilter编译修复) |
@@ -32,6 +33,7 @@
 - **Per-test 隔离循环**会把"全量运行被截断而未跑到"的用例暴露出来——全量绿 ≠ 全部绿，看 forensics.txt 的 CRASH-OR-FAIL（SKIP-UNMATCHED = 过滤器伪失败，已自动跳过）。
 - Catch2 测试名含**逗号**（如 "(finite, non-NaN)"）无法通过单过滤器运行（被切分）；含 **±** 等非 ASCII 字符经 shell 传递也不匹配——均由 SKIP-UNMATCHED 兜底。
 - **editor ctor 的 setSize() 会同步触发 resized()**（JUCE sendMovedResizedMessages 无可见性门槛）：构造序列里晚于 setSize 的 lazy 成员（xyPad_）在首个 resized 时仍是空 unique_ptr → resized() 必须 guard（Run #100 strictness 2 首次在 CI 创建 editor 才暴露，exit 139 AV @ setBounds；strictness 1 七十余轮从不建 editor）。同类陷阱：resized() 里所有 unique_ptr 成员都必须判空（waveformDisplay_ 早已如此）。
+- **被测试目标编译的文件严禁 include PluginProcessor.h**：PluginProcessor.h:4 引 `clap-juce-extensions/clap-juce-extensions.h`，而 tests 目标无 clap include 路径 → C1083，测试 exe 编不出来 → 全部用例级联标 CRASH-OR-FAIL（forensics 全红是"exe 没编出"的信号，不是 539 个真失败）。GUI 组件一律做成不依赖 processor 的哑组件（数据由 editor 灌入），需要 processor 的接线放 editor/放非测试编译单元（Run #103-105 三连教训，Run #106 验证解法）。
 
 ### 0.3 剩余工作（Batch 7）
 
