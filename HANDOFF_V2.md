@@ -16,6 +16,7 @@
 | 全绿里程碑 | **Run #96**（`33268789728`，HEAD `52b14a0`）："All tests passed (331214 assertions in 536 test cases)" + pluginval strictness 1 绿 |
 | Phase 3 step 1 | **Run #98**（`33270272521`，HEAD `c45b61b`）绿：MacroKnob/StepCell 外提 |
 | Phase 3 step 2 | **Run #99**（`33280283374`，HEAD `e292cfb`）绿：PluginEditor 1564→1145 行拆分 src/gui/panels/（TimbrePanel A/B、FilterPanel、MacroPanel、SequencerPanel、TransportBar、MasterSection + PanelWidgets.h）；成品在 `artifacts/99/`（VST3 + CLAP） |
+| strictness 2 + UI 测试 | **Run #100**（`34085229509`，HEAD `5ad3303`）红→**两次编辑器构造崩溃修复**：xyPad_ ctor 顺序空解引用（0d5366d，Run #101 仍红）+ FilterPanel 空 slots OOB（2c62d81）→ **Run #102**（`34088507356`）全绿：**539 用例（含 test_ui_paint×2 + test_ui_colors）0 失败 + pluginval strictness 2 exit 0（含 Editor 冷/热开合）**；成品在 `artifacts/102/`。教训见 §0.2 最后两条 |
 | 测试基线变化 | 二进制实际 536 用例；源码提取名 545（含未编译的 UI 测试文件与逗号名，per-test 循环记 SKIP-UNMATCHED） |
 | 全量 XML 运行 | 注意曾于 300s 超时截断（只跑到 ~420）——workflow 已提至 900s 并加 `~[benchmark]` 过滤（Run #97 起） |
 | 本轮关键提交 | `52b14a0`(Batch5pt2) → `b9f7c45`(Batch4pt2+5+6) → `a6fe4c6`(Batch4pt1) → `89520cd`(Batch3) → `78a11ff`/`d2caa8b`(Batch2) → `f7f2a41`(removeSlot修复) → `5364d2a`(Batch1) → `26e4610`(MultiFilter编译修复) |
@@ -39,8 +40,8 @@
   - [x] step 1：MacroKnob/StepCell 外提（c45b61b，Run #98 绿）
   - [x] step 2：PluginEditor 拆分 6 panels（e292cfb，Run #99 绿）
   - [x] step 3：主题缺口——**已不存在**（WaveformDisplay/ModulationMatrixPanel 早在 e8b1279/864499d 已接入主题，本文档旧记录过时；gui/ 其余残留为中性灰网格线，非品牌色冲突，无需改）
-  - [x] step 4：test_ui_paint/test_ui_colors + SpectrumDisplay.cpp 重启用（随本提交推送，待 Run #100 验证；历史 segfault 根因 = JuceInitialiser 静态初始化竞态，已由 main() 内初始化修复）
-- [ ] pluginval strictness 1→5 渐进（**本提交已升 2**，待 Run #100 验证；绿则继续 3→5）
+  - [x] step 4：test_ui_paint/test_ui_colors + SpectrumDisplay.cpp 重启用（5ad3303，Run #100 起编译，Run #102 起 3 用例全绿；历史 segfault 根因 = JuceInitialiser 静态初始化竞态，已由 main() 内初始化修复）
+- [ ] pluginval strictness 1→5 渐进（**当前 strictness 2 全绿（Run #102）**；下一步 3，每级可能再暴露 editor 路径潜伏 bug，照 §0.2 教训取证修复）
 - [ ] strictness 5 全绿后移除 SKIP-UNMATCHED 兜底（注意 test_partial_editor_canvas.cpp 仍禁用，需保留其 SKIP）
 
 
