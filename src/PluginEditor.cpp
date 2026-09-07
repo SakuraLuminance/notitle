@@ -536,7 +536,8 @@ void AnaPlugAudioProcessorEditor::resized()
     if (waveformDisplay_)
         waveformDisplay_->setBounds(fbArea.reduced(2));
     spectrumEditorCanvas_.setBounds(fbArea.reduced(2));
-    xyPad_->setBounds(centerArea.reduced(2));
+    if (xyPad_)
+        xyPad_->setBounds(centerArea.reduced(2));
 
     // -- Process panel: FILTER (left) | MACROS (center) | EFFECTS (right) --
     auto pa = r.processArea.reduced(6, pad);

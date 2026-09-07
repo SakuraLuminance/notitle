@@ -30,6 +30,7 @@
 - **测试间共享效果器对象的状态泄漏**（lookahead 延迟线 + 增益包络）是断言失败的常见根因——先 reset() 再断言。
 - **Per-test 隔离循环**会把"全量运行被截断而未跑到"的用例暴露出来——全量绿 ≠ 全部绿，看 forensics.txt 的 CRASH-OR-FAIL（SKIP-UNMATCHED = 过滤器伪失败，已自动跳过）。
 - Catch2 测试名含**逗号**（如 "(finite, non-NaN)"）无法通过单过滤器运行（被切分）；含 **±** 等非 ASCII 字符经 shell 传递也不匹配——均由 SKIP-UNMATCHED 兜底。
+- **editor ctor 的 setSize() 会同步触发 resized()**（JUCE sendMovedResizedMessages 无可见性门槛）：构造序列里晚于 setSize 的 lazy 成员（xyPad_）在首个 resized 时仍是空 unique_ptr → resized() 必须 guard（Run #100 strictness 2 首次在 CI 创建 editor 才暴露，exit 139 AV @ setBounds；strictness 1 七十余轮从不建 editor）。同类陷阱：resized() 里所有 unique_ptr 成员都必须判空（waveformDisplay_ 早已如此）。
 
 ### 0.3 剩余工作（Batch 7）
 
