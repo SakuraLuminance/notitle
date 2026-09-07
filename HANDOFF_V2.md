@@ -72,7 +72,7 @@ artifacts/84/              本地已下载的绿色构建产物（VST3 + CLAP）
 - `PartialDataSIMD::getNextActive(i)` 为**排他**语义：传入 i 返回"下一个"active 索引；`getNextActive(-1)` 返回第一个。LocalEQ 依赖此契约。
 - 效果 reset() 在未 prepare 时不得按通道数索引空 vector（P0 根因家族，Drive/Flanger/Phaser/RingMod 已修——新增效果器务必复用该模式）。
 - MultiPointEnvelope 段曲线从**段末**断点的曲线属性取值。
-- `initializeDefaultEffects()` 已从构造函数**延迟到 prepareToPlay**（commit 0b75955 家族）；编辑器打开时效果链为空是**预期状态**（EffectRackComponent 需容忍）。
+- `initializeDefaultEffects()` 已从构造函数**延迟到 prepareToPlay**（commit 0b75955 家族）；编辑器打开时效果链为空是**预期状态**（EffectRackComponent 需容忍；MultiFilter 槽位同样在 prepareToPlay 才 addSlot（PluginProcessor.cpp:464）——FilterPanel 的三个 onChange lambda 必须先 getNumSlots()==0 短路，否则 slots[0] OOB（Run #101 段错误根因，ComboBox setSelectedId 的 async update 在构造完成后才触发 onChange）。
 
 ---
 

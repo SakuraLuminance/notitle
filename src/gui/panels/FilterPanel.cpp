@@ -40,9 +40,15 @@ FilterPanel::FilterPanel(AnaPlugAudioProcessor& processor)
 
     addAndMakeVisible(viz_);
 
-    // Wire filter controls to MultiFilter
+    // Wire filter controls to MultiFilter.
+    // The slot list is empty until prepareToPlay runs (effects init is deferred),
+    // so a change fired in that window (e.g. the pending async update triggered by
+    // setSelectedId during construction) must be tolerated as a no-op.
     typeCombo_.onChange = [this]() {
-        auto& slot = processor_.getMultiFilter().getSlot(0);
+        auto& multi = processor_.getMultiFilter();
+        if (multi.getNumSlots() == 0)
+            return;
+        auto& slot = multi.getSlot(0);
         switch (typeCombo_.getSelectedId())
         {
             case 1: slot.type = FilterType::LowPass;   break;
@@ -52,17 +58,22 @@ FilterPanel::FilterPanel(AnaPlugAudioProcessor& processor)
             case 5: slot.type = FilterType::Comb;      break;
             default: slot.type = FilterType::LowPass;  break;
         }
-        processor_.getMultiFilter().markCoefficientsDirty();
+        multi.markCoefficientsDirty();
     };
     cutoffSlider_.onValueChange = [this]() {
-        processor_.getMultiFilter().getSlot(0).params.cutoff
-            = cutoffSlider_.getValue();
-        processor_.getMultiFilter().markCoefficientsDirty();
+        auto& multi = processor_.getMultiFilter();
+        if (multi.getNumSlots() == 0)
+            return;
+        multi.getSlot(0).params.cutoff = cutoffSlider_.getValue();
+        multi.markCoefficientsDirty();
     };
     resSlider_.onValueChange = [this]() {
-        processor_.getMultiFilter().getSlot(0).params.resonance
+        auto& multi = processor_.getMultiFilter();
+        if (multi.getNumSlots() == 0)
+            return;
+        multi.getSlot(0).params.resonance
             = static_cast<float>(resSlider_.getValue());
-        processor_.getMultiFilter().markCoefficientsDirty();
+        multi.markCoefficientsDirty();
     };
 }
 
