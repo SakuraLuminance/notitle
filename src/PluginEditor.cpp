@@ -48,19 +48,22 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     //==============================================================================
     // Center 鈥?Visual feedback + view selector
     ANA_CRUMB("ed:center-start");
+    addAndMakeVisible(liveSpectrumPanel_);
     addAndMakeVisible(feedbackPanel_);
+    feedbackPanel_.setVisible(false);
     addAndMakeVisible(waterfallDisplay_);
     waterfallDisplay_.setVisible(false);
     addAndMakeVisible(spectrumEditorCanvas_);
     spectrumEditorCanvas_.setVisible(false);
-    viewModeCombo_.addItem("PARTIALS", 1);
-    viewModeCombo_.addItem("WATERFALL", 2);
-    viewModeCombo_.addItem("EDITOR", 3);
-    viewModeCombo_.addItem("3D", 4);
-    viewModeCombo_.addItem("SCOPE", 5);
+    viewModeCombo_.addItem("LIVE", 1);
+    viewModeCombo_.addItem("PARTIALS", 2);
+    viewModeCombo_.addItem("WATERFALL", 3);
+    viewModeCombo_.addItem("EDITOR", 4);
+    viewModeCombo_.addItem("3D", 5);
+    viewModeCombo_.addItem("SCOPE", 6);
     viewModeCombo_.setSelectedId(1);
     viewModeCombo_.onChange = [this] { onViewModeChanged(); };
-    viewModeCombo_.setTooltip("View mode: PARTIALS/WATERFALL/EDITOR/3D/SCOPE");
+    viewModeCombo_.setTooltip("View mode: LIVE/PARTIALS/WATERFALL/EDITOR/3D/SCOPE");
     addAndMakeVisible(viewModeCombo_);
 
     // Oscilloscope view (hidden by default)
@@ -531,6 +534,7 @@ void AnaPlugAudioProcessorEditor::resized()
     auto centerArea = r.centerPanel.reduced(4, 4);
     viewModeCombo_.setBounds(centerArea.removeFromTop(18).reduced(centerArea.getWidth() / 2 - 80, 0));
     auto fbArea = centerArea.removeFromTop(static_cast<int>(centerArea.getHeight() * 0.70f));
+    liveSpectrumPanel_.setBounds(fbArea.reduced(2));
     feedbackPanel_.setBounds(fbArea.reduced(2));
     waterfallDisplay_.setBounds(fbArea.reduced(2));
     if (waveformDisplay_)
@@ -641,6 +645,23 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     // MIDI Learn: indicator blink, timeout, parameter polling
     updateMidiLearnState();
 
+    // Live spectrum always tracks the final output (independent of the sample engine)
+    liveSpectrumPanel_.updateFromProcessor(audioProcessor);
+
+    // Push scope buffer data to WaveformDisplay when SCOPE mode is active
+    // (scope capture is unconditional in processBlock; no engine dependency)
+    if (waveformDisplay_ && waveformDisplay_->isVisible())
+    {
+        std::vector<float> scopeData;
+        if (audioProcessor.getScopeOutput(scopeData))
+        {
+            waveformDisplay_->setSamples(scopeData);
+            waveformDisplay_->setPlaybackPosition(
+                static_cast<double>(audioProcessor.getPlaybackPosition()
+                                    % audioProcessor.kScopeBufferSize));
+        }
+    }
+
     if (audioProcessor.isEngineLoaded())
     {
         int pos = audioProcessor.getPlaybackPosition();
@@ -662,20 +683,8 @@ void AnaPlugAudioProcessorEditor::timerCallback()
             waterfallDisplay_.updatePartials(simd);
             spectrumEditorCanvas_.setPartials(simd);
         }
-
-        // Push scope buffer data to WaveformDisplay when SCOPE mode is active
-        if (waveformDisplay_ && waveformDisplay_->isVisible())
-        {
-            std::vector<float> scopeData;
-            if (audioProcessor.getScopeOutput(scopeData))
-            {
-                waveformDisplay_->setSamples(scopeData);
-                waveformDisplay_->setPlaybackPosition(
-                    static_cast<double>(audioProcessor.getPlaybackPosition()
-                                        % audioProcessor.kScopeBufferSize));
-            }
-        }
     }
+
     if (audioProcessor.flattenPending())
         statusLabel_.setText(">> PITCH FLATTENING <<", juce::dontSendNotification);
 
@@ -728,6 +737,7 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
     const int mode = viewModeCombo_.getSelectedId();
 
     // Hide all view panels first
+    liveSpectrumPanel_.setVisible(false);
     feedbackPanel_.setVisible(false);
     waterfallDisplay_.setVisible(false);
     spectrumEditorCanvas_.setVisible(false);
@@ -736,31 +746,35 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
 
     switch (mode)
     {
-        case 1: // PARTIALS 鈥?classic bar display
+        case 1: // LIVE 鈥?real-time output spectrum (always available)
+            liveSpectrumPanel_.setVisible(true);
+            break;
+
+        case 2: // PARTIALS 鈥?classic bar display
             feedbackPanel_.setVisible(true);
             break;
 
-        case 2: // WATERFALL 鈥?3D waterfall spectral view
+        case 3: // WATERFALL 鈥?3D waterfall spectral view
             waterfallDisplay_.setVisible(true);
             break;
 
-        case 3: // EDITOR 鈥?2D spectrum editor canvas
+        case 4: // EDITOR 鈥?2D spectrum editor canvas
             spectrumEditorCanvas_.setVisible(true);
             spectrumEditorCanvas_.set3DEnabled(false);
             break;
 
-        case 4: // 3D 鈥?spectrum editor with OpenGL 3D waterfall
+        case 5: // 3D 鈥?spectrum editor with OpenGL 3D waterfall
             spectrumEditorCanvas_.setVisible(true);
             spectrumEditorCanvas_.set3DEnabled(true);
             break;
 
-        case 5: // SCOPE 鈥?real-time oscilloscope
+        case 6: // SCOPE 鈥?real-time oscilloscope
             if (waveformDisplay_)
                 waveformDisplay_->setVisible(true);
             break;
 
-        default: // fallback to partials
-            feedbackPanel_.setVisible(true);
+        default: // fallback to live
+            liveSpectrumPanel_.setVisible(true);
             break;
     }
 }

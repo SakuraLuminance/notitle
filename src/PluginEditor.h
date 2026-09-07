@@ -13,6 +13,7 @@
 #include "gui/XYPad.h"
 #include "gui/MeteringPanel.h"
 #include "gui/CyberpunkTheme.h"
+#include "gui/LiveSpectrumPanel.h"
 #include "gui/ModulationAssignPanel.h"
 #include "gui/EffectRackComponent.h"
 #include "gui/panels/TimbrePanel.h"
@@ -95,6 +96,7 @@ private:
 
     //==============================================================================
     // Center — Spectrum / Partial display
+    ana::LiveSpectrumPanel liveSpectrumPanel_;
     ana::VisualFeedbackPanel feedbackPanel_;
     ana::WaterfallDisplay waterfallDisplay_;
     ana::SpectrumEditorCanvas spectrumEditorCanvas_;

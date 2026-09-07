@@ -103,6 +103,7 @@ test_ui_colors.cpp
 
 # GUI source files needed by UI tests (self-contained — only JUCE + CyberpunkTheme)
 ../src/gui/SpectrumDisplay.cpp
+    ../src/gui/LiveSpectrumPanel.cpp
 #../src/gui/PartialEditorCanvas.cpp
 
 

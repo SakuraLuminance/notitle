@@ -2,6 +2,9 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "gui/CyberpunkTheme.h"
 #include "gui/SpectrumDisplay.h"
+#include "gui/LiveSpectrumPanel.h"
+#include <cmath>
+#include <vector>
 
 TEST_CASE("CyberpunkTheme static paint helpers do not crash", "[ui][paint]")
 {
@@ -33,5 +36,38 @@ TEST_CASE("SpectrumDisplay paint does not crash in headless context", "[ui][pain
 
     REQUIRE_NOTHROW(display.paint(g));
 
+    REQUIRE(true);
+}
+
+TEST_CASE("LiveSpectrumPanel paint does not crash without data", "[ui][paint]")
+{
+    ana::LiveSpectrumPanel panel;
+    panel.setBounds(0, 0, 200, 200);
+
+    juce::Image image(juce::Image::ARGB, 200, 200, true);
+    juce::Graphics g(image);
+    REQUIRE_NOTHROW(panel.paint(g));
+    REQUIRE(true);
+}
+
+TEST_CASE("LiveSpectrumPanel FFT path handles sine input", "[ui][paint]")
+{
+    ana::LiveSpectrumPanel panel;
+    panel.setBounds(0, 0, 200, 200);
+    panel.resized();
+
+    std::vector<float> sine(2048, 0.0f);
+    for (int i = 0; i < 2048; ++i)
+        sine[(size_t) i] = 0.8f * std::sin(2.0f * juce::MathConstants<float>::pi
+            * 1000.0f * static_cast<float>(i) / 48000.0f);
+
+    juce::Image image(juce::Image::ARGB, 200, 200, true);
+    juce::Graphics g(image);
+    REQUIRE_NOTHROW(panel.updateFromSamples(sine.data(), 2048));
+    REQUIRE_NOTHROW(panel.paint(g));
+
+    // Zero-length / null guards
+    REQUIRE_NOTHROW(panel.updateFromSamples(nullptr, 0));
+    REQUIRE_NOTHROW(panel.paint(g));
     REQUIRE(true);
 }

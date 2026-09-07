@@ -140,6 +140,7 @@ target_sources(AnaPlug
         src/gui/panels/SequencerPanel.cpp
         src/gui/panels/TransportBar.cpp
         src/gui/panels/MasterSection.cpp
+        src/gui/LiveSpectrumPanel.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
         src/dsp/DualTimbre.cpp
