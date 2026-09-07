@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../PluginProcessor.h"
+#include "../PluginProcessor.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_dsp/juce_dsp.h>
 #include <array>
