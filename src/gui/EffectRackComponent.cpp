@@ -152,7 +152,8 @@ void EffectSlotWidget::setExpanded(bool expand)
         auto& chain = processor_.getEffectsChain();
         if (slotIndex_ >= 0 && slotIndex_ < chain.getNumEffects())
         {
-            paramPanel_ = std::make_unique<EffectParamPanel>(&chain.getEffect(slotIndex_));
+            paramPanel_ = std::make_unique<EffectParamPanel>(
+                chain.getEffect(slotIndex_).effect.get());
             addAndMakeVisible(paramPanel_.get());
         }
     }
