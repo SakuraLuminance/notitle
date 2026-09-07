@@ -1,5 +1,11 @@
 # P1 Live Spectrum Implementation Plan
 
+> **执行偏差（Run #105 教训，已落实）**：`updateFromProcessor(AnaPlugAudioProcessor&)` 被删除——头文件拉入
+> `PluginProcessor.h` 会把 `clap-juce-extensions/clap-juce-extensions.h` 依赖带进测试目标（其无 clap include 路径，
+> C1083，测试 exe 编不出来 → 全部 539 用例级联标 CRASH-OR-FAIL）。LiveSpectrumPanel 与 processor 解耦：
+> 面板只有 `updateFromSamples`（哑组件，同 SpectrumDisplay 模式），编辑器 timer 直接
+> `getScopeOutput → updateFromSamples`。以下代码块中出现的 `updateFromProcessor` 按此理解。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 中央面板任何状态下显示随最终输出变化的实时频谱（LIVE 成为默认视图）。

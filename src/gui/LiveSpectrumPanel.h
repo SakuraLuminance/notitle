@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../PluginProcessor.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_dsp/juce_dsp.h>
 #include <array>
@@ -17,7 +16,6 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    void updateFromProcessor(AnaPlugAudioProcessor& processor);
     void updateFromSamples(const float* data, int numSamples);
 
 private:

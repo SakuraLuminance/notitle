@@ -646,7 +646,11 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     updateMidiLearnState();
 
     // Live spectrum always tracks the final output (independent of the sample engine)
-    liveSpectrumPanel_.updateFromProcessor(audioProcessor);
+    {
+        std::vector<float> scope;
+        if (audioProcessor.getScopeOutput(scope))
+            liveSpectrumPanel_.updateFromSamples(scope.data(), static_cast<int>(scope.size()));
+    }
 
     // Push scope buffer data to WaveformDisplay when SCOPE mode is active
     // (scope capture is unconditional in processBlock; no engine dependency)

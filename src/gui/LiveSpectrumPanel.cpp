@@ -48,13 +48,6 @@ void LiveSpectrumPanel::rebuildBarMap()
     }
 }
 
-void LiveSpectrumPanel::updateFromProcessor(AnaPlugAudioProcessor& processor)
-{
-    std::vector<float> scope;
-    if (processor.getScopeOutput(scope))
-        updateFromSamples(scope.data(), static_cast<int>(scope.size()));
-}
-
 void LiveSpectrumPanel::updateFromSamples(const float* data, int numSamples)
 {
     if (data == nullptr || numSamples <= 0)
