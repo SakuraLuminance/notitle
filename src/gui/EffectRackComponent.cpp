@@ -1,6 +1,6 @@
 #include "EffectRackComponent.h"
 #include "../dsp/Crumb.h"
-#include "../dsp/EffectParamRegistry.h"
+#include "../dsp/effects/EffectParamRegistry.h"
 
 namespace ana {
 

@@ -37,7 +37,7 @@ void EffectParamPanel::rebuildKnobs()
         knob.setValue(effect_->getParamValue(i), juce::dontSendNotification);
         knob.setColour(juce::Slider::rotarySliderFillColourId, CyberpunkTheme::cyan_);
         knob.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
-        knob.setColour(juce::Slider::outlineColourId, CyberpunkTheme::bg_.brighter(0.2f));
+        knob.setColour(juce::Slider::rotarySliderOutlineColourId, CyberpunkTheme::bg_.brighter(0.2f));
         knob.setTooltip(spec.label);
         const int idx = i;
         knob.onValueChange = [this, idx]()

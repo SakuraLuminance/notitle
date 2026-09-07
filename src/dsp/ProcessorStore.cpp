@@ -1,6 +1,6 @@
 #include "ProcessorStore.h"
 #include "EffectsChain.h"
-#include "EffectParamRegistry.h"
+#include "effects/EffectParamRegistry.h"
 #include "UndoManager.h"
 
 // Consolidated modules (all EffectBase)
