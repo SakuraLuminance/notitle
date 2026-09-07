@@ -4,6 +4,7 @@
 #include <juce_data_structures/juce_data_structures.h>
 #include "../PluginProcessor.h"
 #include "CyberpunkTheme.h"
+#include "EffectParamPanel.h"
 
 namespace ana {
 
@@ -29,17 +30,27 @@ public:
     void setSlotIndex(int index);
     int getSlotIndex() const noexcept { return slotIndex_; }
 
+    void setExpanded(bool expand);
+    bool isExpanded() const noexcept { return expanded_; }
+    int getParamPanelPreferredHeight(int width) const
+    {
+        return paramPanel_ != nullptr ? paramPanel_->getPreferredHeight(width) : 18;
+    }
+
     /** Sync UI controls from the EffectsChain slot state. */
     void syncFromProcessor();
 
     std::function<void(int)> onRemove;
     std::function<void(int)> onMoveUp;
     std::function<void(int)> onMoveDown;
+    std::function<void(int)> onExpandToggled;
 
 private:
     AnaPlugAudioProcessor& processor_;
     int slotIndex_;
     bool isLast_;
+
+    void layoutHeader(juce::Rectangle<int> area);
 
     juce::TextButton upButton_;
     juce::TextButton downButton_;
@@ -48,8 +59,10 @@ private:
     juce::Slider     mixSlider_;
     juce::Slider     lowCutSlider_;
     juce::Slider     highCutSlider_;
-    juce::Slider     modSlider_;
+    juce::TextButton expandButton_;
     juce::TextButton removeButton_;
+    std::unique_ptr<EffectParamPanel> paramPanel_;
+    bool expanded_ = false;
 
     //==============================================================================
     /** Available effect type names for the "Add Effect" popup menu. */
@@ -96,10 +109,12 @@ private:
     juce::TextButton addButton_;
     juce::UndoManager undoManager_;
     std::vector<std::unique_ptr<EffectSlotWidget>> slots_;
+    std::vector<bool> expanded_;
 
     void onSlotRemove(int slotIndex);
     void onSlotMoveUp(int slotIndex);
     void onSlotMoveDown(int slotIndex);
+    void onSlotExpandToggled(int slotIndex);
     void showAddEffectMenu();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EffectRackComponent)

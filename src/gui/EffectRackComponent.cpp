@@ -1,19 +1,6 @@
 #include "EffectRackComponent.h"
 #include "../dsp/Crumb.h"
-#include "../dsp/effects/DelayEffect.h"
-#include "../dsp/effects/ReverbEffect.h"
-#include "../dsp/effects/EQEffect.h"
-#include "../dsp/effects/ChorusEffect.h"
-#include "../dsp/effects/DistortionEffect.h"
-#include "../dsp/effects/SaturationEffect.h"
-#include "../dsp/effects/BitcrusherEffect.h"
-#include "../dsp/effects/CompressorEffect.h"
-#include "../dsp/effects/AutoTuneEffect.h"
-#include "../dsp/effects/FlangerEffect.h"
-#include "../dsp/effects/PhaserEffect.h"
-#include "../dsp/effects/RingModulatorEffect.h"
-#include "../dsp/effects/StereoWidenerEffect.h"
-#include "../dsp/effects/LimiterEffect.h"
+#include "../dsp/EffectParamRegistry.h"
 
 namespace ana {
 
@@ -27,118 +14,18 @@ static constexpr int removeW = 16;
 static constexpr int sliderMinW = 28;
 
 //==============================================================================
-// Available effect type registry
+// Effect type registry — delegated to the test-safe EffectParamRegistry so
+// rack-added and preset-loaded slots share the same adapters/param tables.
 juce::StringArray EffectSlotWidget::getAvailableEffectTypes()
 {
-    juce::StringArray types;
-    types.add("Delay");
-    types.add("Reverb");
-    types.add("EQ");
-    types.add("Chorus");
-    types.add("Distortion");
-    types.add("Saturation");
-    types.add("Bitcrusher");
-    types.add("Compressor");
-    types.add("AutoTune");
-    types.add("Flanger");
-    types.add("Phaser");
-    types.add("RingModulator");
-    types.add("StereoWidener");
-    types.add("Limiter");
-    return types;
+    return EffectParamRegistry::getTypeNames();
 }
 
 //==============================================================================
 // Effect factory for dynamic addition
 std::unique_ptr<EffectBase> EffectSlotWidget::createEffectByName(const juce::String& typeName)
 {
-    if (typeName == "Delay")
-    {
-        struct DelayAdapter : public EffectBase {
-            DelayEffect effect;
-            void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
-            void process(juce::AudioBuffer<float>& b) override        { effect.process(b); }
-            void reset() override                                      { effect.reset(); }
-            juce::ValueTree getState() const override                 { return effect.getState(); }
-            void setState(const juce::ValueTree& s) override          { effect.setState(s); }
-        };
-        return std::make_unique<DelayAdapter>();
-    }
-    if (typeName == "Reverb")
-    {
-        struct ReverbAdapter : public EffectBase {
-            ReverbEffect effect;
-            void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
-            void process(juce::AudioBuffer<float>& b) override        { effect.process(b); }
-            void reset() override                                      { effect.reset(); }
-            juce::ValueTree getState() const override                 { return effect.getState(); }
-            void setState(const juce::ValueTree& s) override          { effect.setState(s); }
-        };
-        return std::make_unique<ReverbAdapter>();
-    }
-    if (typeName == "EQ")
-    {
-        struct EQAdapter : public EffectBase {
-            EQEffect effect;
-            void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
-            void process(juce::AudioBuffer<float>& b) override        { effect.process(b); }
-            void reset() override                                      { effect.reset(); }
-            juce::ValueTree getState() const override                 { return effect.getState(); }
-            void setState(const juce::ValueTree& s) override          { effect.setState(s); }
-        };
-        return std::make_unique<EQAdapter>();
-    }
-    if (typeName == "Chorus")
-    {
-        struct ChorusAdapter : public EffectBase {
-            ChorusEffect effect;
-            void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
-            void process(juce::AudioBuffer<float>& b) override        { effect.process(b); }
-            void reset() override                                      { effect.reset(); }
-            juce::ValueTree getState() const override                 { return effect.getState(); }
-            void setState(const juce::ValueTree& s) override          { effect.setState(s); }
-        };
-        return std::make_unique<ChorusAdapter>();
-    }
-    if (typeName == "Distortion")
-    {
-        struct DistAdapter : public EffectBase {
-            DistortionEffect effect;
-            void prepare(const juce::dsp::ProcessSpec& spec) override { effect.prepare(spec); }
-            void process(juce::AudioBuffer<float>& b) override        { effect.process(b); }
-            void reset() override                                      { effect.reset(); }
-            juce::ValueTree getState() const override                 { return effect.getState(); }
-            void setState(const juce::ValueTree& s) override          { effect.setState(s); }
-        };
-        return std::make_unique<DistAdapter>();
-    }
-    if (typeName == "AutoTune")
-    {
-        struct AutoTuneAdapter : public EffectBase {
-            AutoTuneEffect effect;
-            void prepare(const juce::dsp::ProcessSpec& spec) override {
-                effect.setSampleRate(spec.sampleRate);
-            }
-            void process(juce::AudioBuffer<float>& b) override { effect.processBlock(b); }
-            void reset() override                              { effect.reset(); }
-            juce::ValueTree getState() const override          { return effect.getState(); }
-            void setState(const juce::ValueTree& s) override   { effect.setState(s); }
-        };
-        return std::make_unique<AutoTuneAdapter>();
-    }
-
-    // Effects that already extend EffectBase — return directly
-    if (typeName == "Bitcrusher")   return std::make_unique<BitcrusherEffect>();
-    if (typeName == "Compressor")   return std::make_unique<CompressorEffect>();
-    if (typeName == "Flanger")      return std::make_unique<FlangerEffect>();
-    if (typeName == "Phaser")       return std::make_unique<PhaserEffect>();
-    if (typeName == "RingModulator") return std::make_unique<RingModulatorEffect>();
-    if (typeName == "StereoWidener") return std::make_unique<StereoWidenerEffect>();
-    if (typeName == "Saturation")   return std::make_unique<SaturationEffect>();
-    if (typeName == "Limiter")      return std::make_unique<LimiterEffect>();
-
-    jassertfalse; // unknown effect type
-    return nullptr;
+    return EffectParamRegistry::create(typeName);
 }
 
 //==============================================================================
@@ -224,15 +111,13 @@ EffectSlotWidget::EffectSlotWidget(AnaPlugAudioProcessor& processor, int slotInd
     };
     addAndMakeVisible(highCutSlider_);
 
-    // --- Modulation depth slider ---
-    modSlider_.setRange(0.0, 1.0, 0.01);
-    modSlider_.setValue(0.0);
-    modSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    modSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    modSlider_.setDoubleClickReturnValue(true, 0.0);
-    modSlider_.setTooltip("Modulation depth");
-    modSlider_.setInterceptsMouseClicks(false, false); // visual only for now
-    addAndMakeVisible(modSlider_);
+    // --- Expand / collapse (replaces the old decorative mod slider) ---
+    expandButton_.setButtonText("\u25BE");
+    expandButton_.setTooltip("Show effect parameters");
+    expandButton_.setColour(juce::TextButton::buttonColourId, CyberpunkTheme::cyan_.withAlpha(0.15f));
+    expandButton_.setColour(juce::TextButton::textColourOffId, CyberpunkTheme::cyan_);
+    expandButton_.onClick = [this] { setExpanded(!expanded_); };
+    addAndMakeVisible(expandButton_);
 
     // --- Remove button ---
     removeButton_.setButtonText("✕");
@@ -253,10 +138,37 @@ void EffectSlotWidget::setSlotIndex(int index)
 }
 
 //==============================================================================
-void EffectSlotWidget::resized()
+void EffectSlotWidget::setExpanded(bool expand)
 {
-    auto area = getLocalBounds().reduced(1, 0);
+    if (expanded_ == expand)
+        return;
 
+    expanded_ = expand;
+    expandButton_.setButtonText(expanded_ ? "\u25B8" : "\u25BE");
+    expandButton_.setTooltip(expanded_ ? "Hide effect parameters" : "Show effect parameters");
+
+    if (expanded_)
+    {
+        auto& chain = processor_.getEffectsChain();
+        if (slotIndex_ >= 0 && slotIndex_ < chain.getNumEffects())
+        {
+            paramPanel_ = std::make_unique<EffectParamPanel>(&chain.getEffect(slotIndex_));
+            addAndMakeVisible(paramPanel_.get());
+        }
+    }
+    else
+    {
+        paramPanel_.reset();
+    }
+
+    resized();
+    if (onExpandToggled)
+        onExpandToggled(slotIndex_);
+}
+
+//==============================================================================
+void EffectSlotWidget::layoutHeader(juce::Rectangle<int> area)
+{
     // Up/Down buttons (fixed width at left)
     auto moveArea = area.removeFromLeft(buttonSize * 2 + 2);
     upButton_.setBounds(moveArea.removeFromLeft(buttonSize).reduced(0, 4));
@@ -273,12 +185,12 @@ void EffectSlotWidget::resized()
 
     // Remaining space → distribute among sliders with minimum widths
     const int remainingW = area.getWidth();
-    const int sliderCount = 4;
+    const int sliderCount = 3;
     const int minTotal = sliderMinW * sliderCount;
     const int sliderW = std::max(minTotal, remainingW) / sliderCount;
 
-    // Mod (narrowest, rightmost)
-    modSlider_.setBounds(area.removeFromRight(sliderW).reduced(1, 6));
+    // Expand toggle (rightmost)
+    expandButton_.setBounds(area.removeFromRight(22).reduced(1, 6));
 
     // HI (next from right)
     highCutSlider_.setBounds(area.removeFromRight(sliderW).reduced(1, 6));
@@ -288,6 +200,24 @@ void EffectSlotWidget::resized()
 
     // Mix (remaining, leftmost of sliders)
     mixSlider_.setBounds(area.reduced(1, 6));
+}
+
+//==============================================================================
+void EffectSlotWidget::resized()
+{
+    auto area = getLocalBounds().reduced(1, 0);
+
+    if (expanded_)
+    {
+        auto header = area.removeFromTop(slotHeight);
+        layoutHeader(header);
+        if (paramPanel_ != nullptr)
+            paramPanel_->setBounds(area);
+    }
+    else
+    {
+        layoutHeader(area);
+    }
 }
 
 //==============================================================================
@@ -550,17 +480,26 @@ void EffectRackComponent::resized()
     // Viewport fills remaining space
     viewport_.setBounds(area);
 
-    // Layout content panel
-    const int contentH = static_cast<int>(slots_.size()) * slotHeight;
-    contentPanel_.setSize(viewport_.getWidth() - 6, contentH);
-    contentPanel_.setBounds(0, 0, viewport_.getWidth() - 6, contentH);
+    // Layout content panel (per-slot heights: 30 collapsed, 30 + params expanded)
+    const int contentW = juce::jmax(1, viewport_.getWidth() - 6);
+    std::vector<int> heights(slots_.size(), slotHeight);
+    for (size_t i = 0; i < slots_.size(); ++i)
+        if (slots_[i]->isExpanded())
+            heights[i] = slotHeight + slots_[i]->getParamPanelPreferredHeight(contentW);
 
-    for (int i = 0; i < static_cast<int>(slots_.size()); ++i)
+    int contentH = 0;
+    for (const int h : heights)
+        contentH += h;
+    contentPanel_.setSize(contentW, contentH);
+    contentPanel_.setBounds(0, 0, contentW, contentH);
+
+    int y = 0;
+    for (size_t i = 0; i < slots_.size(); ++i)
     {
-        slots_[i]->setBounds(0, i * slotHeight,
-                             contentPanel_.getWidth(), slotHeight);
-        slots_[i]->setSlotIndex(i);
+        slots_[i]->setBounds(0, y, contentW, heights[i]);
+        slots_[i]->setSlotIndex(static_cast<int>(i));
         slots_[i]->syncFromProcessor();
+        y += heights[i];
     }
 }
 
@@ -595,11 +534,13 @@ void EffectRackComponent::rebuildSlots()
         slot->onRemove = [this](int idx) { onSlotRemove(idx); };
         slot->onMoveUp = [this](int idx) { onSlotMoveUp(idx); };
         slot->onMoveDown = [this](int idx) { onSlotMoveDown(idx); };
+        slot->onExpandToggled = [this](int idx) { onSlotExpandToggled(idx); };
 
         contentPanel_.addAndMakeVisible(slot.get());
         slots_.push_back(std::move(slot));
     }
 
+    expanded_.assign(static_cast<size_t>(numEffects), false);
     resized();
 }
 
@@ -639,6 +580,15 @@ void EffectRackComponent::onSlotMoveDown(int slotIndex)
     auto action = std::make_unique<EffectMoveAction>(chain, slotIndex, slotIndex + 1);
     undoManager_.perform(action.release());
     rebuildSlots();
+}
+
+//==============================================================================
+void EffectRackComponent::onSlotExpandToggled(int slotIndex)
+{
+    if (slotIndex < 0 || slotIndex >= static_cast<int>(expanded_.size()))
+        return;
+    expanded_[(size_t) slotIndex] = slots_[(size_t) slotIndex]->isExpanded();
+    resized();
 }
 
 //==============================================================================

@@ -19,6 +19,11 @@ public:
     void setPingPong(bool v);
     void setSyncMode(bool v);
 
+    float getDelayTimeMs() const { return delayMs; }
+    float getFeedback() const { return feedback; }
+    float getMix() const { return mixVal; }
+    bool  isPingPong() const { return pingPong; }
+
     juce::ValueTree getState() const
     {
         juce::ValueTree tree("DelayEffect");

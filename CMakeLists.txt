@@ -107,6 +107,7 @@ target_sources(AnaPlug
         src/dsp/effects/EQModule.cpp
         src/dsp/effects/PitchModule.cpp
         src/dsp/EffectsChain.cpp
+        src/dsp/effects/EffectParamRegistry.cpp
         src/dsp/GranularSynthesizer.cpp
         src/dsp/ImageSynthesizer.cpp
         src/dsp/LFOSystem.cpp
@@ -141,6 +142,7 @@ target_sources(AnaPlug
         src/gui/panels/TransportBar.cpp
         src/gui/panels/MasterSection.cpp
         src/gui/LiveSpectrumPanel.cpp
+        src/gui/EffectParamPanel.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
         src/dsp/DualTimbre.cpp

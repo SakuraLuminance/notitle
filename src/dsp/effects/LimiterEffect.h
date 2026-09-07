@@ -22,6 +22,12 @@ public:
     void setGain(float g);
     void setOversampling(int factor); // 1, 2, or 4
 
+    float getThreshold() const { return thresholdDb; }
+    float getAttack() const { return attackMs; }
+    float getRelease() const { return releaseMs; }
+    float getLookahead() const { return lookaheadMs; }
+    float getMix() const { return mixVal; }
+
     juce::ValueTree getState() const override
     {
         juce::ValueTree tree("LimiterEffect");

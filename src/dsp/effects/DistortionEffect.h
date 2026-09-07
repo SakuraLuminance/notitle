@@ -19,6 +19,11 @@ public:
     void setBlend(float percent);
     void setVolume(float percent);
 
+    float getDrive() const { return drive; }
+    float getRange() const { return range; }
+    float getBlend() const { return blend; }
+    float getVolume() const { return volume; }
+
     juce::ValueTree getState() const
     {
         juce::ValueTree tree("DistortionEffect");

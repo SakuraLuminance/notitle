@@ -60,6 +60,7 @@ test_partial_tracker.cpp
     test_noise_oscillator.cpp
     test_undo_manager.cpp
     test_effect_presets.cpp
+    test_effect_params.cpp
     test_security_v2.cpp
     test_consolidated_effects.cpp
     test_sidechain.cpp
@@ -83,6 +84,7 @@ test_ui_colors.cpp
     ../src/dsp/effects/BitcrusherEffect.cpp
     ../src/dsp/effects/RingModulatorEffect.cpp
     ../src/dsp/EffectsChain.cpp
+    ../src/dsp/effects/EffectParamRegistry.cpp
     ../src/dsp/effects/ConsolidatedDelay.cpp
     ../src/dsp/effects/DriveModule.cpp
     ../src/dsp/effects/DeEsserModule.cpp
@@ -104,6 +106,7 @@ test_ui_colors.cpp
 # GUI source files needed by UI tests (self-contained — only JUCE + CyberpunkTheme)
 ../src/gui/SpectrumDisplay.cpp
     ../src/gui/LiveSpectrumPanel.cpp
+    ../src/gui/EffectParamPanel.cpp
 #../src/gui/PartialEditorCanvas.cpp
 
 

@@ -1,5 +1,6 @@
 #include "ProcessorStore.h"
 #include "EffectsChain.h"
+#include "EffectParamRegistry.h"
 #include "UndoManager.h"
 
 // Consolidated modules (all EffectBase)
@@ -223,35 +224,35 @@ void ProcessorStore::registerAll()
     });
 
     registerFactory("StereoWidener", [](UndoManager*) {
-        return std::make_unique<StereoWidenerEffect>();
+        return EffectParamRegistry::create("StereoWidener");
     });
 
     registerFactory("Flanger", [](UndoManager*) {
-        return std::make_unique<FlangerEffect>();
+        return EffectParamRegistry::create("Flanger");
     });
 
     registerFactory("Saturation", [](UndoManager*) {
-        return std::make_unique<SaturationEffect>();
+        return EffectParamRegistry::create("Saturation");
     });
 
     registerFactory("Limiter", [](UndoManager*) {
-        return std::make_unique<LimiterEffect>();
+        return EffectParamRegistry::create("Limiter");
     });
 
     registerFactory("RingModulator", [](UndoManager*) {
-        return std::make_unique<RingModulatorEffect>();
+        return EffectParamRegistry::create("RingModulator");
     });
 
     registerFactory("Compressor", [](UndoManager*) {
-        return std::make_unique<CompressorEffect>();
+        return EffectParamRegistry::create("Compressor");
     });
 
     registerFactory("Bitcrusher", [](UndoManager*) {
-        return std::make_unique<BitcrusherEffect>();
+        return EffectParamRegistry::create("Bitcrusher");
     });
 
     registerFactory("Phaser", [](UndoManager*) {
-        return std::make_unique<PhaserEffect>();
+        return EffectParamRegistry::create("Phaser");
     });
 
     registerFactory("BreathNoise", [](UndoManager*) {
@@ -272,28 +273,31 @@ void ProcessorStore::registerAll()
     });
 
     // --- Standalone effects (non-EffectBase, adapter-wrapped) ---
+    // All 14 rack effect types route through EffectParamRegistry so that a
+    // generic parameter table exists regardless of which factory created them
+    // (rack add-menu vs preset load).
     registerFactory("Delay", [](UndoManager*) {
-        return std::make_unique<effect_adapters::DelayEffectAdapter>();
+        return EffectParamRegistry::create("Delay");
     });
 
     registerFactory("Reverb", [](UndoManager*) {
-        return std::make_unique<effect_adapters::ReverbEffectAdapter>();
+        return EffectParamRegistry::create("Reverb");
     });
 
     registerFactory("Chorus", [](UndoManager*) {
-        return std::make_unique<effect_adapters::ChorusEffectAdapter>();
+        return EffectParamRegistry::create("Chorus");
     });
 
     registerFactory("Distortion", [](UndoManager*) {
-        return std::make_unique<effect_adapters::DistortionEffectAdapter>();
+        return EffectParamRegistry::create("Distortion");
     });
 
     registerFactory("EQ", [](UndoManager*) {
-        return std::make_unique<effect_adapters::EQEffectAdapter>();
+        return EffectParamRegistry::create("EQ");
     });
 
     registerFactory("AutoTune", [](UndoManager*) {
-        return std::make_unique<effect_adapters::AutoTuneEffectAdapter>();
+        return EffectParamRegistry::create("AutoTune");
     });
 
     //==============================================================================
@@ -312,28 +316,28 @@ void ProcessorStore::registerAll()
         return std::make_unique<VocalThickenerEffect>();
     });
     registerFactory("StereoWidenerEffect", [](UndoManager*) {
-        return std::make_unique<StereoWidenerEffect>();
+        return EffectParamRegistry::create("StereoWidener");
     });
     registerFactory("FlangerEffect", [](UndoManager*) {
-        return std::make_unique<FlangerEffect>();
+        return EffectParamRegistry::create("Flanger");
     });
     registerFactory("SaturationEffect", [](UndoManager*) {
-        return std::make_unique<SaturationEffect>();
+        return EffectParamRegistry::create("Saturation");
     });
     registerFactory("LimiterEffect", [](UndoManager*) {
-        return std::make_unique<LimiterEffect>();
+        return EffectParamRegistry::create("Limiter");
     });
     registerFactory("RingModulatorEffect", [](UndoManager*) {
-        return std::make_unique<RingModulatorEffect>();
+        return EffectParamRegistry::create("RingModulator");
     });
     registerFactory("CompressorEffect", [](UndoManager*) {
-        return std::make_unique<CompressorEffect>();
+        return EffectParamRegistry::create("Compressor");
     });
     registerFactory("BitcrusherEffect", [](UndoManager*) {
-        return std::make_unique<BitcrusherEffect>();
+        return EffectParamRegistry::create("Bitcrusher");
     });
     registerFactory("PhaserEffect", [](UndoManager*) {
-        return std::make_unique<PhaserEffect>();
+        return EffectParamRegistry::create("Phaser");
     });
 
     registerFactory("BreathNoiseGenerator", [](UndoManager*) {
@@ -342,22 +346,22 @@ void ProcessorStore::registerAll()
 
     // Standalone effects (non-EffectBase, adapter-wrapped)
     registerFactory("DelayEffect", [](UndoManager*) {
-        return std::make_unique<effect_adapters::DelayEffectAdapter>();
+        return EffectParamRegistry::create("Delay");
     });
     registerFactory("ReverbEffect", [](UndoManager*) {
-        return std::make_unique<effect_adapters::ReverbEffectAdapter>();
+        return EffectParamRegistry::create("Reverb");
     });
     registerFactory("ChorusEffect", [](UndoManager*) {
-        return std::make_unique<effect_adapters::ChorusEffectAdapter>();
+        return EffectParamRegistry::create("Chorus");
     });
     registerFactory("DistortionEffect", [](UndoManager*) {
-        return std::make_unique<effect_adapters::DistortionEffectAdapter>();
+        return EffectParamRegistry::create("Distortion");
     });
     registerFactory("EQEffect", [](UndoManager*) {
-        return std::make_unique<effect_adapters::EQEffectAdapter>();
+        return EffectParamRegistry::create("EQ");
     });
     registerFactory("AutoTuneEffect", [](UndoManager*) {
-        return std::make_unique<effect_adapters::AutoTuneEffectAdapter>();
+        return EffectParamRegistry::create("AutoTune");
     });
 }
 

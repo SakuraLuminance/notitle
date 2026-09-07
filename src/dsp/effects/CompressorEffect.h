@@ -25,6 +25,14 @@ public:
     void setRMSMode(bool rms);
     void setAutoMakeup(bool autoOn);
 
+    float getThreshold() const { return thresholdDb; }
+    float getRatio() const { return ratio; }
+    float getAttack() const { return attackMs; }
+    float getRelease() const { return releaseMs; }
+    float getKnee() const { return kneeDb; }
+    float getMakeupGain() const { return makeupGainDb; }
+    float getMix() const { return mixVal; }
+
     juce::ValueTree getState() const override
     {
         juce::ValueTree tree("CompressorEffect");

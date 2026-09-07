@@ -20,6 +20,12 @@ public:
     void setWidth(float v);
     void setPreset(ReverbPreset p);
 
+    float getRoomSize() const { return roomSize; }
+    float getDamping() const { return damping; }
+    float getWetLevel() const { return wetLevel; }
+    float getDryLevel() const { return dryLevel; }
+    float getWidth() const { return width; }
+
     juce::ValueTree getState() const
     {
         juce::ValueTree tree("ReverbEffect");

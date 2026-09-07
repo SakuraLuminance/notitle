@@ -23,6 +23,11 @@ public:
     void setBypass(bool b);
     void setGain(float g);
 
+    float getDrive() const { return drive; }
+    float getTone() const { return toneFreq; }
+    float getMix() const { return mixVal * 100.0f; }
+    float getGain() const { return gainVal; }
+
     int getLatencySamples() const { return latencySamples; }
 
     juce::ValueTree getState() const override;

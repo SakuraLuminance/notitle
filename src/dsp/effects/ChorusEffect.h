@@ -17,6 +17,12 @@ public:
     void setFeedback(float percent);
     void setMix(float percent);
 
+    float getRate() const { return rate; }
+    float getDepth() const { return depth; }
+    float getCentreDelay() const { return centreDelay; }
+    float getFeedback() const { return feedback; }
+    float getMix() const { return mixVal; }
+
     juce::ValueTree getState() const
     {
         juce::ValueTree tree("ChorusEffect");

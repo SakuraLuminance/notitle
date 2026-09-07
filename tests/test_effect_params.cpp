@@ -1,0 +1,93 @@
+#include <catch2/catch_all.hpp>
+#include "dsp/effects/EffectParamRegistry.h"
+#include "dsp/EffectsChain.h"
+#include <cmath>
+#include <memory>
+
+namespace
+{
+
+void roundTripType(const juce::String& typeName)
+{
+    auto effect = ana::EffectParamRegistry::create(typeName);
+    REQUIRE(effect != nullptr);
+    const int n = effect->getNumParams();
+    REQUIRE(n > 0);
+
+    for (int i = 0; i < n; ++i)
+    {
+        const auto& spec = effect->getParamSpec(i);
+        REQUIRE(spec.id != nullptr);
+        REQUIRE(spec.label != nullptr);
+        REQUIRE(spec.max > spec.min);
+
+        const float mid = spec.min + (spec.max - spec.min) * 0.5f;
+        effect->setParamValue(i, mid);
+        const float afterSet = effect->getParamValue(i);
+
+        // Value survives the clamping round-trip through the DSP setters
+        // (mid of the table range must lie inside the setter's clamp window).
+        REQUIRE(std::abs(afterSet - mid) <= (spec.max - spec.min) * 0.02f);
+
+        // State round-trip: a fresh instance restored from getState() keeps
+        // every parameter value (units are converted back consistently).
+        const auto tree = effect->getState();
+        REQUIRE(tree.isValid());
+        auto restored = ana::EffectParamRegistry::create(typeName);
+        REQUIRE(restored != nullptr);
+        restored->setState(tree);
+        REQUIRE(std::abs(restored->getParamValue(i) - afterSet)
+                <= (spec.max - spec.min) * 0.02f);
+    }
+}
+
+} // namespace
+
+TEST_CASE("Delay effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Delay");
+}
+
+TEST_CASE("Reverb effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Reverb");
+}
+
+TEST_CASE("Chorus effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Chorus");
+}
+
+TEST_CASE("Compressor effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Compressor");
+}
+
+TEST_CASE("Distortion effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Distortion");
+}
+
+TEST_CASE("Limiter effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Limiter");
+}
+
+TEST_CASE("Bitcrusher effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Bitcrusher");
+}
+
+TEST_CASE("Saturation effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Saturation");
+}
+
+TEST_CASE("Effect registry covers all rack types", "[effects][params]")
+{
+    const auto& names = ana::EffectParamRegistry::getTypeNames();
+    REQUIRE(names.size() == 14);
+    for (const auto& name : names)
+        REQUIRE(ana::EffectParamRegistry::create(name) != nullptr);
+    REQUIRE(ana::EffectParamRegistry::create("NoSuchEffect") == nullptr);
+}

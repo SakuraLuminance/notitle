@@ -3,6 +3,8 @@
 #include "gui/CyberpunkTheme.h"
 #include "gui/SpectrumDisplay.h"
 #include "gui/LiveSpectrumPanel.h"
+#include "gui/EffectParamPanel.h"
+#include "dsp/effects/EffectParamRegistry.h"
 #include <cmath>
 #include <vector>
 
@@ -69,5 +71,27 @@ TEST_CASE("LiveSpectrumPanel FFT path handles sine input", "[ui][paint]")
     // Zero-length / null guards
     REQUIRE_NOTHROW(panel.updateFromSamples(nullptr, 0));
     REQUIRE_NOTHROW(panel.paint(g));
+    REQUIRE(true);
+}
+
+TEST_CASE("EffectParamPanel paint does not crash", "[ui][paint]")
+{
+    auto effect = ana::EffectParamRegistry::create("Delay");
+    REQUIRE(effect != nullptr);
+
+    ana::EffectParamPanel panel(effect.get());
+    panel.setBounds(0, 0, 400, 70);
+
+    juce::Image image(juce::Image::ARGB, 400, 70, true);
+    juce::Graphics g(image);
+    REQUIRE_NOTHROW(panel.paint(g));
+    REQUIRE_NOTHROW(panel.resized());
+
+    // Null effect → idle text path
+    ana::EffectParamPanel emptyPanel(nullptr);
+    emptyPanel.setBounds(0, 0, 200, 18);
+    juce::Image image2(juce::Image::ARGB, 200, 18, true);
+    juce::Graphics g2(image2);
+    REQUIRE_NOTHROW(emptyPanel.paint(g2));
     REQUIRE(true);
 }

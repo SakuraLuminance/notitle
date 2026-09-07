@@ -7,6 +7,17 @@
 
 namespace ana {
 
+struct EffectParamSpec
+{
+    const char* id = nullptr;
+    const char* label = nullptr;
+    float min = 0.0f;
+    float max = 1.0f;
+    float def = 0.0f;
+    float skew = 1.0f;
+    bool  isInt = false;
+};
+
 class EffectBase {
 public:
     virtual ~EffectBase() = default;
@@ -15,6 +26,17 @@ public:
     virtual void reset() = 0;
     virtual juce::ValueTree getState() const = 0;
     virtual void setState(const juce::ValueTree& state) = 0;
+
+    // Generic parameter surface for UI editors (P2). Default: no params.
+    virtual int getNumParams() const { return 0; }
+    virtual const EffectParamSpec& getParamSpec(int index) const
+    {
+        static const EffectParamSpec none{};
+        (void) index;
+        return none;
+    }
+    virtual float getParamValue(int index) const { (void) index; return 0.0f; }
+    virtual void  setParamValue(int index, float value) { (void) index; (void) value; }
 };
 
 struct EffectSlot {
