@@ -65,9 +65,11 @@ test_partial_tracker.cpp
     test_sidechain.cpp
 test_vocal_effects.cpp
 
-# UI tests disabled until segfault is debugged (SpectrumDisplay/PartialEditorCanvas)
-#test_ui_paint.cpp
-#test_ui_colors.cpp
+# UI tests (headless paint + theme) — re-enabled: the historic segfault was the
+# JuceInitialiser static-init race (fixed by initialising in main()); SpectrumDisplay
+# ctor/paint is MessageManager-free and safe headless
+test_ui_paint.cpp
+test_ui_colors.cpp
 
 # Engine source files needed by cutting-edge features tests
     ../src/dsp/VoiceManager.cpp
@@ -100,8 +102,7 @@ test_vocal_effects.cpp
 ../src/dsp/effects/CompressorEffect.cpp
 
 # GUI source files needed by UI tests (self-contained — only JUCE + CyberpunkTheme)
-# Disabled until segfault debugged
-#../src/gui/SpectrumDisplay.cpp
+../src/gui/SpectrumDisplay.cpp
 #../src/gui/PartialEditorCanvas.cpp
 
 

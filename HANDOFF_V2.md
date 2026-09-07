@@ -7,13 +7,15 @@
 
 ## 0. 交接时刻的实时状态（2026-08-30 更新：测试全绿达成）
 
-**当前状态：536 用例 0 失败 + pluginval 绿（Run #96, 2026-08-30）。Batch 1-6 全部完成。剩余：Batch 7 收尾（UI 重构 Phase 3 等）。**
+**当前状态：536 用例 0 失败 + pluginval 绿。Batch 1-6 完成；Phase 3 step 1（c45b61b，Run #98 绿）+ step 2（e292cfb，PluginEditor 拆分 6 panels，Run #99 绿：536/0 + pluginval exit 0）已完成；成品 artifact 在本地 `artifacts/99/`。剩余：Phase 3 step 4（UI 测试重启用，本提交已启用待验证）+ pluginval strictness 2→5 渐进。**
 
 ### 0.1 Git / CI 坐标
 
 | 项 | 值 |
 |---|---|
 | 全绿里程碑 | **Run #96**（`33268789728`，HEAD `52b14a0`）："All tests passed (331214 assertions in 536 test cases)" + pluginval strictness 1 绿 |
+| Phase 3 step 1 | **Run #98**（`33270272521`，HEAD `c45b61b`）绿：MacroKnob/StepCell 外提 |
+| Phase 3 step 2 | **Run #99**（`33280283374`，HEAD `e292cfb`）绿：PluginEditor 1564→1145 行拆分 src/gui/panels/（TimbrePanel A/B、FilterPanel、MacroPanel、SequencerPanel、TransportBar、MasterSection + PanelWidgets.h）；成品在 `artifacts/99/`（VST3 + CLAP） |
 | 测试基线变化 | 二进制实际 536 用例；源码提取名 545（含未编译的 UI 测试文件与逗号名，per-test 循环记 SKIP-UNMATCHED） |
 | 全量 XML 运行 | 注意曾于 300s 超时截断（只跑到 ~420）——workflow 已提至 900s 并加 `~[benchmark]` 过滤（Run #97 起） |
 | 本轮关键提交 | `52b14a0`(Batch5pt2) → `b9f7c45`(Batch4pt2+5+6) → `a6fe4c6`(Batch4pt1) → `89520cd`(Batch3) → `78a11ff`/`d2caa8b`(Batch2) → `f7f2a41`(removeSlot修复) → `5364d2a`(Batch1) → `26e4610`(MultiFilter编译修复) |
@@ -32,9 +34,13 @@
 ### 0.3 剩余工作（Batch 7）
 
 - [x] ~~Batch 1-6~~（全部完成，经 CI 验证）
-- [ ] **UI 重构 Phase 3**（§9）：PluginEditor 1623 行拆分为 panels/；外观零变化；补主题缺口（WaveformDisplay、ModulationMatrixPanel）；重新启用 test_ui_* （需 clap-juce-extensions include 路径）
-- [ ] pluginval strictness 1→5 渐进（当前 strictness 1）
-- [ ] 重启 UI 后考虑移除 SKIP-UNMATCHED 兜底（重新启用 UI 测试文件后）
+- [ ] **UI 重构 Phase 3**（§9）：
+  - [x] step 1：MacroKnob/StepCell 外提（c45b61b，Run #98 绿）
+  - [x] step 2：PluginEditor 拆分 6 panels（e292cfb，Run #99 绿）
+  - [x] step 3：主题缺口——**已不存在**（WaveformDisplay/ModulationMatrixPanel 早在 e8b1279/864499d 已接入主题，本文档旧记录过时；gui/ 其余残留为中性灰网格线，非品牌色冲突，无需改）
+  - [x] step 4：test_ui_paint/test_ui_colors + SpectrumDisplay.cpp 重启用（随本提交推送，待 Run #100 验证；历史 segfault 根因 = JuceInitialiser 静态初始化竞态，已由 main() 内初始化修复）
+- [ ] pluginval strictness 1→5 渐进（**本提交已升 2**，待 Run #100 验证；绿则继续 3→5）
+- [ ] strictness 5 全绿后移除 SKIP-UNMATCHED 兜底（注意 test_partial_editor_canvas.cpp 仍禁用，需保留其 SKIP）
 
 
 ## 1. 项目是什么
@@ -50,7 +56,7 @@ src/
   PluginProcessor.h/.cpp   AudioProcessor + 全部成员对象（engine/effectsChain_/voiceManager/presetManager/dnaEvolver_ 等，声明序 390-617 行）
   PluginEditor.h/.cpp      编辑器（单体 1623 行，~90 成员组件，手写百分比布局 computeRegions()，无 APVTS，手动 onValueChange + MidiLearn + Timer 刷新）
   dsp/                     全部 DSP 模块（约 60+ 模块；EffectsChain/MultiFilter/ResynthesisEngine/PresetFactory/SpectralDNA/…）
-  gui/                     独立 UI 组件（12 个；CyberpunkTheme 单例主题；WaveformDisplay 硬编码颜色、ModulationMatrixPanel 未接入主题 = 已知缺口）
+  gui/                     独立 UI 组件（12 个；CyberpunkTheme 单例主题；WaveformDisplay/ModulationMatrixPanel 已接入主题（e8b1279/864499d，旧文档"硬编码颜色缺口"记录已过时））
   PresetManager / ProcessorStore / PresetFactory（工厂预设表在 PresetFactory.cpp 1200-1248 行）
 tests/                     66 个 Catch2 测试文件（536 用例）；main.cpp 自带 JuceInitialiser（勿移回静态区）
 .cgithub/workflows/        build-windows.yml（见 §4）
