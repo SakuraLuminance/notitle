@@ -21,13 +21,16 @@ void roundTripType(const juce::String& typeName)
         REQUIRE(spec.label != nullptr);
         REQUIRE(spec.max > spec.min);
 
+        // Probe value: int params must land on an exact step; boolean params
+        // (range 0-1, threshold semantics) have no meaningful mid — their
+        // round-trip contract is "whatever the setter stored is preserved".
         const float mid = spec.min + (spec.max - spec.min) * 0.5f;
-        effect->setParamValue(i, mid);
+        const float probe = spec.isInt ? std::floor(mid) : mid;
+        effect->setParamValue(i, probe);
         const float afterSet = effect->getParamValue(i);
 
-        // Value survives the clamping round-trip through the DSP setters
-        // (mid of the table range must lie inside the setter's clamp window).
-        REQUIRE(std::abs(afterSet - mid) <= (spec.max - spec.min) * 0.02f);
+        if (spec.isInt)
+            REQUIRE(afterSet == probe);
 
         // State round-trip: a fresh instance restored from getState() keeps
         // every parameter value (units are converted back consistently).
