@@ -21,8 +21,8 @@ private:
     void rebuildKnobs();
 
     EffectBase* effect_ = nullptr;
-    std::vector<juce::Slider> knobs_;
-    std::vector<juce::Label>  labels_;
+    juce::OwnedArray<juce::Slider> knobs_;
+    juce::OwnedArray<juce::Label>  labels_;
     static constexpr int knobW = 46;
     static constexpr int rowH = 58;
 };

@@ -21,50 +21,49 @@ void EffectParamPanel::rebuildKnobs()
         return;
 
     const int n = effect_->getNumParams();
-    knobs_.resize(static_cast<size_t>(n));
-    labels_.resize(static_cast<size_t>(n));
-
     for (int i = 0; i < n; ++i)
     {
         const auto& spec = effect_->getParamSpec(i);
 
-        auto& knob = knobs_[(size_t) i];
-        knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-        knob.setRange(spec.min, spec.max, spec.isInt ? 1.0 : 0.0);
-        knob.setSkewFactor(juce::jlimit(0.1f, 10.0f, spec.skew));
-        knob.setDoubleClickReturnValue(true, spec.def);
-        knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        knob.setValue(effect_->getParamValue(i), juce::dontSendNotification);
-        knob.setColour(juce::Slider::rotarySliderFillColourId, CyberpunkTheme::cyan_);
-        knob.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
-        knob.setColour(juce::Slider::rotarySliderOutlineColourId, CyberpunkTheme::bg_.brighter(0.2f));
-        knob.setTooltip(spec.label);
+        auto knob = std::make_unique<juce::Slider>();
+        knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+        knob->setRange(spec.min, spec.max, spec.isInt ? 1.0 : 0.0);
+        knob->setSkewFactor(juce::jlimit(0.1f, 10.0f, spec.skew));
+        knob->setDoubleClickReturnValue(true, spec.def);
+        knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        knob->setValue(effect_->getParamValue(i), juce::dontSendNotification);
+        knob->setColour(juce::Slider::rotarySliderFillColourId, CyberpunkTheme::cyan_);
+        knob->setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
+        knob->setColour(juce::Slider::rotarySliderOutlineColourId, CyberpunkTheme::bg_.brighter(0.2f));
+        knob->setTooltip(spec.label);
         const int idx = i;
-        knob.onValueChange = [this, idx]()
+        knob->onValueChange = [this, idx]()
         {
             if (effect_ != nullptr)
-                effect_->setParamValue(idx, static_cast<float>(knobs_[(size_t) idx].getValue()));
+                effect_->setParamValue(idx, static_cast<float>(knobs_.getUnchecked(idx)->getValue()));
         };
-        addAndMakeVisible(knob);
+        addAndMakeVisible(knob.get());
+        knobs_.add(std::move(knob));
 
-        auto& label = labels_[(size_t) i];
-        label.setText(spec.label != nullptr ? spec.label : "", juce::dontSendNotification);
-        label.setFont(CyberpunkTheme::getCyberFont(8.0f, false));
-        label.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.8f));
-        label.setJustificationType(juce::Justification::centred);
-        label.setInterceptsMouseClicks(false, false);
-        addAndMakeVisible(label);
+        auto label = std::make_unique<juce::Label>();
+        label->setText(spec.label != nullptr ? spec.label : "", juce::dontSendNotification);
+        label->setFont(CyberpunkTheme::getCyberFont(8.0f, false));
+        label->setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.8f));
+        label->setJustificationType(juce::Justification::centred);
+        label->setInterceptsMouseClicks(false, false);
+        addAndMakeVisible(label.get());
+        labels_.add(std::move(label));
     }
 }
 
 void EffectParamPanel::resized()
 {
-    if (knobs_.empty())
+    if (knobs_.isEmpty())
         return;
 
     auto area = getLocalBounds();
     const int perRow = juce::jmax(1, area.getWidth() / knobW);
-    const int n = static_cast<int>(knobs_.size());
+    const int n = knobs_.size();
 
     for (int i = 0; i < n; ++i)
     {
@@ -73,14 +72,14 @@ void EffectParamPanel::resized()
         auto cell = juce::Rectangle<int>(area.getX() + col * knobW,
                                          area.getY() + row * rowH,
                                          knobW, rowH);
-        knobs_[(size_t) i].setBounds(cell.removeFromTop(rowH - 14));
-        labels_[(size_t) i].setBounds(cell);
+        knobs_.getUnchecked(i)->setBounds(cell.removeFromTop(rowH - 14));
+        labels_.getUnchecked(i)->setBounds(cell);
     }
 }
 
 int EffectParamPanel::getPreferredHeight(int width) const
 {
-    if (effect_ == nullptr || knobs_.empty())
+    if (effect_ == nullptr || knobs_.isEmpty())
         return 18;
 
     const int perRow = juce::jmax(1, width / knobW);
