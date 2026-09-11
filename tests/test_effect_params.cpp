@@ -86,6 +86,36 @@ TEST_CASE("Saturation effect exposes editable params", "[effects][params]")
     roundTripType("Saturation");
 }
 
+TEST_CASE("EQ effect exposes editable params", "[effects][params]")
+{
+    roundTripType("EQ");
+}
+
+TEST_CASE("AutoTune effect exposes editable params", "[effects][params]")
+{
+    roundTripType("AutoTune");
+}
+
+TEST_CASE("Flanger effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Flanger");
+}
+
+TEST_CASE("Phaser effect exposes editable params", "[effects][params]")
+{
+    roundTripType("Phaser");
+}
+
+TEST_CASE("RingModulator effect exposes editable params", "[effects][params]")
+{
+    roundTripType("RingModulator");
+}
+
+TEST_CASE("StereoWidener effect exposes editable params", "[effects][params]")
+{
+    roundTripType("StereoWidener");
+}
+
 TEST_CASE("Effect registry covers all rack types", "[effects][params]")
 {
     const auto& names = ana::EffectParamRegistry::getTypeNames();

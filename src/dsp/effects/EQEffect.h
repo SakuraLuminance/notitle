@@ -27,6 +27,8 @@ public:
     void setMidType(EQBandType t);
     void setHighType(EQBandType t);
 
+    const EQBand& getBand(int index) const { return bands[(size_t) juce::jlimit(0, 2, index)]; }
+
     juce::ValueTree getState() const
     {
         juce::ValueTree tree("EQEffect");

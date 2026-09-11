@@ -36,6 +36,10 @@ public:
     
     /** Set effect wet/dry amount (0.0 to 1.0). */
     void setAmount(float amount);
+
+    float getRetuneSpeed() const { return retuneSpeed_; }
+    float getAmount() const { return amount_; }
+    bool  isEnabled() const { return enabled_; }
     
     /** Choose the pitch correction algorithm (from PitchCorrector). */
     void setAlgorithm(PitchAlgorithm algo);

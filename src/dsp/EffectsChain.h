@@ -16,6 +16,7 @@ struct EffectParamSpec
     float def = 0.0f;
     float skew = 1.0f;
     bool  isInt = false;
+    const char* values = nullptr;   // optional enumeration labels, e.g. "0=SINE 1=TRI 2=SQUARE"
 };
 
 class EffectBase {

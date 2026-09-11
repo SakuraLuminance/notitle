@@ -52,7 +52,7 @@ jobs:
       run: ctest --test-dir build -C Release --output-on-failure --timeout 300
 
     # Crash forensics (Phase 0): the test exe segfaults at startup in CI.
-    # 1) One full run with an XML reporter 鈥?the results file lists every
+    # 1) One full run with an XML reporter 閳?the results file lists every
     #    COMPLETED test case, so the crash point is the next one.
     # 2) A per-test isolated loop via --list-test-names-only: each test runs
     #    in its own process, so a crash is attributed to exactly one name.
@@ -104,7 +104,7 @@ jobs:
           test-names.txt
           forensics.txt
 
-    # Debug both crashing processes under cdb (first-chance AV 鈫?stack + analyze).
+    # Debug both crashing processes under cdb (first-chance AV 閳?stack + analyze).
     # The debugger script writes to stdout; PDBs from /Zi + /DEBUG give symbols.
     - name: Debug test exe under cdb
       if: always()
@@ -165,7 +165,7 @@ jobs:
         curl -L "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_windows.zip" -o pluginval.zip
         unzip -o pluginval.zip -d pluginval_dir
         set +e
-        pluginval_dir/pluginval.exe --validate-in-process --strictness-level 2 --verbose --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tee pluginval.log
+        pluginval_dir/pluginval.exe --validate-in-process --strictness-level 3 --verbose --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tee pluginval.log
         code=$?
         set -e
         echo "pluginval exit: $code"
@@ -189,7 +189,7 @@ jobs:
         "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -g -G -lines \
           -y "C:\\pdb;SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols" \
           -cf dbgscript2.txt \
-          pluginval_dir/pluginval.exe --validate-in-process --strictness-level 2 --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tail -n 150 || true
+          pluginval_dir/pluginval.exe --validate-in-process --strictness-level 3 --output-dir ./bin "build/AnaPlug_artefacts/Release/VST3/AnaPlug.vst3" 2>&1 | tail -n 150 || true
 
     # Analyse any minidumps produced this run (faulting module+offset+stack
     # when cdb.exe is available; dumps are always uploaded as artifacts).

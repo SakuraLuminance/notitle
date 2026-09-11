@@ -23,6 +23,7 @@ public:
     float getRange() const { return range; }
     float getBlend() const { return blend; }
     float getVolume() const { return volume; }
+    DistortionType getType() const { return type; }
 
     juce::ValueTree getState() const
     {

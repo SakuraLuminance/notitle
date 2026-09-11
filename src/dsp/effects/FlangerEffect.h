@@ -21,6 +21,12 @@ public:
     void setBypass(bool b);
     void setGain(float g);
 
+    float getRate() const { return rate; }
+    float getDepth() const { return depth; }
+    float getDelay() const { return delayMs; }
+    float getFeedback() const { return feedback; }
+    float getMix() const { return mixVal; }
+
     juce::ValueTree getState() const override
     {
         juce::ValueTree tree("FlangerEffect");

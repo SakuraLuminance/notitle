@@ -27,6 +27,7 @@ public:
     float getTone() const { return toneFreq; }
     float getMix() const { return mixVal * 100.0f; }
     float getGain() const { return gainVal; }
+    int   getMode() const { return modeAtomic_.load(std::memory_order_relaxed); }
 
     int getLatencySamples() const { return latencySamples; }
 

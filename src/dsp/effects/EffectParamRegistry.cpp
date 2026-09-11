@@ -129,6 +129,56 @@ public:
     void reset() override { fx.reset(); }
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
+
+    int getNumParams() const override { return 9; }
+    const EffectParamSpec& getParamSpec(int i) const override
+    {
+        static const std::vector<EffectParamSpec> table = {
+            { "low_freq",  "LOW FREQ",  20.0f,  20000.0f, 200.0f, 0.3f,  false, nullptr },
+            { "low_gain",  "LOW GAIN",  -24.0f, 24.0f,    0.0f,   1.0f,  false, nullptr },
+            { "low_q",     "LOW Q",     0.1f,   10.0f,    0.707f, 1.0f,  false, nullptr },
+            { "mid_freq",  "MID FREQ",  20.0f,  20000.0f, 1000.0f, 0.3f, false, nullptr },
+            { "mid_gain",  "MID GAIN",  -24.0f, 24.0f,    0.0f,   1.0f,  false, nullptr },
+            { "mid_q",     "MID Q",     0.1f,   10.0f,    0.707f, 1.0f,  false, nullptr },
+            { "high_freq", "HIGH FREQ", 20.0f,  20000.0f, 5000.0f, 0.3f, false, nullptr },
+            { "high_gain", "HIGH GAIN", -24.0f, 24.0f,    0.0f,   1.0f,  false, nullptr },
+            { "high_q",    "HIGH Q",    0.1f,   10.0f,    0.707f, 1.0f,  false, nullptr },
+        };
+        return table[(size_t) i];
+    }
+    float getParamValue(int i) const override
+    {
+        const int band = i / 3;
+        const int field = i % 3;
+        const auto& b = fx.getBand(band);
+        if (field == 0) return b.frequency;
+        if (field == 1) return b.gain;
+        return b.q;
+    }
+    void setParamValue(int i, float v) override
+    {
+        const int band = i / 3;
+        const int field = i % 3;
+        const auto& b = fx.getBand(band);
+        if (band == 0)
+        {
+            if (field == 0)      fx.setLowBand(v, b.gain, b.q);
+            else if (field == 1) fx.setLowBand(b.frequency, v, b.q);
+            else                 fx.setLowBand(b.frequency, b.gain, v);
+        }
+        else if (band == 1)
+        {
+            if (field == 0)      fx.setMidBand(v, b.gain, b.q);
+            else if (field == 1) fx.setMidBand(b.frequency, v, b.q);
+            else                 fx.setMidBand(b.frequency, b.gain, v);
+        }
+        else
+        {
+            if (field == 0)      fx.setHighBand(v, b.gain, b.q);
+            else if (field == 1) fx.setHighBand(b.frequency, v, b.q);
+            else                 fx.setHighBand(b.frequency, b.gain, v);
+        }
+    }
 };
 
 class ChorusAdapter : public EffectBase
@@ -189,14 +239,15 @@ public:
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
 
-    int getNumParams() const override { return 4; }
+    int getNumParams() const override { return 5; }
     const EffectParamSpec& getParamSpec(int i) const override
     {
         static const std::vector<EffectParamSpec> table = {
-            { "drive",  "DRIVE",  0.0f, 100.0f, 40.0f,  1.0f, false },
-            { "range",  "RANGE",  0.0f, 100.0f, 50.0f,  1.0f, false },
-            { "blend",  "BLEND",  0.0f, 100.0f, 50.0f,  1.0f, false },
-            { "volume", "LEVEL",  0.0f, 200.0f, 100.0f, 1.0f, false },
+            { "drive",  "DRIVE",  0.0f, 100.0f, 40.0f,  1.0f, false, nullptr },
+            { "range",  "RANGE",  0.0f, 100.0f, 50.0f,  1.0f, false, nullptr },
+            { "blend",  "BLEND",  0.0f, 100.0f, 50.0f,  1.0f, false, nullptr },
+            { "volume", "LEVEL",  0.0f, 200.0f, 100.0f, 1.0f, false, nullptr },
+            { "type",   "TYPE",   0.0f, 4.0f,   0.0f,   1.0f, true,  "0=SOFT 1=HARD 2=TUBE 3=FOLDER 4=CRUSH" },
         };
         return table[(size_t) i];
     }
@@ -207,7 +258,8 @@ public:
             case 0:  return fx.getDrive();
             case 1:  return fx.getRange();
             case 2:  return fx.getBlend();
-            default: return fx.getVolume();
+            case 3:  return fx.getVolume();
+            default: return static_cast<float>(static_cast<int>(fx.getType()));
         }
     }
     void setParamValue(int i, float v) override
@@ -217,7 +269,9 @@ public:
             case 0:  fx.setDrive(v); break;
             case 1:  fx.setRange(v); break;
             case 2:  fx.setBlend(v); break;
-            default: fx.setVolume(v); break;
+            case 3:  fx.setVolume(v); break;
+            default: fx.setType(static_cast<DistortionType>(
+                         juce::jlimit(0, 4, static_cast<int>(v)))); break;
         }
     }
 };
@@ -232,6 +286,35 @@ public:
     void reset() override { effect.reset(); }
     juce::ValueTree getState() const override { return effect.getState(); }
     void setState(const juce::ValueTree& s) override { effect.setState(s); }
+
+    int getNumParams() const override { return 3; }
+    const EffectParamSpec& getParamSpec(int i) const override
+    {
+        static const std::vector<EffectParamSpec> table = {
+            { "speed",   "SPEED",   0.01f, 20.0f, 10.0f, 0.3f, false, nullptr },
+            { "amount",  "AMOUNT",  0.0f,  1.0f,  0.5f,  1.0f, false, nullptr },
+            { "enabled", "ON",      0.0f,  1.0f,  1.0f,  1.0f, true,  nullptr },
+        };
+        return table[(size_t) i];
+    }
+    float getParamValue(int i) const override
+    {
+        switch (i)
+        {
+            case 0:  return effect.getRetuneSpeed();
+            case 1:  return effect.getAmount();
+            default: return effect.isEnabled() ? 1.0f : 0.0f;
+        }
+    }
+    void setParamValue(int i, float v) override
+    {
+        switch (i)
+        {
+            case 0:  effect.setRetuneSpeed(v); break;
+            case 1:  effect.setAmount(v); break;
+            default: effect.setEnabled(v > 0.5f); break;
+        }
+    }
 };
 
 class CompressorAdapter : public EffectBase
@@ -335,6 +418,41 @@ public:
     void reset() override { fx.reset(); }
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
+
+    int getNumParams() const override { return 5; }
+    const EffectParamSpec& getParamSpec(int i) const override
+    {
+        static const std::vector<EffectParamSpec> table = {
+            { "rate",   "RATE",     0.1f, 10.0f, 0.5f, 0.3f, false, nullptr },
+            { "depth",  "DEPTH",    0.0f, 1.0f,  0.5f, 1.0f, false, nullptr },
+            { "delay",  "DELAY",    0.1f, 10.0f, 3.0f, 0.3f, false, nullptr },
+            { "fb",     "FEEDBACK", 0.0f, 1.0f,  0.3f, 1.0f, false, nullptr },
+            { "mix",    "MIX",      0.0f, 1.0f,  0.5f, 1.0f, false, nullptr },
+        };
+        return table[(size_t) i];
+    }
+    float getParamValue(int i) const override
+    {
+        switch (i)
+        {
+            case 0:  return fx.getRate();
+            case 1:  return fx.getDepth();
+            case 2:  return fx.getDelay();
+            case 3:  return fx.getFeedback();
+            default: return fx.getMix();
+        }
+    }
+    void setParamValue(int i, float v) override
+    {
+        switch (i)
+        {
+            case 0:  fx.setRate(v); break;
+            case 1:  fx.setDepth(v); break;
+            case 2:  fx.setDelay(v); break;
+            case 3:  fx.setFeedback(v); break;
+            default: fx.setMix(v); break;
+        }
+    }
 };
 
 class PhaserAdapter : public EffectBase
@@ -347,6 +465,44 @@ public:
     void reset() override { fx.reset(); }
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
+
+    int getNumParams() const override { return 6; }
+    const EffectParamSpec& getParamSpec(int i) const override
+    {
+        static const std::vector<EffectParamSpec> table = {
+            { "rate",   "RATE",     0.1f,  20.0f,  1.0f, 0.3f, false, nullptr },
+            { "depth",  "DEPTH",    0.0f,  1.0f,   0.5f, 1.0f, false, nullptr },
+            { "fb",     "FEEDBACK", 0.0f,  1.0f,   0.3f, 1.0f, false, nullptr },
+            { "stages", "STAGES",   2.0f,  12.0f,  8.0f, 1.0f, true,  nullptr },
+            { "mix",    "MIX",      0.0f,  1.0f,   0.5f, 1.0f, false, nullptr },
+            { "stereo", "WIDTH",    0.0f,  180.0f, 0.0f, 1.0f, false, nullptr },
+        };
+        return table[(size_t) i];
+    }
+    float getParamValue(int i) const override
+    {
+        switch (i)
+        {
+            case 0:  return fx.getRate();
+            case 1:  return fx.getDepth();
+            case 2:  return fx.getFeedback();
+            case 3:  return static_cast<float>(fx.getStages());
+            case 4:  return fx.getMix();
+            default: return fx.getStereoPhaseOffset();
+        }
+    }
+    void setParamValue(int i, float v) override
+    {
+        switch (i)
+        {
+            case 0:  fx.setRate(v); break;
+            case 1:  fx.setDepth(v); break;
+            case 2:  fx.setFeedback(v); break;
+            case 3:  fx.setStages(static_cast<int>(v)); break;
+            case 4:  fx.setMix(v); break;
+            default: fx.setStereoPhaseOffset(v); break;
+        }
+    }
 };
 
 class RingModulatorAdapter : public EffectBase
@@ -359,6 +515,35 @@ public:
     void reset() override { fx.reset(); }
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
+
+    int getNumParams() const override { return 3; }
+    const EffectParamSpec& getParamSpec(int i) const override
+    {
+        static const std::vector<EffectParamSpec> table = {
+            { "freq",     "FREQUENCY", 0.1f, 5000.0f, 100.0f, 0.3f, false, nullptr },
+            { "waveform", "WAVEFORM",  0.0f, 2.0f,    0.0f,   1.0f, true,  "0=SINE 1=TRI 2=SQUARE" },
+            { "mix",      "MIX",       0.0f, 1.0f,    0.5f,   1.0f, false, nullptr },
+        };
+        return table[(size_t) i];
+    }
+    float getParamValue(int i) const override
+    {
+        switch (i)
+        {
+            case 0:  return fx.getFrequency();
+            case 1:  return static_cast<float>(fx.getWaveform());
+            default: return fx.getMix();
+        }
+    }
+    void setParamValue(int i, float v) override
+    {
+        switch (i)
+        {
+            case 0:  fx.setFrequency(v); break;
+            case 1:  fx.setWaveform(juce::jlimit(0, 2, static_cast<int>(v))); break;
+            default: fx.setMix(v); break;
+        }
+    }
 };
 
 class StereoWidenerAdapter : public EffectBase
@@ -371,6 +556,25 @@ public:
     void reset() override { fx.reset(); }
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
+
+    int getNumParams() const override { return 2; }
+    const EffectParamSpec& getParamSpec(int i) const override
+    {
+        static const std::vector<EffectParamSpec> table = {
+            { "width", "WIDTH", 0.0f, 1.0f, 0.5f, 1.0f, false, "0=MONO 0.5=100% 1=200%" },
+            { "mix",   "MIX",   0.0f, 1.0f, 1.0f, 1.0f, false, nullptr },
+        };
+        return table[(size_t) i];
+    }
+    float getParamValue(int i) const override
+    {
+        return i == 0 ? fx.getWidth() : fx.getMix();
+    }
+    void setParamValue(int i, float v) override
+    {
+        if (i == 0) fx.setWidth(v);
+        else        fx.setMix(v);
+    }
 };
 
 class SaturationAdapter : public EffectBase
@@ -384,14 +588,15 @@ public:
     juce::ValueTree getState() const override { return fx.getState(); }
     void setState(const juce::ValueTree& s) override { fx.setState(s); }
 
-    int getNumParams() const override { return 4; }
+    int getNumParams() const override { return 5; }
     const EffectParamSpec& getParamSpec(int i) const override
     {
         static const std::vector<EffectParamSpec> table = {
-            { "drive", "DRIVE", 0.0f,    100.0f,   30.0f,  1.0f,  false },
-            { "tone",  "TONE",  20.0f,   20000.0f, 8000.0f, 0.3f, false },
-            { "mix",   "MIX",   0.0f,    100.0f,   100.0f, 1.0f,  false },
-            { "gain",  "GAIN",  0.0f,    4.0f,     1.0f,   1.0f,  false },
+            { "drive", "DRIVE", 0.0f,    100.0f,   30.0f,  1.0f,  false, nullptr },
+            { "tone",  "TONE",  20.0f,   20000.0f, 8000.0f, 0.3f, false, nullptr },
+            { "mix",   "MIX",   0.0f,    100.0f,   100.0f, 1.0f,  false, nullptr },
+            { "gain",  "GAIN",  0.0f,    4.0f,     1.0f,   1.0f,  false, nullptr },
+            { "mode",  "MODE",  0.0f,    2.0f,     0.0f,   1.0f,  true,  "0=SOFT 1=TUBE 2=TAPE" },
         };
         return table[(size_t) i];
     }
@@ -402,7 +607,8 @@ public:
             case 0:  return fx.getDrive();
             case 1:  return fx.getTone();
             case 2:  return fx.getMix();
-            default: return fx.getGain();
+            case 3:  return fx.getGain();
+            default: return static_cast<float>(fx.getMode());
         }
     }
     void setParamValue(int i, float v) override
@@ -412,7 +618,9 @@ public:
             case 0:  fx.setDrive(v); break;
             case 1:  fx.setTone(v); break;
             case 2:  fx.setMix(v); break;
-            default: fx.setGain(v); break;
+            case 3:  fx.setGain(v); break;
+            default: fx.setMode(static_cast<SaturationMode>(
+                         juce::jlimit(0, 2, static_cast<int>(v)))); break;
         }
     }
 };

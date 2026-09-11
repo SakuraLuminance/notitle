@@ -19,6 +19,10 @@ public:
     void setBypass(bool b);
     void setGain(float g);
 
+    float getFrequency() const { return frequency; }
+    int   getWaveform() const { return waveform; }
+    float getMix() const { return mixVal; }
+
     juce::ValueTree getState() const override
     {
         juce::ValueTree tree("RingModulatorEffect");

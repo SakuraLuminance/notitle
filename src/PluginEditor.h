@@ -84,6 +84,7 @@ private:
     // Title bar
     juce::Label titleLabel_;
     juce::TextButton presetButton_;
+    juce::TextButton importButton_{"IMPORT"};
 
     //==============================================================================
     // Left/right panels — Timbre A / B (Harmor-style)

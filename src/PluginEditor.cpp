@@ -35,6 +35,12 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     presetButton_.setColour(juce::TextButton::textColourOffId, ana::CyberpunkTheme::cyan_);
     addAndMakeVisible(presetButton_);
 
+    // Prominent sample-import entry (the rack LOAD-button corner was easy to miss)
+    addCyberButton(importButton_);
+    importButton_.setTooltip("Import a WAV sample to resynthesize (same as LOAD)");
+    importButton_.onClick = [this] { loadButtonClicked(); };
+    addAndMakeVisible(importButton_);
+
     //==============================================================================
     // Timbre A/B panels
     addAndMakeVisible(timbreAPanel_);
@@ -519,6 +525,7 @@ void AnaPlugAudioProcessorEditor::resized()
     // -- Title bar --
     auto titleRect = r.titleBar.reduced(8, 0);
     titleLabel_.setBounds(titleRect.removeFromLeft(260));
+    importButton_.setBounds(titleRect.removeFromRight(84).reduced(0, 3));
     presetButton_.setBounds(titleRect.removeFromRight(150));
 
     // -- Timbre A/B panels --

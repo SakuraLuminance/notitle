@@ -22,6 +22,13 @@ public:
     void setGain(float g);
     void setStereoPhaseOffset(float degrees);
 
+    float getRate() const { return rate; }
+    float getDepth() const { return depth; }
+    float getFeedback() const { return feedback; }
+    int   getStages() const { return stages; }
+    float getMix() const { return mixVal; }
+    float getStereoPhaseOffset() const { return stereoPhaseOffset; }
+
     juce::ValueTree getState() const override
     {
         juce::ValueTree tree("PhaserEffect");
