@@ -380,6 +380,12 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     addAndMakeVisible(meteringPanel_);
 
     //==============================================================================
+    // Page tabs (Serum-style pagination)
+    pageTabs_.onTabChanged = [this](int page) { setActivePage(page); };
+    addAndMakeVisible(pageTabs_);
+    setActivePage(0);
+
+    //==============================================================================
     // MIDI Learn indicator (hidden by default)
     midiLearnIndicator_.setText("MIDI LEARN", juce::dontSendNotification);
     midiLearnIndicator_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f, true));
@@ -443,36 +449,26 @@ AnaPlugAudioProcessorEditor::~AnaPlugAudioProcessorEditor()
 //==============================================================================
 void AnaPlugAudioProcessorEditor::computeRegions(juce::Rectangle<int> bounds, Regions& r) const
 {
-    int w = bounds.getWidth();
-    (void)w;
-
-    // Title bar at top
+    // Page strip
     r.titleBar = bounds.removeFromTop(28);
-
-    // Reserve status bar at bottom (compact 35px 鈥?was ~65px)
     r.statusBar = bounds.removeFromBottom(35);
+    r.tabBar = bounds.removeFromBottom(22);
 
-    // Main 3-column area (42% of remaining height)
-    r.mainArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.42f));
-
-    // Process panel (filter + macros + effects) 鈥?increased from 32% to 46%
-    // to give effect rack room for 3-4 visible modules
-    r.processArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.46f));
-
-    // Modulation panel (scrollable, can be compact)
-    r.modArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.38f));
-
-    // Bottom strip (unison, voice, arp, seq, sample, master)
-    r.bottomArea = bounds;
-
-    // Main area: A | center | B  (17% | 66% | 17%)
-    auto mainW = r.mainArea.getWidth();
-    r.timbreAPanel = r.mainArea.removeFromLeft(static_cast<int>(mainW * 0.17f));
-    r.timbreBPanel = r.mainArea.removeFromRight(static_cast<int>(mainW * 0.17f));
-    r.centerPanel = r.mainArea;
+    // Pinned spectrum: 34% of the remainder, bounded so the content page
+    // keeps a workable minimum height even at the 900x660 resize floor.
+    const int minSpec = 120;
+    const int minContent = 120;
+    int specH = static_cast<int>(bounds.getHeight() * 0.34f);
+    specH = juce::jlimit(minSpec,
+                         juce::jmax(minSpec, bounds.getHeight() - minContent),
+                         specH);
+    r.spectrum = bounds.removeFromTop(specH);
+    r.content = bounds;
 }
 
 //==============================================================================
+static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER" };
+
 void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
@@ -483,13 +479,10 @@ void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
     g.fillAll(ana::CyberpunkTheme::bg_);
     ana::CyberpunkTheme::drawGridBackground(g, getLocalBounds());
 
-    // Draw panel borders with cyberpunk accents
-    ana::CyberpunkTheme::drawPanelBorder(g, r.timbreAPanel, "TIMBRE A", ana::CyberpunkTheme::cyan_);
-    ana::CyberpunkTheme::drawPanelBorder(g, r.timbreBPanel, "TIMBRE B", ana::CyberpunkTheme::magenta_);
-    ana::CyberpunkTheme::drawPanelBorder(g, r.centerPanel, "SPECTRUM", ana::CyberpunkTheme::cyan_);
-    ana::CyberpunkTheme::drawPanelBorder(g, r.processArea, "PROCESS", ana::CyberpunkTheme::cyan_);
-    ana::CyberpunkTheme::drawPanelBorder(g, r.modArea, "MODULATION", ana::CyberpunkTheme::yellow_);
-    ana::CyberpunkTheme::drawPanelBorder(g, r.bottomArea, "CONTROLS", ana::CyberpunkTheme::magenta_);
+    // Region borders
+    ana::CyberpunkTheme::drawPanelBorder(g, r.spectrum, "SPECTRUM", ana::CyberpunkTheme::cyan_);
+    ana::CyberpunkTheme::drawPanelBorder(g, r.content,
+        kPageNames[juce::jlimit(0, 5, activePage_)], ana::CyberpunkTheme::magenta_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.statusBar, "", ana::CyberpunkTheme::fg_.withAlpha(0.15f));
 
     // Title bar
@@ -506,12 +499,6 @@ void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
                static_cast<float>(tb.getX()) + cornerLen, static_cast<float>(tb.getBottom()));
     g.drawLine(static_cast<float>(tb.getX()), static_cast<float>(tb.getBottom()),
                static_cast<float>(tb.getX()), static_cast<float>(tb.getBottom()) - cornerLen);
-
-    // Version on status bar
-    g.setFont(ana::CyberpunkTheme::getCyberFont(8.0f, false));
-    g.setColour(ana::CyberpunkTheme::fg_.withAlpha(0.3f));
-    g.drawText("v3.0 | " + juce::String(getWidth()) + "x" + juce::String(getHeight()),
-               r.statusBar, juce::Justification::centredRight);
 }
 
 //==============================================================================
@@ -528,111 +515,120 @@ void AnaPlugAudioProcessorEditor::resized()
     importButton_.setBounds(titleRect.removeFromRight(84).reduced(0, 3));
     presetButton_.setBounds(titleRect.removeFromRight(150));
 
-    // -- Timbre A/B panels --
-    timbreAPanel_.setBounds(r.timbreAPanel);
-    timbreBPanel_.setBounds(r.timbreBPanel);
-
-    // Timbre blend at center-between
-    auto blendArea = r.centerPanel.removeFromBottom(20).reduced(40, 0);
-    timbreBlendSlider_.setBounds(blendArea);
-    timbreBlendLabel_.setBounds(blendArea.translated(0, -16));
-
-    // -- Center panel: view selector strip + feedback + XY pad --
-    auto centerArea = r.centerPanel.reduced(4, 4);
-    viewModeCombo_.setBounds(centerArea.removeFromTop(18).reduced(centerArea.getWidth() / 2 - 80, 0));
-    auto fbArea = centerArea.removeFromTop(static_cast<int>(centerArea.getHeight() * 0.70f));
+    // -- Pinned spectrum (embedded view selector at top-right, clear of the border title) --
+    auto spec = r.spectrum.reduced(6, 4);
+    viewModeCombo_.setBounds(spec.removeFromTop(18).removeFromRight(120));
+    auto fbArea = spec;
     liveSpectrumPanel_.setBounds(fbArea.reduced(2));
     feedbackPanel_.setBounds(fbArea.reduced(2));
     waterfallDisplay_.setBounds(fbArea.reduced(2));
     if (waveformDisplay_)
         waveformDisplay_->setBounds(fbArea.reduced(2));
     spectrumEditorCanvas_.setBounds(fbArea.reduced(2));
-    if (xyPad_)
-        xyPad_->setBounds(centerArea.reduced(2));
 
-    // -- Process panel: FILTER (left) | MACROS (center) | EFFECTS (right) --
-    auto pa = r.processArea.reduced(6, pad);
+    // -- Page tab strip --
+    pageTabs_.setBounds(r.tabBar);
 
-    // Filter section (22% 鈥?narrower to give effects more room)
-    filterPanel_.setBounds(pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.22f)));
+    // -- Active page content --
+    auto ca = r.content.reduced(6, 3);
+    switch (activePage_)
+    {
+        case 0: // TIMBRE
+        {
+            auto blendStrip = ca.removeFromBottom(22).reduced(40, 0);
+            timbreBlendSlider_.setBounds(blendStrip);
+            timbreBlendLabel_.setBounds(blendStrip.translated(0, -16));
 
-    // Macros section (40% of remaining 鈥?narrower for effects)
-    macroPanel_.setBounds(pa.removeFromLeft(static_cast<int>(pa.getWidth() * 0.40f)));
+            const int colW = juce::jmax(1, ca.getWidth() / 3);
+            timbreAPanel_.setBounds(ca.removeFromLeft(colW));
+            timbreBPanel_.setBounds(ca.removeFromLeft(colW));
+            if (xyPad_)
+                xyPad_->setBounds(ca.reduced(2));
+            break;
+        }
 
-    // Effects section (right remainder) 鈥?dynamic effect rack
-    auto fxArea = pa.reduced(pad);
-    // Effect preset combo at top of effects section
-    auto fxPresetRow = fxArea.removeFromTop(16).reduced(2, 0);
-    fxPresetLabel_.setBounds(fxPresetRow.removeFromLeft(52));
-    effectPresetCombo_.setBounds(fxPresetRow.reduced(0, 1));
-    // Spectral effect toggles 鈥?single compact row (was 3脳20px rows)
-    auto specRow = fxArea.removeFromTop(18).reduced(pad);
-    prismButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 3).reduced(1));
-    blurButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 2).reduced(1));
-    harmButton_.setBounds(specRow.reduced(1));
-    // Vocal character selector row
-    auto vocalRow = fxArea.removeFromTop(18).reduced(pad);
-    vocalCharacterLabel_.setBounds(vocalRow.removeFromLeft(34));
-    vocalCharacterCombo_.setBounds(vocalRow.reduced(0, 1));
-    // Dynamic effect rack fills remaining 鈥?show 3-4 modules at a time
-    effectRack_.setBounds(fxArea.reduced(1, pad));
+        case 1: // FILTER
+            filterPanel_.setBounds(ca);
+            break;
 
-    // -- Modulation assignment panel (scrollable Viewport) --
-    modViewport_.setBounds(r.modArea.reduced(6, pad));
+        case 2: // MOD
+        {
+            const int macroH = juce::jmin(70, juce::jmax(1, ca.getHeight() / 3));
+            macroPanel_.setBounds(ca.removeFromTop(macroH));
+            modViewport_.setBounds(ca.reduced(0, 2));
+            break;
+        }
 
-    // -- Bottom controls: UNISON | VOICE | ARP | SEQ | SAMPLE | MASTER --
-    auto ba = r.bottomArea.reduced(6, pad);
-    auto uniArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.14f)).reduced(pad);
-    auto voiceArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.14f)).reduced(pad);
-    auto arpArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.14f)).reduced(pad);
-    sequencerPanel_.setBounds(ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.18f)));
-    transportBar_.setBounds(ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.26f)));
-    masterSection_.setBounds(ba);
+        case 3: // SEQ
+            sequencerPanel_.setBounds(ca);
+            break;
 
-    // Unison
-    unisonTitle_.setBounds(uniArea.removeFromTop(14));
-    auto uniKnobs = uniArea.reduced(pad);
-    int ukW = uniKnobs.getWidth() / 3;
-    
-    auto uniCell1 = uniKnobs.removeFromLeft(ukW).reduced(2);
-    unisonCountSlider_.setBounds(uniCell1.removeFromTop(uniCell1.getWidth()));
-    unisonCountLabel_.setBounds(uniCell1);
-    
-    auto uniCell2 = uniKnobs.removeFromLeft(ukW).reduced(2);
-    unisonDetuneSlider_.setBounds(uniCell2.removeFromTop(uniCell2.getWidth()));
-    unisonDetuneLabel_.setBounds(uniCell2);
-    
-    auto uniCell3 = uniKnobs.reduced(2);
-    unisonSpreadSlider_.setBounds(uniCell3.removeFromTop(uniCell3.getWidth()));
-    unisonSpreadLabel_.setBounds(uniCell3);
+        case 4: // FX
+        {
+            auto fxArea = ca;
+            auto fxPresetRow = fxArea.removeFromTop(16).reduced(2, 0);
+            fxPresetLabel_.setBounds(fxPresetRow.removeFromLeft(52));
+            effectPresetCombo_.setBounds(fxPresetRow.reduced(0, 1));
+            auto specRow = fxArea.removeFromTop(18).reduced(pad);
+            prismButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 3).reduced(1));
+            blurButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 2).reduced(1));
+            harmButton_.setBounds(specRow.reduced(1));
+            auto vocalRow = fxArea.removeFromTop(18).reduced(pad);
+            vocalCharacterLabel_.setBounds(vocalRow.removeFromLeft(34));
+            vocalCharacterCombo_.setBounds(vocalRow.reduced(0, 1));
+            effectRack_.setBounds(fxArea.reduced(1, pad));
+            break;
+        }
 
-    // Voice mode / Portamento
-    voiceTitle_.setBounds(voiceArea.removeFromTop(14));
-    voiceModeCombo_.setBounds(voiceArea.removeFromTop(18).reduced(pad));
-    auto voiceKnobs = voiceArea.reduced(pad);
-    int vkW = voiceKnobs.getWidth() / 2;
+        case 5: // MASTER
+        {
+            auto ba = ca;
+            auto uniArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.24f)).reduced(pad);
+            auto voiceArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.24f)).reduced(pad);
+            auto arpArea = ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.22f)).reduced(pad);
+            transportBar_.setBounds(ba.removeFromLeft(static_cast<int>(ba.getWidth() * 0.20f)).reduced(pad));
+            masterSection_.setBounds(ba);
 
-    auto voiceCell1 = voiceKnobs.removeFromLeft(vkW).reduced(2);
-    portamentoTimeSlider_.setBounds(voiceCell1.removeFromTop(voiceCell1.getWidth()));
-    portamentoTimeLabel_.setBounds(voiceCell1);
+            // Unison
+            unisonTitle_.setBounds(uniArea.removeFromTop(14));
+            auto uniKnobs = uniArea.reduced(pad);
+            int ukW = uniKnobs.getWidth() / 3;
+            auto uniCell1 = uniKnobs.removeFromLeft(ukW).reduced(2);
+            unisonCountSlider_.setBounds(uniCell1.removeFromTop(uniCell1.getWidth()));
+            unisonCountLabel_.setBounds(uniCell1);
+            auto uniCell2 = uniKnobs.removeFromLeft(ukW).reduced(2);
+            unisonDetuneSlider_.setBounds(uniCell2.removeFromTop(uniCell2.getWidth()));
+            unisonDetuneLabel_.setBounds(uniCell2);
+            auto uniCell3 = uniKnobs.reduced(2);
+            unisonSpreadSlider_.setBounds(uniCell3.removeFromTop(uniCell3.getWidth()));
+            unisonSpreadLabel_.setBounds(uniCell3);
 
-    auto voiceCell2 = voiceKnobs.reduced(2);
-    portamentoCurveCombo_.setBounds(voiceCell2.removeFromTop(18).reduced(0, 2));
-    portamentoCurveLabel_.setBounds(voiceCell2.removeFromTop(12).reduced(pad));
+            // Voice mode / Portamento
+            voiceTitle_.setBounds(voiceArea.removeFromTop(14));
+            voiceModeCombo_.setBounds(voiceArea.removeFromTop(18).reduced(pad));
+            auto voiceKnobs = voiceArea.reduced(pad);
+            int vkW = voiceKnobs.getWidth() / 2;
+            auto voiceCell1 = voiceKnobs.removeFromLeft(vkW).reduced(2);
+            portamentoTimeSlider_.setBounds(voiceCell1.removeFromTop(voiceCell1.getWidth()));
+            portamentoTimeLabel_.setBounds(voiceCell1);
+            auto voiceCell2 = voiceKnobs.reduced(2);
+            portamentoCurveCombo_.setBounds(voiceCell2.removeFromTop(18).reduced(0, 2));
+            portamentoCurveLabel_.setBounds(voiceCell2.removeFromTop(12).reduced(pad));
 
-    // Arp
-    arpTitle_.setBounds(arpArea.removeFromTop(14));
-    arpPatternCombo_.setBounds(arpArea.removeFromTop(18).reduced(pad));
-    auto arpKnobs = arpArea.reduced(pad);
-    int akW = arpKnobs.getWidth() / 2;
-    
-    auto arpCell1 = arpKnobs.removeFromLeft(akW).reduced(2);
-    arpRateSlider_.setBounds(arpCell1.removeFromTop(arpCell1.getWidth()));
-    arpRateLabel_.setBounds(arpCell1);
-    
-    auto arpCell2 = arpKnobs.reduced(2);
-    arpGateSlider_.setBounds(arpCell2.removeFromTop(arpCell2.getWidth()));
-    arpGateLabel_.setBounds(arpCell2);
+            // Arp
+            arpTitle_.setBounds(arpArea.removeFromTop(14));
+            arpPatternCombo_.setBounds(arpArea.removeFromTop(18).reduced(pad));
+            auto arpKnobs = arpArea.reduced(pad);
+            int akW = arpKnobs.getWidth() / 2;
+            auto arpCell1 = arpKnobs.removeFromLeft(akW).reduced(2);
+            arpRateSlider_.setBounds(arpCell1.removeFromTop(arpCell1.getWidth()));
+            arpRateLabel_.setBounds(arpCell1);
+            auto arpCell2 = arpKnobs.reduced(2);
+            arpGateSlider_.setBounds(arpCell2.removeFromTop(arpCell2.getWidth()));
+            arpGateLabel_.setBounds(arpCell2);
+            break;
+        }
+    }
 
     // -- Status bar (compact 35px) --
     auto sb = r.statusBar.reduced(4, 1);
@@ -644,6 +640,62 @@ void AnaPlugAudioProcessorEditor::resized()
     randomizeButton_.setBounds(randArea.removeFromLeft(65));
     rangeCombo_.setBounds(randArea.reduced(1));
     statusLabel_.setBounds(sb.reduced(4, 0));
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::setActivePage(int page)
+{
+    if (page < 0 || page > 5)
+        return;
+    activePage_ = page;
+
+    // Show only the active page's members
+    timbreAPanel_.setVisible(page == 0);
+    timbreBPanel_.setVisible(page == 0);
+    timbreBlendSlider_.setVisible(page == 0);
+    timbreBlendLabel_.setVisible(page == 0);
+    if (xyPad_)
+        xyPad_->setVisible(page == 0);
+
+    filterPanel_.setVisible(page == 1);
+
+    macroPanel_.setVisible(page == 2);
+    modViewport_.setVisible(page == 2);
+
+    sequencerPanel_.setVisible(page == 3);
+
+    fxPresetLabel_.setVisible(page == 4);
+    effectPresetCombo_.setVisible(page == 4);
+    prismButton_.setVisible(page == 4);
+    blurButton_.setVisible(page == 4);
+    harmButton_.setVisible(page == 4);
+    vocalCharacterLabel_.setVisible(page == 4);
+    vocalCharacterCombo_.setVisible(page == 4);
+    effectRack_.setVisible(page == 4);
+
+    transportBar_.setVisible(page == 5);
+    masterSection_.setVisible(page == 5);
+    unisonTitle_.setVisible(page == 5);
+    unisonCountSlider_.setVisible(page == 5);
+    unisonCountLabel_.setVisible(page == 5);
+    unisonDetuneSlider_.setVisible(page == 5);
+    unisonDetuneLabel_.setVisible(page == 5);
+    unisonSpreadSlider_.setVisible(page == 5);
+    unisonSpreadLabel_.setVisible(page == 5);
+    voiceTitle_.setVisible(page == 5);
+    voiceModeCombo_.setVisible(page == 5);
+    portamentoTimeSlider_.setVisible(page == 5);
+    portamentoTimeLabel_.setVisible(page == 5);
+    portamentoCurveCombo_.setVisible(page == 5);
+    portamentoCurveLabel_.setVisible(page == 5);
+    arpTitle_.setVisible(page == 5);
+    arpPatternCombo_.setVisible(page == 5);
+    arpRateSlider_.setVisible(page == 5);
+    arpRateLabel_.setVisible(page == 5);
+    arpGateSlider_.setVisible(page == 5);
+    arpGateLabel_.setVisible(page == 5);
+
+    resized();
 }
 
 //==============================================================================

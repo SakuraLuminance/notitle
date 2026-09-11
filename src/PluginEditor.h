@@ -22,6 +22,7 @@
 #include "gui/panels/SequencerPanel.h"
 #include "gui/panels/TransportBar.h"
 #include "gui/panels/MasterSection.h"
+#include "gui/panels/PageTabs.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <array>
 #include <map>
@@ -67,18 +68,16 @@ private:
     //==============================================================================
     // Layout regions (computed in computeRegions, stored for paint)
     struct Regions {
-        juce::Rectangle<int> titleBar;
-        juce::Rectangle<int> mainArea;       // A | spectrum | B
-        juce::Rectangle<int> timbreAPanel;     // left 17%
-        juce::Rectangle<int> timbreBPanel;     // right 17%
-        juce::Rectangle<int> centerPanel;      // spectrum canvas
-
-        juce::Rectangle<int> processArea;      // filter + macros + effects
-        juce::Rectangle<int> modArea;          // modulation assignment panel
-        juce::Rectangle<int> bottomArea;       // unison + arp + master
-        juce::Rectangle<int> statusBar;        // transport + status
+        juce::Rectangle<int> titleBar;   // 28px top strip
+        juce::Rectangle<int> spectrum;   // pinned live-spectrum area (embedded view selector)
+        juce::Rectangle<int> tabBar;     // page tab strip
+        juce::Rectangle<int> content;    // active page content
+        juce::Rectangle<int> statusBar;  // 35px bottom strip
     };
     void computeRegions(juce::Rectangle<int> bounds, Regions& r) const;
+    void setActivePage(int page);
+    int  activePage_ = 0;
+    ana::PageTabs pageTabs_;
 
     //==============================================================================
     // Title bar
