@@ -84,6 +84,7 @@ private:
     juce::Label titleLabel_;
     juce::TextButton presetButton_;
     juce::TextButton importButton_{"IMPORT"};
+    juce::TextButton synthModeButton_{"SYNTH"};
 
     //==============================================================================
     // Left/right panels — Timbre A / B (Harmor-style)

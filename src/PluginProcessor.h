@@ -79,6 +79,7 @@ public:
 #include "dsp/effects/SaturationEffect.h"
 #include "dsp/effects/VocalProcessor.h"
 #include "dsp/BlurEffect.h"
+#include "dsp/AdditiveSynth.h"
 #include "dsp/PrismEffect.h"
 #include "dsp/Harmonizer.h"
 #include "dsp/Randomizer.h"
@@ -140,6 +141,14 @@ public:
     bool isEngineAnalyzed() const;
     ana::AnaPlugEngine& getEngine();
     const ana::AnaPlugEngine& getEngine() const;
+
+    // --- Additive synth mode (P6) ---
+    bool isSynthMode() const { return synthMode_.load(); }
+    void setSynthMode(bool enabled);
+    void setEditedPartials(const ana::PartialDataSIMD& partials);
+    const ana::PartialDataSIMD& getEditedPartials() const { return editedPartials_; }
+    void resetPartialsFromEngine();
+    int getActivePartialCount() const { return additiveSynth_.getActivePartialCount(); }
 
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
@@ -419,6 +428,13 @@ public:
 private:
     ana::PresetManager presetManager;
     ana::AnaPlugEngine engine;
+
+    // --- Additive synth (P6) ---
+    ana::AdditiveSynth additiveSynth_;
+    std::atomic<bool>  synthMode_{ false };
+    ana::PartialDataSIMD sourcePartials_;
+    ana::PartialDataSIMD editedPartials_;
+    void refreshPartialsFromEngine();   // message thread: engine -> source/edited -> synth
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

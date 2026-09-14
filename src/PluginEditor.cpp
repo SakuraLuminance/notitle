@@ -41,6 +41,19 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     importButton_.onClick = [this] { loadButtonClicked(); };
     addAndMakeVisible(importButton_);
 
+    // SYNTH mode toggle (P6): switch between sample playback and live additive synth.
+    addCyberButton(synthModeButton_);
+    synthModeButton_.setClickingTogglesState(true);
+    synthModeButton_.setTooltip("Additive SYNTH mode: play the sample's partials live. Edit them in the spectrum EDITOR view.");
+    synthModeButton_.onClick = [this]()
+    {
+        const bool on = synthModeButton_.getToggleState();
+        audioProcessor.setSynthMode(on);
+        if (on)
+            spectrumEditorCanvas_.setPartials(audioProcessor.getEditedPartials());
+    };
+    addAndMakeVisible(synthModeButton_);
+
     //==============================================================================
     // Timbre A/B panels
     addAndMakeVisible(timbreAPanel_);
@@ -61,6 +74,10 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     waterfallDisplay_.setVisible(false);
     addAndMakeVisible(spectrumEditorCanvas_);
     spectrumEditorCanvas_.setVisible(false);
+    spectrumEditorCanvas_.onPartialEdited = [this](const ana::PartialDataSIMD& edited)
+    {
+        audioProcessor.setEditedPartials(edited);
+    };
     viewModeCombo_.addItem("LIVE", 1);
     viewModeCombo_.addItem("PARTIALS", 2);
     viewModeCombo_.addItem("WATERFALL", 3);
@@ -512,6 +529,7 @@ void AnaPlugAudioProcessorEditor::resized()
     // -- Title bar --
     auto titleRect = r.titleBar.reduced(8, 0);
     titleLabel_.setBounds(titleRect.removeFromLeft(260));
+    synthModeButton_.setBounds(titleRect.removeFromRight(70).reduced(0, 3));
     importButton_.setBounds(titleRect.removeFromRight(84).reduced(0, 3));
     presetButton_.setBounds(titleRect.removeFromRight(150));
 
@@ -744,7 +762,8 @@ void AnaPlugAudioProcessorEditor::timerCallback()
             ana::PartialDataSIMD simd = ana::PartialDataSIMD::fromPartialData(partialData);
             feedbackPanel_.updatePartials(simd);
             waterfallDisplay_.updatePartials(simd);
-            spectrumEditorCanvas_.setPartials(simd);
+            if (! audioProcessor.isSynthMode())
+                spectrumEditorCanvas_.setPartials(simd);
         }
     }
 

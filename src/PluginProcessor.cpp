@@ -425,6 +425,7 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     if (sampleRate > 0.0)
     {
         voiceManager.prepare(sampleRate);
+        additiveSynth_.prepare(sampleRate);
         partialMod_.prepare(sampleRate);
         subHarmonicGen_.setSampleRate(sampleRate);
 
@@ -620,7 +621,18 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // renderNextBlock processes MIDI (MPE) internally and renders audio
     voiceBuffer.setSize(numChannels, numSamples, false, false, true);
     voiceBuffer.clear();
-    voiceManager.renderNextBlock(voiceBuffer, midiMessages, 0, numSamples);
+    if (synthMode_.load())
+    {
+        // P6: additive synth voices the analysed harmonic set instead of the
+        // legacy oscillator VoiceManager.
+        additiveSynth_.setRootNote(rootNoteParam_.load());
+        additiveSynth_.setRootFineTune(rootFineTuneParam_.load());
+        additiveSynth_.renderNextBlock(voiceBuffer, midiMessages, 0, numSamples);
+    }
+    else
+    {
+        voiceManager.renderNextBlock(voiceBuffer, midiMessages, 0, numSamples);
+    }
 
     // --- Unison engine ---
     // Generates detuned stereo-spread unison voices on top of the VoiceManager
@@ -825,7 +837,7 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // Pitch ratio: 2^((midiNote - rootNote + fineTune/100) / 12)
     const float pitchRatio = std::pow(2.0f, (static_cast<float>(midiNote - rootNote) + fineTune / 100.0f) / 12.0f);
 
-    if (isPlaying.load() && resynthBufferReady_.load())
+    if (! synthMode_.load() && isPlaying.load() && resynthBufferReady_.load())
     {
         const juce::SpinLock::ScopedTryLockType lock(resynthLock_);
         if (lock.isLocked())
@@ -1022,6 +1034,8 @@ bool AnaPlugAudioProcessor::loadFile(const juce::File& file)
         engine.analyze();
         // Sync the engine partials SIMD cache for morphing
         enginePartials_ = ana::PartialDataSIMD::fromPartialData(engine.getPartialData());
+        // P6: seed the additive synth's harmonic set from the analysed partials
+        refreshPartialsFromEngine();
         // Auto-resynthesize
         auto result = engine.resynthesize();
         {
@@ -1216,6 +1230,67 @@ void AnaPlugAudioProcessor::setSubHarmonicLevel(float level)
 float AnaPlugAudioProcessor::getSubHarmonicLevel() const
 {
     return subHarmonicLevel_.load();
+}
+
+//==============================================================================
+// Additive synth mode (P6)
+//==============================================================================
+
+void AnaPlugAudioProcessor::refreshPartialsFromEngine()
+{
+    sourcePartials_ = ana::PartialDataSIMD{};
+
+    const auto& pd = engine.getPartialData();
+    if (! pd.frames.empty())
+    {
+        // Pick the frame with the most spectral energy as the harmonic set.
+        std::size_t best = 0;
+        double bestEnergy = -1.0;
+        for (std::size_t f = 0; f < pd.frames.size(); ++f)
+        {
+            double e = 0.0;
+            for (const auto& p : pd.frames[f].partials)
+                e += static_cast<double>(p.amplitude) * static_cast<double>(p.amplitude);
+            if (e > bestEnergy) { bestEnergy = e; best = f; }
+        }
+
+        sourcePartials_.maxPartials = pd.maxPartials;
+        sourcePartials_.sampleRate  = pd.sampleRate;
+        sourcePartials_.hopSize     = pd.hopSize;
+
+        const auto& frame = pd.frames[best];
+        const int cnt = juce::jmin(static_cast<int>(frame.partials.size()),
+                                   ana::PartialDataSIMD::kMaxPartials);
+        for (int i = 0; i < cnt; ++i)
+        {
+            sourcePartials_.frequency[i] = frame.partials[static_cast<std::size_t>(i)].frequency;
+            sourcePartials_.amplitude[i] = frame.partials[static_cast<std::size_t>(i)].amplitude;
+            sourcePartials_.phase[i]     = frame.partials[static_cast<std::size_t>(i)].phase;
+        }
+        sourcePartials_.updateActiveMask();
+    }
+
+    editedPartials_ = sourcePartials_;
+    additiveSynth_.setPartials(editedPartials_);
+}
+
+void AnaPlugAudioProcessor::setSynthMode(bool enabled)
+{
+    synthMode_.store(enabled);
+    if (enabled)
+        additiveSynth_.setPartials(editedPartials_);
+}
+
+void AnaPlugAudioProcessor::setEditedPartials(const ana::PartialDataSIMD& partials)
+{
+    editedPartials_ = partials;
+    editedPartials_.updateActiveMask();
+    additiveSynth_.setPartials(editedPartials_);
+}
+
+void AnaPlugAudioProcessor::resetPartialsFromEngine()
+{
+    refreshPartialsFromEngine();
 }
 
 //==============================================================================
