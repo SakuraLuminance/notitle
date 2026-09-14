@@ -24,6 +24,7 @@ add_executable(AnaPlugTests
     test_neural_upsampler.cpp
     test_parallel_processor.cpp
 test_partial_data_simd.cpp
+test_additive_synth.cpp
 #test_partial_editor_canvas.cpp
 test_partial_tracker.cpp
     test_peak_detector.cpp
@@ -120,6 +121,7 @@ test_ui_colors.cpp
     ../src/dsp/Arpeggiator.cpp
     ../src/dsp/FrequencyShaper.cpp
     ../src/dsp/BlurEffect.cpp
+    ../src/dsp/AdditiveSynth.cpp
     ../src/dsp/BpmDetector.cpp
     ../src/dsp/DualTimbre.cpp
     ../src/dsp/FilterModulation.cpp

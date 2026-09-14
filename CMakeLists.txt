@@ -149,6 +149,7 @@ target_sources(AnaPlug
         src/dsp/FMEngine.cpp
         src/dsp/SubHarmonicGenerator.cpp
         src/dsp/BlurEffect.cpp
+        src/dsp/AdditiveSynth.cpp
         src/dsp/Harmonizer.cpp
         src/dsp/TimeStretchEngine.cpp
         src/dsp/PitchCorrector.cpp
