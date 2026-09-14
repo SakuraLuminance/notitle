@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include "dsp/AdditiveSynth.h"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 #include <vector>

@@ -16,7 +16,7 @@ void AdditiveVoice::noteStarted()
 {
     const auto& mpe = getCurrentlyPlayingNote();
 
-    baseFreq  = juce::jmax(1.0f, mpe.getFrequencyInHertz());
+    baseFreq  = juce::jmax(1.0f, static_cast<float>(mpe.getFrequencyInHertz()));
     bendRatio = 1.0f;
     velocity  = juce::jlimit(0.0f, 1.0f, mpe.noteOnVelocity.asUnsignedFloat());
 
@@ -62,7 +62,7 @@ void AdditiveVoice::noteKeyStateChanged()    { /* handled by MPESynthesiser */ }
 
 void AdditiveVoice::notePitchbendChanged()
 {
-    const float f = getCurrentlyPlayingNote().getFrequencyInHertz();
+    const float f = static_cast<float>(getCurrentlyPlayingNote().getFrequencyInHertz());
     if (baseFreq > 0.0f)
         bendRatio = f / baseFreq;
 }
@@ -209,9 +209,9 @@ float AdditiveSynth::rootHzFrom(int midiNote, float cents)
         (static_cast<float>(midiNote) - 69.0f + cents / 100.0f) / 12.0f);
 }
 
-void AdditiveSynth::prepare(double sampleRate)
+void AdditiveSynth::prepare(double newSampleRate)
 {
-    setCurrentPlaybackSampleRate(sampleRate > 0.0 ? sampleRate : 44100.0);
+    setCurrentPlaybackSampleRate(newSampleRate > 0.0 ? newSampleRate : 44100.0);
 }
 
 void AdditiveSynth::setPartials(const PartialDataSIMD& src)
