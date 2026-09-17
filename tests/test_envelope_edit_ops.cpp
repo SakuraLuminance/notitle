@@ -114,3 +114,24 @@ TEST_CASE("EnvelopeEditOps: LOOP END hit testing", "[envelope][editops]")
     REQUIRE(ana::EnvelopeEditOps::hitTestMarker(env, nearLoopEnd, area, 8.0f) == 1);
     REQUIRE(ana::EnvelopeEditOps::hitTestMarker(env, {xLast + 60.0f, 40.0f}, area, 8.0f) == -1);
 }
+
+TEST_CASE("EnvelopeEditOps: derived ADSR honours tempo sync", "[envelope][editops]")
+{
+    ana::MultiPointEnvelope env;
+    env.setTempo(120.0);        // 1 beat = 0.5 s
+    env.setBeatDivision(1.0);
+    env.setSyncMode(true);
+
+    env.addBreakpoint(0.0f, 0.0f);   // 0 beats
+    env.addBreakpoint(1.0f, 1.0f);   // 1 beat  = 0.5 s
+    env.addBreakpoint(2.0f, 0.5f);   // 2 beats = 1.0 s
+    env.addBreakpoint(4.0f, 0.0f);   // 4 beats = 2.0 s
+    env.setLoopMode(ana::LoopMode::Sustain);
+    env.setLoopEnd(2);
+
+    const auto adsr = ana::EnvelopeEditOps::deriveADSR(env);
+    REQUIRE(adsr.attack  == Catch::Approx(0.5f).margin(0.001f));
+    REQUIRE(adsr.decay   == Catch::Approx(0.5f).margin(0.001f));
+    REQUIRE(adsr.sustain == Catch::Approx(0.5f).margin(0.001f));
+    REQUIRE(adsr.release == Catch::Approx(1.0f).margin(0.001f));
+}
