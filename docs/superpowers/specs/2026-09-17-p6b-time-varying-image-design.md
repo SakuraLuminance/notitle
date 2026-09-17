@@ -58,6 +58,21 @@ int  getActiveFrameCount() const;  // 测试用（已发布帧数）
 - 现有 583 用例保持全绿（图像默认关 → 行为不变）。
 - pluginval strictness 5。
 
+## 待验证（用户离线期间的工作，**尚未推送、未过 CI**）
+
+`26d18ae` 已推送且 Run #35234761589 Build/Test/pluginval 全 success（用例计数因网络问题未读到）。以下 6 个提交只在本地：
+
+| 提交 | 内容 |
+|---|---|
+| `b05e67b` | perf+fix：freeze 引擎仅音频线程可写（processor 用 atomics 延迟应用 mode/mix/enable/trigger）、`recordOnly()` 空闲零拷贝路径、ring 游标包裹、模式分支外提、`getCurrentMix/isFrozen`；AdditiveSynth 静态快路径 + 去掉 ≤2e-4 尾巴；TimbreShaper exp2/log2；LiveSpectrumPanel 平方幅度；timer 按页门控 + 删死扫描；EnvelopeCanvas 复用 Path；HPSS 单测 |
+| `368e5c6` | 逐帧编辑：FRAME 滑条选择编辑哪一帧，切帧自动保存，状态显示 `i/N FRAMES`；additive trim / freeze recordOnly 测试；additive 性能基准 |
+| `864b602` | scope/live 视图不可见时跳过取数与 FFT，复用成员缓冲；LOOP END hit test + 陈旧 loop 索引健壮性测试 |
+| `cd9d127` | edited-set 版本号：SYNTH 模式下换采样/换帧也能刷新频谱编辑器画布（版本门控，不覆盖正在编辑的内容） |
+| `5050707` | 图像帧截断/速率夹取/帧内 partial 数不一致时的播放安全测试 |
+| `b227328` | 载入性能：`PartialTracker` 预留帧数组 + `ResynthesisEngine` 复用频谱缓冲 |
+
+**下次 CI 要确认**：① `All tests passed (… in N test cases)`，预期 590+（583 + image/trim/hpss/freeze-record/loop-end/stale-loop 等新用例）；② `Strictness level: 5`；③ 无 `CRASH-OR-FAIL ::` 条目。
+
 ## 风险
 
 | 风险 | 缓解 |
