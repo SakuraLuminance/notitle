@@ -131,12 +131,17 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     {
         audioProcessor.setEditedPartials(edited);
     };
+    addAndMakeVisible(particleDisplay_);
+    particleDisplay_.setVisible(false);
+    particleDisplay_.setParticleSystem(&audioProcessor.getParticleSystem());
+
     viewModeCombo_.addItem("LIVE", 1);
     viewModeCombo_.addItem("PARTIALS", 2);
     viewModeCombo_.addItem("WATERFALL", 3);
     viewModeCombo_.addItem("EDITOR", 4);
     viewModeCombo_.addItem("3D", 5);
     viewModeCombo_.addItem("SCOPE", 6);
+    viewModeCombo_.addItem("PARTICLES", 7);
     viewModeCombo_.setSelectedId(1);
     viewModeCombo_.onChange = [this] { onViewModeChanged(); };
     viewModeCombo_.setTooltip("View mode: LIVE/PARTIALS/WATERFALL/EDITOR/3D/SCOPE");
@@ -599,6 +604,7 @@ void AnaPlugAudioProcessorEditor::resized()
     if (waveformDisplay_)
         waveformDisplay_->setBounds(fbArea.reduced(2));
     spectrumEditorCanvas_.setBounds(fbArea.reduced(2));
+    particleDisplay_.setBounds(fbArea.reduced(2));
 
     // -- Page tab strip --
     pageTabs_.setBounds(r.tabBar);
@@ -882,6 +888,13 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     modPanel_.syncFromProcessor();
     envPage_.syncFromProcessor();
 
+    // Spectral particle view (P5): physics tick while the view is active
+    if (viewModeCombo_.getSelectedId() == 7)
+    {
+        audioProcessor.advanceParticles(1.0 / 30.0);
+        particleDisplay_.repaint();
+    }
+
     // --- Step Sequencer: sync UI from processor state ---
     sequencerPanel_.updateFromSequencer();
 
@@ -932,6 +945,8 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
     spectrumEditorCanvas_.setVisible(false);
     if (waveformDisplay_)
         waveformDisplay_->setVisible(false);
+    particleDisplay_.setVisible(false);
+    audioProcessor.setParticlesEnabled(false);
 
     switch (mode)
     {
@@ -957,9 +972,15 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
             spectrumEditorCanvas_.set3DEnabled(true);
             break;
 
-        case 6: // SCOPE 鈥?real-time oscilloscope
+        case 6: // SCOPE - real-time oscilloscope
             if (waveformDisplay_)
                 waveformDisplay_->setVisible(true);
+            break;
+
+        case 7: // PARTICLES - spectral particle visualisation
+            particleDisplay_.setVisible(true);
+            audioProcessor.setParticlesEnabled(true);
+            audioProcessor.syncParticlesFromEdit();
             break;
 
         default: // fallback to live

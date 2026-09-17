@@ -29,6 +29,7 @@ test_timbre_shaper.cpp
 test_envelope_edit_ops.cpp
 test_envelope_canvas.cpp
 test_envelope_persistence.cpp
+test_particle_display.cpp
 #test_partial_editor_canvas.cpp
 test_partial_tracker.cpp
     test_peak_detector.cpp
@@ -113,6 +114,7 @@ test_ui_colors.cpp
     ../src/gui/LiveSpectrumPanel.cpp
     ../src/gui/EffectParamPanel.cpp
     ../src/gui/EnvelopeCanvas.cpp
+    ../src/gui/ParticleDisplay.cpp
 #../src/gui/PartialEditorCanvas.cpp
 
 

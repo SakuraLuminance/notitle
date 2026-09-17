@@ -16,6 +16,7 @@
 #include "gui/LiveSpectrumPanel.h"
 #include "gui/ModulationAssignPanel.h"
 #include "gui/EnvelopePage.h"
+#include "gui/ParticleDisplay.h"
 #include "gui/EffectRackComponent.h"
 #include "gui/panels/TimbrePanel.h"
 #include "gui/panels/FilterPanel.h"
@@ -110,6 +111,7 @@ private:
     ana::VisualFeedbackPanel feedbackPanel_;
     ana::WaterfallDisplay waterfallDisplay_;
     ana::SpectrumEditorCanvas spectrumEditorCanvas_;
+    ana::ParticleDisplay particleDisplay_;
     std::unique_ptr<ana::WaveformDisplay> waveformDisplay_;
     juce::ComboBox viewModeCombo_;   // Bars / Waterfall / Editor / 3D / Scope
 

@@ -1428,6 +1428,31 @@ void AnaPlugAudioProcessor::setGenerativeTimbrePreset(int preset)
     applyTimbreProcessing();
 }
 
+//==============================================================================
+// Spectral particle view (P5)
+//==============================================================================
+
+void AnaPlugAudioProcessor::setParticlesEnabled(bool enabled)
+{
+    particlesEnabled_.store(enabled);
+
+    if (enabled)
+        particleSystem_.emitFromPartials(editedPartials_);
+    else
+        particleSystem_.killAll();
+}
+
+void AnaPlugAudioProcessor::syncParticlesFromEdit()
+{
+    particleSystem_.emitFromPartials(editedPartials_);
+}
+
+void AnaPlugAudioProcessor::advanceParticles(double deltaSeconds)
+{
+    if (particlesEnabled_.load())
+        particleSystem_.update(juce::jlimit(0.001, 0.2, deltaSeconds));
+}
+
 void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)
 {
     (isA ? timbreABright_ : timbreBBright_).store(juce::jlimit(0.0f, 1.0f, value));

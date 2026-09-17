@@ -128,6 +128,7 @@ target_sources(AnaPlug
         src/gui/SpectrumEditorCanvas.cpp
         src/gui/EnvelopeCanvas.cpp
         src/gui/EnvelopePage.cpp
+        src/gui/ParticleDisplay.cpp
         src/gui/PresetBrowserPanel.cpp
         src/gui/EvolutionPanel.cpp
         src/gui/XYPad.cpp

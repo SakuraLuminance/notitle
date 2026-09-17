@@ -81,6 +81,7 @@ public:
 #include "dsp/BlurEffect.h"
 #include "dsp/AdditiveSynth.h"
 #include "dsp/GenerativeTimbreDesigner.h"
+#include "dsp/SpectralParticleSystem.h"
 #include "dsp/PrismEffect.h"
 #include "dsp/Harmonizer.h"
 #include "dsp/Randomizer.h"
@@ -178,6 +179,20 @@ public:
     /** 0 = Warm, 1 = Bright, 2 = Dark, 3 = Metallic, 4 = Glassy,
         5 = Hollow, 6 = Rich, 7 = Thin. */
     void  setGenerativeTimbrePreset(int preset);
+
+    //==============================================================================
+    // --- Spectral particle view (P5) ---
+    /** Enables the (visual-only) particle system.  Advanced by the editor timer. */
+    void setParticlesEnabled(bool enabled);
+    bool isParticlesEnabled() const { return particlesEnabled_.load(); }
+
+    /** Seeds the particles from the currently edited partial set. */
+    void syncParticlesFromEdit();
+
+    /** Advances the particle physics (message thread; called from the editor). */
+    void advanceParticles(double deltaSeconds);
+
+    ana::SpectralParticleSystem& getParticleSystem() { return particleSystem_; }
 
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
@@ -495,6 +510,10 @@ private:
     ana::PartialDataSIMD           generativeScratch_;
     std::atomic<bool>  generativeEnabled_{ false };
     std::atomic<float> generativeMix_{ 0.5f };
+
+    // Spectral particle view (P5): visual-only, driven from the editor timer
+    ana::SpectralParticleSystem particleSystem_;
+    std::atomic<bool> particlesEnabled_{ false };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};
