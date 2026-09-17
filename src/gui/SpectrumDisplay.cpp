@@ -28,7 +28,7 @@ void SpectrumDisplay::paint(juce::Graphics& g)
     const float height = area.getHeight();
 
     // Draw frequency grid lines
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.3f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.15f));
     for (int freq = 1000; freq < 20000; freq += 1000)
     {
         float x = area.getX() + (freq / maxFrequency) * width;
@@ -48,7 +48,7 @@ void SpectrumDisplay::paint(juce::Graphics& g)
     }
 
     // Draw frequency labels
-    g.setColour(juce::Colours::grey);
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.6f));
     g.setFont(10.0f);
     for (int freq = 1000; freq < 20000; freq += 5000)
     {

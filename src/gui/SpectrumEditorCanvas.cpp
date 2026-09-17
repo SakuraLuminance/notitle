@@ -1,4 +1,5 @@
 #include "SpectrumEditorCanvas.h"
+#include "CyberpunkTheme.h"
 #include "../dsp/Crumb.h"
 #include <cmath>
 #include <algorithm>
@@ -1224,7 +1225,7 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
 
     if (!hasData)
     {
-        g.setColour(juce::Colours::grey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.6f));
         g.setFont(juce::Font(14.0f, juce::Font::plain));
         g.drawText("No partial data loaded", bounds, juce::Justification::centred);
         return;
@@ -1300,7 +1301,7 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
     if (showLabels_)
     {
         g.setFont(juce::Font(10.0f, juce::Font::plain));
-        g.setColour(juce::Colours::lightgrey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.8f));
 
         for (int i = 0; i <= gridLinesX_; ++i)
         {
@@ -1343,7 +1344,7 @@ void SpectrumEditorCanvas::paint(juce::Graphics& g)
         }
 
         g.setFont(juce::Font(9.0f, juce::Font::plain));
-        g.setColour(juce::Colours::grey);
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.6f));
 
         g.drawText("Frequency",
                    area.getX(), bounds.getBottom() - marginBottom + 14,

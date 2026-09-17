@@ -1,4 +1,5 @@
 #include "VisualFeedbackPanel.h"
+#include "CyberpunkTheme.h"
 #include "../dsp/Crumb.h"
 #include <cmath>
 
@@ -276,7 +277,7 @@ void VisualFeedbackPanel::drawPeakHold(juce::Graphics& g, int w, int h)
 //==============================================================================
 void VisualFeedbackPanel::drawStatusText(juce::Graphics& g, int w, int h)
 {
-    g.setColour(juce::Colours::lightgrey.withAlpha(0.6f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
     g.setFont(11.0f);
 
     const int activeCount = displayPartials_.activeCount;

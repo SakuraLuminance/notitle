@@ -7,32 +7,23 @@ namespace ana {
 
 // ============================================================================
 // Colour mapping:  amplitude -> colour (Toxic Green)
-//    0.0  = black
-//    0.33 = dark green
-//    0.66 = neon green
+//    0.0  = canvas background
+//    0.6  = theme value-highlight colour
 //    1.0  = white
+//
+//     Driven by the active theme so the image view matches every palette.
 // ============================================================================
 juce::Colour PartialEditorCanvas::amplitudeToColour(float amplitude)
 {
     amplitude = std::clamp(amplitude, 0.0f, 1.0f);
 
-    if (amplitude < 0.33f)
-    {
-        // black -> dark green
-        float t = amplitude / 0.33f;
-        return juce::Colour::fromHSV(0.33f, 1.0f, t * 0.5f, 1.0f);
-    }
+    const auto base = CyberpunkTheme::bg_.darker(CyberpunkTheme::kCanvasBgDarken);
+    const auto mid  = CyberpunkTheme::yellow_;
 
-    if (amplitude < 0.66f)
-    {
-        // dark green -> neon green
-        float t = (amplitude - 0.33f) / 0.33f;
-        return juce::Colour::fromHSV(0.33f + t * 0.05f, 1.0f, 0.5f + t * 0.5f, 1.0f);
-    }
+    if (amplitude < 0.6f)
+        return base.interpolatedWith(mid, amplitude / 0.6f);
 
-    // neon green -> white
-    float t = (amplitude - 0.66f) / 0.34f;
-    return juce::Colour::fromHSV(0.38f, 1.0f - t, 1.0f, 1.0f);
+    return mid.interpolatedWith(juce::Colours::white, (amplitude - 0.6f) / 0.4f);
 }
 
 // ============================================================================

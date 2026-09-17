@@ -2,6 +2,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "ThemePalettes.h"
+
 namespace ana {
 
 //==============================================================================
@@ -42,13 +44,127 @@ public:
         }
         else
         {
-            bg_      = juce::Colour(0x0a, 0x0a, 0x05); // deep dark green-black
-            fg_      = juce::Colour(0xd0, 0xe0, 0xc8); // light green-gray
-            cyan_    = juce::Colour(0x00, 0xcc, 0xff); // bright cyan (primary accent)
-            magenta_ = juce::Colour(0xff, 0x00, 0xff); // hot magenta (secondary accent)
-            yellow_  = juce::Colour(0x39, 0xff, 0x14); // neon green (highlight)
+            applyPalette(0);   // NEON
+            return;
         }
+
+        monoBody_ = false;
         setupColours();
+    }
+
+    //==============================================================================
+    /** Selects one of the built-in visual themes (see ThemePalettes.h).
+        Existing components keep their captured colours until
+        remapComponentColours() is run over them. */
+    void applyPalette(int index)
+    {
+        const auto& p = ThemePalettes::get(index);
+
+        bg_      = p.bg;
+        fg_      = p.fg;
+        cyan_    = p.accent;
+        magenta_ = p.accent2;
+        yellow_  = p.highlight;
+
+        monoBody_   = p.monoBody;
+        themeIndex_ = juce::jlimit(0, ThemePalettes::count - 1, index);
+
+        setupColours();
+    }
+
+    static int  getThemeIndex() noexcept { return themeIndex_; }
+    static bool isMonoBody()    noexcept { return monoBody_; }
+
+    /** Rewrites colours captured from a previous palette (labels, sliders,
+        combo boxes, buttons) so a live theme switch updates the whole UI
+        without rebuilding it.
+
+        Matches both the exact palette slots and colours derived from them with
+        the darker()/brighter() factors used across this code base. */
+    static void remapComponentColours(juce::Component& root, const ThemePalette& oldPalette)
+    {
+        const juce::Colour oldSlots[5] = { oldPalette.bg, oldPalette.fg,
+                                           oldPalette.accent, oldPalette.accent2,
+                                           oldPalette.highlight };
+        const juce::Colour newSlots[5] = { bg_, fg_, cyan_, magenta_, yellow_ };
+
+        remapRecursive(root, oldSlots, newSlots);
+    }
+
+    static constexpr int remapProbeCount = 18;
+
+    /** Recursive worker for remapComponentColours(). */
+    static void remapRecursive(juce::Component& c, const juce::Colour* oldSlots,
+                               const juce::Colour* newSlots)
+    {
+        static const int probeIds[remapProbeCount] =
+        {
+            juce::Label::textColourId, juce::Label::backgroundColourId, juce::Label::outlineColourId,
+            juce::TextButton::buttonColourId, juce::TextButton::buttonOnColourId,
+            juce::TextButton::textColourOffId, juce::TextButton::textColourOnId,
+            juce::ComboBox::backgroundColourId, juce::ComboBox::textColourId,
+            juce::ComboBox::outlineColourId, juce::ComboBox::arrowColourId,
+            juce::ComboBox::buttonColourId,
+            juce::Slider::textBoxTextColourId, juce::Slider::textBoxBackgroundColourId,
+            juce::Slider::textBoxOutlineColourId, juce::Slider::thumbColourId,
+            juce::Slider::trackColourId, juce::Slider::backgroundColourId
+        };
+
+        for (int id : probeIds)
+        {
+            const auto current = c.findColour(id, false);
+            if (current.isTransparent())
+                continue;
+
+            for (int slot = 0; slot < 5; ++slot)
+            {
+                juce::Colour mapped;
+
+                if (matchSlot(current, oldSlots[slot], mapped, newSlots[slot]))
+                {
+                    c.setColour(id, mapped.withAlpha(current.getFloatAlpha()));
+                    break;
+                }
+            }
+        }
+
+        for (auto* child : c.getChildren())
+            remapRecursive(*child, oldSlots, newSlots);
+    }
+
+    /** True when 'current' is 'oldColour' (or a darker/brighter variant of it);
+        'mapped' receives the same variant derived from 'newColour'. */
+    static bool matchSlot(juce::Colour current, juce::Colour oldColour,
+                          juce::Colour& mapped, juce::Colour newColour)
+    {
+        if (current.withAlpha(1.0f) == oldColour.withAlpha(1.0f))
+        {
+            mapped = newColour;
+            return true;
+        }
+
+        static const float darkerFactors[] = { 0.15f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f };
+        static const float brighterFactors[] = { 0.05f, 0.08f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.4f };
+
+        for (float f : darkerFactors)
+        {
+            if (current.withAlpha(1.0f) == oldColour.darker(f).withAlpha(1.0f))
+            {
+                mapped = newColour.darker(f);
+                return true;
+            }
+        }
+
+        for (float f : brighterFactors)
+        {
+            if (current.withAlpha(1.0f) == oldColour.brighter(f).withAlpha(1.0f))
+            {
+                mapped = newColour.brighter(f);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     //==============================================================================
@@ -236,7 +352,8 @@ public:
     // Font
     static juce::Font getCyberFont(float height, bool bold = false)
     {
-        auto typeface = bold ? juce::Font::getDefaultMonospacedFontName()
+        const bool mono = bold || monoBody_;
+        auto typeface = mono ? juce::Font::getDefaultMonospacedFontName()
                              : juce::Font::getDefaultSansSerifFontName();
         auto f = juce::Font(typeface, height, bold ? juce::Font::bold : juce::Font::plain);
         return f;
@@ -337,6 +454,10 @@ public:
     inline static juce::Colour cyan_    { 0x00, 0xcc, 0xff };
     inline static juce::Colour magenta_ { 0xff, 0x00, 0xff };
     inline static juce::Colour yellow_  { 0x39, 0xff, 0x14 };
+
+    // Current visual theme (see ThemePalettes.h)
+    inline static int  themeIndex_ = 0;
+    inline static bool monoBody_   = false;
 };
 
 } // namespace ana

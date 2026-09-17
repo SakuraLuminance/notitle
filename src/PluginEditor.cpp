@@ -27,6 +27,28 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     titleLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::cyan_);
     addAndMakeVisible(titleLabel_);
 
+    // Visual theme selector (ThemePalettes.h line-up)
+    for (int i = 0; i < ana::ThemePalettes::count; ++i)
+        themeCombo_.addItem(ana::ThemePalettes::name(i), i + 1);
+
+    themeCombo_.setSelectedId(ana::CyberpunkTheme::getThemeIndex() + 1,
+                              juce::dontSendNotification);
+    themeCombo_.setTooltip("Visual theme");
+    themeCombo_.onChange = [this]
+    {
+        const int idx = juce::jlimit(0, ana::ThemePalettes::count - 1,
+                                     themeCombo_.getSelectedId() - 1);
+
+        const auto oldPalette = ana::ThemePalettes::get(ana::CyberpunkTheme::getThemeIndex());
+
+        ana::CyberpunkTheme::getInstance().applyPalette(idx);
+        ana::CyberpunkTheme::remapComponentColours(*this, oldPalette);
+
+        audioProcessor.setThemeIndex(idx);
+        repaint();
+    };
+    addAndMakeVisible(themeCombo_);
+
     presetButton_.setButtonText("PRESET: DEFAULT");
     presetButton_.setTooltip("Open preset browser");
     presetButton_.onClick = [this] { presetButtonClicked(); };
@@ -614,6 +636,19 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     addAndMakeVisible(pageTabs_);
     setActivePage(0);
 
+    // Apply the persisted visual theme last, remapping every colour captured by
+    // the components created above.
+    {
+        const int storedTheme = audioProcessor.getThemeIndex();
+        if (storedTheme != ana::CyberpunkTheme::getThemeIndex())
+        {
+            const auto oldPalette = ana::ThemePalettes::get(ana::CyberpunkTheme::getThemeIndex());
+            ana::CyberpunkTheme::getInstance().applyPalette(storedTheme);
+            ana::CyberpunkTheme::remapComponentColours(*this, oldPalette);
+            themeCombo_.setSelectedId(storedTheme + 1, juce::dontSendNotification);
+        }
+    }
+
     //==============================================================================
     // MIDI Learn indicator (hidden by default)
     midiLearnIndicator_.setText("MIDI LEARN", juce::dontSendNotification);
@@ -743,6 +778,7 @@ void AnaPlugAudioProcessorEditor::resized()
     titleLabel_.setBounds(titleRect.removeFromLeft(260));
     synthModeButton_.setBounds(titleRect.removeFromRight(70).reduced(0, 3));
     importButton_.setBounds(titleRect.removeFromRight(84).reduced(0, 3));
+    themeCombo_.setBounds(titleRect.removeFromRight(96).reduced(0, 3));
     presetButton_.setBounds(titleRect.removeFromRight(150));
 
     // -- Pinned spectrum (embedded view selector at top-right, clear of the border title) --

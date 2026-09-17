@@ -31,6 +31,7 @@ test_envelope_canvas.cpp
 test_envelope_persistence.cpp
 test_particle_display.cpp
 test_hpss_engine.cpp
+test_theme_palettes.cpp
 test_partial_editor_canvas.cpp
 test_partial_tracker.cpp
     test_peak_detector.cpp

@@ -1047,6 +1047,7 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("imageEnabled", imageEnabled_.load(), nullptr);
     state.setProperty("imageRate", imageRate_.load(), nullptr);
     state.setProperty("imageLoop", imageLoop_.load(), nullptr);
+    state.setProperty("themeIndex", themeIndex_.load(), nullptr);
 
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
@@ -1103,6 +1104,7 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("imageRate"))     setImageRate((float)state.getProperty("imageRate", 2.0f));
     if (state.hasProperty("imageLoop"))     setImageLoop((bool)state.getProperty("imageLoop", true));
     if (state.hasProperty("imageEnabled"))  setImageEnabled((bool)state.getProperty("imageEnabled", false));
+    if (state.hasProperty("themeIndex"))    setThemeIndex((int)state.getProperty("themeIndex", 0));
     if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
 
     auto presetState = state.getChildWithName("Parameters");

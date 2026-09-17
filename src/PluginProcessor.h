@@ -242,6 +242,10 @@ public:
     /** Spectral freeze stage (post-effects, pre-master).  Audio thread only. */
     void processSpectralFreeze(juce::AudioBuffer<float>& buffer);
 
+    /** Visual theme index (see gui/ThemePalettes.h) — persisted with the state. */
+    void setThemeIndex(int index) { themeIndex_.store(juce::jlimit(0, 7, index)); }
+    int  getThemeIndex() const    { return themeIndex_.load(); }
+
     /** Rebuilds imageFrames_ (<= kMaxFrames, evenly subsampled) from analysis data. */
     void buildImageFramesFromPartialData(const ana::PartialData& pd);
 
@@ -756,6 +760,8 @@ private:
     std::atomic<float> volumeAdsrValue_{1.0f};
 
     // --- Envelope editing guard (P4): message-thread edits vs audio processing ---
+    std::atomic<int> themeIndex_{ 0 };   // visual theme (GUI preference, persisted)
+
     mutable juce::SpinLock envLock_;
     std::atomic<double> envUITime_[4] { {0.0}, {0.0}, {0.0}, {0.0} };
     std::atomic<float>  envUIValue_[4]{ {0.0f}, {0.0f}, {0.0f}, {0.0f} };

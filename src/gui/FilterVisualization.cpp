@@ -37,7 +37,7 @@ void FilterVisualization::paint(juce::Graphics& g)
     const float height = area.getHeight();
 
     // Draw grid
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.3f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.15f));
 
     // Frequency grid lines (log scale)
     for (float freq = 100.0f; freq <= 10000.0f; freq *= 10.0f)
@@ -57,7 +57,7 @@ void FilterVisualization::paint(juce::Graphics& g)
     }
 
     // Draw 0 dB line
-    g.setColour(juce::Colours::grey.withAlpha(0.5f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.3f));
     float zeroY = area.getBottom() - ((0.0f - minDb) / (maxDb - minDb)) * height;
     g.drawLine(area.getX(), zeroY, area.getRight(), zeroY, 1.0f);
 
@@ -158,7 +158,7 @@ void FilterVisualization::paint(juce::Graphics& g)
     }
 
     // Draw frequency labels
-    g.setColour(juce::Colours::grey);
+    g.setColour(CyberpunkTheme::fg_.withAlpha(0.6f));
     g.setFont(10.0f);
     const float freqLabels[] = { 100.0f, 1000.0f, 10000.0f };
     for (float freq : freqLabels)
