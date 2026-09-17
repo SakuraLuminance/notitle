@@ -436,6 +436,35 @@ void PartialEditorCanvas::notifyEdited()
         onEdited();
 }
 
+void PartialEditorCanvas::mouseMove(const juce::MouseEvent& e)
+{
+    if (! getCanvasArea().contains(e.getPosition()))
+    {
+        if (hoverCell.x >= 0)
+        {
+            hoverCell = { -1, -1 };
+            repaint();
+        }
+        return;
+    }
+
+    const auto cell = pixelToGrid(e.position);
+    if (cell != hoverCell)
+    {
+        hoverCell = cell;
+        repaint();
+    }
+}
+
+void PartialEditorCanvas::mouseExit(const juce::MouseEvent&)
+{
+    if (hoverCell.x >= 0)
+    {
+        hoverCell = { -1, -1 };
+        repaint();
+    }
+}
+
 void PartialEditorCanvas::commitStroke()
 {
     // Nothing extra needed; the undo state was pushed at mouseDown
@@ -648,6 +677,19 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     // --- Canvas border ---
     g.setColour(CyberpunkTheme::bg_.brighter(0.15f));
     g.drawRect(area.toNearestInt(), 1);
+
+    // --- Hover read-out (frame / partial / amplitude under the cursor) ---
+    if (hoverCell.x >= 0 && hoverCell.x < numFrames && hoverCell.y >= 0 && hoverCell.y < numPartials)
+    {
+        const float amp = gridAmplitudes[static_cast<size_t>(hoverCell.x)]
+                                        [static_cast<size_t>(hoverCell.y)];
+        const juce::String txt = "F " + juce::String(hoverCell.x)
+                               + "   P " + juce::String(hoverCell.y)
+                               + "   AMP " + juce::String(amp, 2);
+        g.setFont(CyberpunkTheme::getCyberFont(CyberpunkTheme::kReadoutFontH));
+        g.setColour(CyberpunkTheme::cyan_);
+        g.drawText(txt, getCanvasBounds().reduced(4), juce::Justification::topRight);
+    }
 
     // --- Axis labels ---
     g.setFont(CyberpunkTheme::getCyberFont(CyberpunkTheme::kReadoutFontH));

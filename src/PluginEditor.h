@@ -139,6 +139,7 @@ private:
     juce::TextButton imgClearButton_  { "CLEAR" };
     juce::TextButton imgNormButton_   { "NORM" };
     juce::TextButton imgSmoothButton_ { "SMOOTH" };
+    juce::Label      imgHintLabel_;
     std::unique_ptr<ana::WaveformDisplay> waveformDisplay_;
     juce::ComboBox viewModeCombo_;   // Bars / Waterfall / Editor / 3D / Scope
 

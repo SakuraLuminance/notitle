@@ -272,6 +272,13 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     imgClearButton_.setTooltip("Clear the whole image");
     imgNormButton_.setTooltip("Normalise the image to full scale");
     imgSmoothButton_.setTooltip("Smooth the image (3x3)");
+    ana::CyberpunkTheme::styleReadout(imgHintLabel_);
+    imgHintLabel_.setJustificationType(juce::Justification::centredRight);
+    imgHintLabel_.setText("DRAG = PAINT   RIGHT-DRAG = PAN   WHEEL = ZOOM",
+                          juce::dontSendNotification);
+    addAndMakeVisible(imgHintLabel_);
+    imgHintLabel_.setVisible(false);
+
     imgUndoButton_.onClick   = [this] { partialEditorCanvas_.undo(); };
     imgRedoButton_.onClick   = [this] { partialEditorCanvas_.redo(); };
     imgClearButton_.onClick  = [this] { partialEditorCanvas_.clear(); };
@@ -758,6 +765,7 @@ void AnaPlugAudioProcessorEditor::resized()
         imgClearButton_.setBounds(imgTools.removeFromLeft(58).reduced(1));
         imgNormButton_.setBounds(imgTools.removeFromLeft(54).reduced(1));
         imgSmoothButton_.setBounds(imgTools.removeFromLeft(66).reduced(1));
+        imgHintLabel_.setBounds(imgTools.reduced(4, 0));
         partialEditorCanvas_.setBounds(imgArea);
     }
 
@@ -1241,6 +1249,7 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
     particleDisplay_.setVisible(false);
     audioProcessor.setParticlesEnabled(false);
     partialEditorCanvas_.setVisible(false);
+    imgHintLabel_.setVisible(false);
     for (auto* b : { &imgUndoButton_, &imgRedoButton_, &imgClearButton_,
                      &imgNormButton_, &imgSmoothButton_ })
         b->setVisible(false);
@@ -1282,6 +1291,7 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
 
         case 8: // IMAGE - draw the time x partial harmonic image
             partialEditorCanvas_.setVisible(true);
+            imgHintLabel_.setVisible(true);
             for (auto* b : { &imgUndoButton_, &imgRedoButton_, &imgClearButton_,
                              &imgNormButton_, &imgSmoothButton_ })
                 b->setVisible(true);
