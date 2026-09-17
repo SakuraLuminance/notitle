@@ -126,6 +126,8 @@ target_sources(AnaPlug
         src/gui/WaterfallDisplay.cpp
         src/gui/VisualFeedbackPanel.cpp
         src/gui/SpectrumEditorCanvas.cpp
+        src/gui/EnvelopeCanvas.cpp
+        src/gui/EnvelopePage.cpp
         src/gui/PresetBrowserPanel.cpp
         src/gui/EvolutionPanel.cpp
         src/gui/XYPad.cpp
@@ -151,6 +153,7 @@ target_sources(AnaPlug
         src/dsp/BlurEffect.cpp
         src/dsp/AdditiveSynth.cpp
         src/dsp/TimbreShaper.cpp
+        src/dsp/EnvelopeEditOps.cpp
         src/dsp/Harmonizer.cpp
         src/dsp/TimeStretchEngine.cpp
         src/dsp/PitchCorrector.cpp

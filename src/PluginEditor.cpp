@@ -11,7 +11,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
       timbreAPanel_(p, true), timbreBPanel_(p, false),
       filterPanel_(p), macroPanel_(p), effectRack_(p),
       transportBar_(p), masterSection_(p), sequencerPanel_(p),
-      meteringPanel_(p), modPanel_(p)
+      meteringPanel_(p), modPanel_(p), envPage_(p)
 {
     setLookAndFeel(&ana::CyberpunkTheme::getInstance());
     ANA_CRUMB("ed:laf");
@@ -217,6 +217,9 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     ANA_CRUMB("ed:mod-start");
     modPanel_.setSize(300, modPanel_.calcContentHeight());
     modViewport_.setViewedComponent(&modPanel_, false);
+
+    addAndMakeVisible(envPage_);
+    envPage_.onEnvelopeEdited = [this] { modPanel_.syncFromProcessor(); };
     modViewport_.setScrollBarsShown(true, false);
     modViewport_.getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId,
         ana::CyberpunkTheme::cyan_.withAlpha(0.5f));
@@ -488,7 +491,7 @@ void AnaPlugAudioProcessorEditor::computeRegions(juce::Rectangle<int> bounds, Re
 }
 
 //==============================================================================
-static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER" };
+static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV" };
 
 void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
 {
@@ -503,7 +506,7 @@ void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
     // Region borders
     ana::CyberpunkTheme::drawPanelBorder(g, r.spectrum, "SPECTRUM", ana::CyberpunkTheme::cyan_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.content,
-        kPageNames[juce::jlimit(0, 5, activePage_)], ana::CyberpunkTheme::magenta_);
+        kPageNames[juce::jlimit(0, 6, activePage_)], ana::CyberpunkTheme::magenta_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.statusBar, "", ana::CyberpunkTheme::fg_.withAlpha(0.15f));
 
     // Title bar
@@ -650,6 +653,10 @@ void AnaPlugAudioProcessorEditor::resized()
             arpGateLabel_.setBounds(arpCell2);
             break;
         }
+
+        case 6: // ENV
+            envPage_.setBounds(ca);
+            break;
     }
 
     // -- Status bar (compact 35px) --
@@ -667,7 +674,7 @@ void AnaPlugAudioProcessorEditor::resized()
 //==============================================================================
 void AnaPlugAudioProcessorEditor::setActivePage(int page)
 {
-    if (page < 0 || page > 5)
+    if (page < 0 || page > 6)
         return;
     activePage_ = page;
 
@@ -716,6 +723,8 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     arpRateLabel_.setVisible(page == 5);
     arpGateSlider_.setVisible(page == 5);
     arpGateLabel_.setVisible(page == 5);
+
+    envPage_.setVisible(page == 6);
 
     resized();
 }
@@ -808,6 +817,7 @@ void AnaPlugAudioProcessorEditor::timerCallback()
 
     // --- Sync modulation panel from processor state (preset reload, etc.) ---
     modPanel_.syncFromProcessor();
+    envPage_.syncFromProcessor();
 
     // --- Step Sequencer: sync UI from processor state ---
     sequencerPanel_.updateFromSequencer();

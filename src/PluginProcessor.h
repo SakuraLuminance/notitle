@@ -374,15 +374,30 @@ public:
     std::atomic<bool>& getWavetableEnabledRef() { return wavetableEnabled_; }
 
     //==============================================================================
-    // --- Envelope ADSR control (operates on envPool_[0]) ---
-    void setEnvelopeAttack(float v)  { envPool_[0].setAttack(v); }
-    float getEnvelopeAttack() const  { return envPool_[0].getAttack(); }
-    void setEnvelopeDecay(float v)   { envPool_[0].setDecay(v); }
-    float getEnvelopeDecay() const   { return envPool_[0].getDecay(); }
-    void setEnvelopeSustain(float v) { envPool_[0].setSustain(v); }
-    float getEnvelopeSustain() const { return envPool_[0].getSustain(); }
-    void setEnvelopeRelease(float v) { envPool_[0].setRelease(v); }
-    float getEnvelopeRelease() const { return envPool_[0].getRelease(); }
+    // --- Envelope ADSR control (operates on envPool_[0] / ENV1) ---
+    void setEnvelopeAttack(float v)  { const juce::SpinLock::ScopedLockType l(envLock_); envPool_[0].setAttack(v); }
+    float getEnvelopeAttack() const  { const juce::SpinLock::ScopedLockType l(envLock_); return envPool_[0].getAttack(); }
+    void setEnvelopeDecay(float v)   { const juce::SpinLock::ScopedLockType l(envLock_); envPool_[0].setDecay(v); }
+    float getEnvelopeDecay() const   { const juce::SpinLock::ScopedLockType l(envLock_); return envPool_[0].getDecay(); }
+    void setEnvelopeSustain(float v) { const juce::SpinLock::ScopedLockType l(envLock_); envPool_[0].setSustain(v); }
+    float getEnvelopeSustain() const { const juce::SpinLock::ScopedLockType l(envLock_); return envPool_[0].getSustain(); }
+    void setEnvelopeRelease(float v) { const juce::SpinLock::ScopedLockType l(envLock_); envPool_[0].setRelease(v); }
+    float getEnvelopeRelease() const { const juce::SpinLock::ScopedLockType l(envLock_); return envPool_[0].getRelease(); }
+
+    //==============================================================================
+    // --- Envelope slots for the ENV page (0 = VOL, 1..3 = ENV1..ENV3) ---
+    /** Returns the envelope for the given slot.  Callers editing it must hold
+        getEnvelopeLock() while touching breakpoints. */
+    ana::MultiPointEnvelope& getEnvelopeSlot(int slot);
+
+    /** Guards breakpoint edits (message thread) against envelope processing
+        (audio thread). */
+    juce::SpinLock& getEnvelopeLock() noexcept { return envLock_; }
+
+    /** Live playhead position (axis units) for the ENV page. */
+    double getEnvUITime(int slot) const  { return envUITime_[juce::jlimit(0, 3, slot)].load(std::memory_order_relaxed); }
+    /** Live envelope value for the ENV page. */
+    float  getEnvUIValue(int slot) const { return envUIValue_[juce::jlimit(0, 3, slot)].load(std::memory_order_relaxed); }
 
     /** Stores envelope target selection; routing handled by modSlots_ in Task 2. */
     void setEnvelopeTarget(int targetId);
@@ -426,14 +441,14 @@ public:
 
     //==============================================================================
     // --- Independent Volume ADSR (VCA multiplier, NOT in modulation bus) ---
-    void setVolumeAttack(float v)   { volumeAdsr_.setAttack(v); }
-    float getVolumeAttack() const   { return volumeAdsr_.getAttack(); }
-    void setVolumeDecay(float v)    { volumeAdsr_.setDecay(v); }
-    float getVolumeDecay() const    { return volumeAdsr_.getDecay(); }
-    void setVolumeSustain(float v)  { volumeAdsr_.setSustain(v); }
-    float getVolumeSustain() const  { return volumeAdsr_.getSustain(); }
-    void setVolumeRelease(float v)  { volumeAdsr_.setRelease(v); }
-    float getVolumeRelease() const  { return volumeAdsr_.getRelease(); }
+    void setVolumeAttack(float v)   { const juce::SpinLock::ScopedLockType l(envLock_); volumeAdsr_.setAttack(v); }
+    float getVolumeAttack() const   { const juce::SpinLock::ScopedLockType l(envLock_); return volumeAdsr_.getAttack(); }
+    void setVolumeDecay(float v)    { const juce::SpinLock::ScopedLockType l(envLock_); volumeAdsr_.setDecay(v); }
+    float getVolumeDecay() const    { const juce::SpinLock::ScopedLockType l(envLock_); return volumeAdsr_.getDecay(); }
+    void setVolumeSustain(float v)  { const juce::SpinLock::ScopedLockType l(envLock_); volumeAdsr_.setSustain(v); }
+    float getVolumeSustain() const  { const juce::SpinLock::ScopedLockType l(envLock_); return volumeAdsr_.getSustain(); }
+    void setVolumeRelease(float v)  { const juce::SpinLock::ScopedLockType l(envLock_); volumeAdsr_.setRelease(v); }
+    float getVolumeRelease() const  { const juce::SpinLock::ScopedLockType l(envLock_); return volumeAdsr_.getRelease(); }
 
 private:
     ana::PresetManager presetManager;
@@ -621,6 +636,11 @@ private:
     // --- Independent Volume ADSR (VCA multiplier, NOT in modulation bus) ---
     ana::MultiPointEnvelope volumeAdsr_;
     std::atomic<float> volumeAdsrValue_{1.0f};
+
+    // --- Envelope editing guard (P4): message-thread edits vs audio processing ---
+    mutable juce::SpinLock envLock_;
+    std::atomic<double> envUITime_[4] { {0.0}, {0.0}, {0.0}, {0.0} };
+    std::atomic<float>  envUIValue_[4]{ {0.0f}, {0.0f}, {0.0f}, {0.0f} };
 
     // --- Per-parameter modulation targets (Task 2) ---
     std::atomic<float> modTargetFilterCutoff_{1000.0f};

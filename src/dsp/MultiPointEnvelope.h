@@ -234,13 +234,15 @@ public:
     /** Returns the current playback position of the envelope in seconds. */
     double getTimePositionSeconds() const noexcept { return timePosSeconds; }
 
+    /** Computes the interpolated value between v0 and v1 at position t (0-1)
+        for the given segment curve.  Exposed so editors can render true shapes.
+    */
+    static float interpolateValue(float v0, float v1, float t, CurveType curve);
+
 private:
     //==============================================================================
     /** Internal advance by a time delta in seconds. */
     void advanceEnvelope(double deltaSeconds);
-
-    /** Computes interpolated value between v0 and v1 at position t (0-1). */
-    static float interpolateValue(float v0, float v1, float t, CurveType curve);
 
     /** Handles what happens when we reach the end of the envelope. */
     void handleEnvelopeEnd();

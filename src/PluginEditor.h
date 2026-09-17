@@ -15,6 +15,7 @@
 #include "gui/CyberpunkTheme.h"
 #include "gui/LiveSpectrumPanel.h"
 #include "gui/ModulationAssignPanel.h"
+#include "gui/EnvelopePage.h"
 #include "gui/EffectRackComponent.h"
 #include "gui/panels/TimbrePanel.h"
 #include "gui/panels/FilterPanel.h"
@@ -125,6 +126,9 @@ private:
     // Modulation assignment panel (replaces old LFO/Envelope area)
     juce::Viewport modViewport_;
     ana::ModulationAssignPanel modPanel_;
+
+    // ENV page (P4): editable envelope canvas + slot list + parameter row
+    ana::EnvelopePage envPage_;
 
     //==============================================================================
     // Bottom area

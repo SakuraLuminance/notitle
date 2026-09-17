@@ -241,6 +241,9 @@ public:
     /** Sets the envelope pool array reference (3 ENVs from the processor). */
     void setEnvPoolRef(std::array<MultiPointEnvelope, 3>* pool) { envPoolRef_ = pool; }
 
+    /** Optional lock guarding envelope breakpoint edits against the audio thread. */
+    void setEnvLockRef(juce::SpinLock* lock) { envLockRef_ = lock; }
+
     /** Sets the Volume ADSR reference. */
     void setVolumeAdsrRef(MultiPointEnvelope* adsr) { volumeAdsrRef_ = adsr; }
 
@@ -389,6 +392,7 @@ private:
     std::array<LFOSystem, 4>*        lfoPoolRef_  = nullptr;
     std::array<MultiPointEnvelope, 3>* envPoolRef_ = nullptr;
     MultiPointEnvelope*       volumeAdsrRef_     = nullptr;
+    juce::SpinLock*           envLockRef_        = nullptr;
     Randomizer*               randomizerRef_     = nullptr;
     MidiLearn*                midiLearnRef_      = nullptr;
 

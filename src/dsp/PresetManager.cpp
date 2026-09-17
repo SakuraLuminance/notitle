@@ -1,4 +1,5 @@
 ﻿#include "PresetManager.h"
+#include <memory>
 #include "PresetFactory.h"
 #include "ProcessorStore.h"
 #include "Randomizer.h"
@@ -1230,6 +1231,12 @@ bool PresetManager::deserialiseLFOConfig(const juce::ValueTree& tree)
 
 juce::ValueTree PresetManager::serialiseENVConfig() const
 {
+    // Hold the envelope lock (when wired) so we never read breakpoints while the
+    // audio thread is advancing them.
+    std::unique_ptr<juce::SpinLock::ScopedLockType> envGuard;
+    if (envLockRef_ != nullptr)
+        envGuard = std::make_unique<juce::SpinLock::ScopedLockType>(*envLockRef_);
+
     juce::ValueTree tree("ENVConfig");
 
     if (envPoolRef_ != nullptr)
@@ -1252,6 +1259,10 @@ juce::ValueTree PresetManager::serialiseENVConfig() const
 
 bool PresetManager::deserialiseENVConfig(const juce::ValueTree& tree)
 {
+    std::unique_ptr<juce::SpinLock::ScopedLockType> envGuard;
+    if (envLockRef_ != nullptr)
+        envGuard = std::make_unique<juce::SpinLock::ScopedLockType>(*envLockRef_);
+
     if (envPoolRef_ == nullptr)
         return true; // destination not wired - skip section gracefully
     if (!tree.isValid())
@@ -1283,6 +1294,10 @@ bool PresetManager::deserialiseENVConfig(const juce::ValueTree& tree)
 
 juce::ValueTree PresetManager::serialiseVolumeADSR() const
 {
+    std::unique_ptr<juce::SpinLock::ScopedLockType> envGuard;
+    if (envLockRef_ != nullptr)
+        envGuard = std::make_unique<juce::SpinLock::ScopedLockType>(*envLockRef_);
+
     juce::ValueTree tree("VolumeADSR");
 
     if (volumeAdsrRef_ != nullptr)
@@ -1298,6 +1313,10 @@ juce::ValueTree PresetManager::serialiseVolumeADSR() const
 
 bool PresetManager::deserialiseVolumeADSR(const juce::ValueTree& tree)
 {
+    std::unique_ptr<juce::SpinLock::ScopedLockType> envGuard;
+    if (envLockRef_ != nullptr)
+        envGuard = std::make_unique<juce::SpinLock::ScopedLockType>(*envLockRef_);
+
     if (volumeAdsrRef_ == nullptr)
         return true; // destination not wired - skip section gracefully
     if (!tree.isValid())

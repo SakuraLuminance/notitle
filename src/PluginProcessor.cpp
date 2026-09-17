@@ -158,6 +158,7 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     presetManager.setLfoPoolRef(&lfoPool_);
     presetManager.setEnvPoolRef(&envPool_);
     presetManager.setVolumeAdsrRef(&volumeAdsr_);
+    presetManager.setEnvLockRef(&envLock_);
     presetManager.setRandomizerRef(&randomizer_);
     presetManager.setMidiLearnRef(&midiLearn_);
     ANA_CRUMB("ctor:refs wired");
@@ -170,9 +171,13 @@ AnaPlugAudioProcessor::AnaPlugAudioProcessor()
     // Initialise MacroController with 4 macros
     macroController_.setNumMacros(4);
 
-    // Configure first envelope with default ADSR
-    envPool_[0].prepare(44100.0);
-    envPool_[0].rebuildADSR();
+    // Configure all three modulation envelopes with a default ADSR so the ENV
+    // page starts from a drawn shape (previously only envPool_[0] was set up).
+    for (auto& env : envPool_)
+    {
+        env.prepare(44100.0);
+        env.rebuildADSR();
+    }
 
     // Configure independent Volume ADSR (VCA multiplier, NOT in modulation bus)
     // Uses Sustain loop mode so the envelope holds at sustain level until note-off.
@@ -520,7 +525,15 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     {
         juce::AudioPlayHead::CurrentPositionInfo pos;
         if (ph->getCurrentPosition(pos))
+        {
             stepSequencer_.setBpm(pos.bpm);
+
+            // Drive envelope tempo sync from the host transport.
+            const juce::SpinLock::ScopedLockType envLockScope(envLock_);
+            for (auto& env : envPool_)
+                env.setTempo(pos.bpm);
+            volumeAdsr_.setTempo(pos.bpm);
+        }
     }
 
     // Handle flatten trigger on message thread
@@ -547,17 +560,20 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
             unisonEngine_.setFrequency(unisonFreq);
             unisonEngine_.noteOn();
 
-            // Trigger all envelopes on each note-on
-            for (auto& env : envPool_)
-                env.trigger();
-
-            // Trigger Volume ADSR on each note-on
-            volumeAdsr_.trigger();
+            // Trigger all envelopes on each note-on (lock: UI may be editing
+            // breakpoints on the message thread)
+            {
+                const juce::SpinLock::ScopedLockType envLockScope(envLock_);
+                for (auto& env : envPool_)
+                    env.trigger();
+                volumeAdsr_.trigger();
+            }
         }
 
         if (m.isNoteOff())
         {
             // Release Volume ADSR on note-off
+            const juce::SpinLock::ScopedLockType envLockScope(envLock_);
             volumeAdsr_.release();
         }
 
@@ -573,8 +589,16 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // --- Envelope modulation pool ---
     // Advance all 3 envelopes and cache output values for flat-array modulation pass.
-    for (int i = 0; i < 3; ++i)
-        envValues_[i] = envPool_[i].process(numSamples);
+    // The lock guards the breakpoint vectors against message-thread edits.
+    {
+        const juce::SpinLock::ScopedLockType envLockScope(envLock_);
+        for (int i = 0; i < 3; ++i)
+        {
+            envValues_[i] = envPool_[i].process(numSamples);
+            envUITime_[i + 1].store(envPool_[i].getTimePositionSeconds(), std::memory_order_relaxed);
+            envUIValue_[i + 1].store(envValues_[i], std::memory_order_relaxed);
+        }
+    }
 
     // --- Step Sequencer ---
     // Advance sequencer and cache its current CV value for the modulation pass.
@@ -582,7 +606,13 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     sequencerValue_ = stepSequencer_.getCurrentValue();
 
     // --- Independent Volume ADSR (VCA multiplier, NOT in modulation bus) ---
-    volumeAdsrValue_.store(volumeAdsr_.process(numSamples), std::memory_order_relaxed);
+    {
+        const juce::SpinLock::ScopedLockType envLockScope(envLock_);
+        const float volValue = volumeAdsr_.process(numSamples);
+        volumeAdsrValue_.store(volValue, std::memory_order_relaxed);
+        envUITime_[0].store(volumeAdsr_.getTimePositionSeconds(), std::memory_order_relaxed);
+        envUIValue_[0].store(volValue, std::memory_order_relaxed);
+    }
 
     // --- Flat-array modulation pass (Surge XT pattern) ---
     // Block-rate single pass: read LFO/ENV source values, apply depth per slot,
@@ -1378,6 +1408,18 @@ float AnaPlugAudioProcessor::getTimbreBlur(bool isA) const
 float AnaPlugAudioProcessor::getTimbreHpf(bool isA) const
 {
     return (isA ? timbreAHpf_ : timbreBHpf_).load();
+}
+
+//==============================================================================
+// Envelope slots (P4): 0 = VOL, 1..3 = ENV1..ENV3
+//==============================================================================
+
+ana::MultiPointEnvelope& AnaPlugAudioProcessor::getEnvelopeSlot(int slot)
+{
+    if (slot <= 0)
+        return volumeAdsr_;
+
+    return envPool_[static_cast<size_t>(juce::jlimit(0, 2, slot - 1))];
 }
 
 //==============================================================================

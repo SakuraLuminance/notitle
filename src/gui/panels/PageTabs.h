@@ -12,8 +12,8 @@ class PageTabs : public juce::Component
 public:
     PageTabs()
     {
-        static const char* names[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER" };
-        for (int i = 0; i < 6; ++i)
+        static const char* names[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV" };
+        for (int i = 0; i < 7; ++i)
         {
             auto b = std::make_unique<juce::TextButton>(names[i]);
             b->setClickingTogglesState(true);
@@ -47,8 +47,8 @@ public:
     void resized() override
     {
         auto area = getLocalBounds().reduced(2, 1);
-        const int w = juce::jmax(1, area.getWidth() / 6);
-        for (int i = 0; i < 6; ++i)
+        const int w = juce::jmax(1, area.getWidth() / 7);
+        for (int i = 0; i < 7; ++i)
             tabs_.getUnchecked(i)->setBounds(area.removeFromLeft(w).reduced(1, 1));
     }
 
@@ -56,10 +56,10 @@ public:
 
     void setActive(int page)
     {
-        if (page < 0 || page > 5)
+        if (page < 0 || page > 6)
             return;
         activeIndex_ = page;
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < 7; ++i)
             tabs_.getUnchecked(i)->setToggleState(i == page, juce::dontSendNotification);
         repaint();
         if (onTabChanged)

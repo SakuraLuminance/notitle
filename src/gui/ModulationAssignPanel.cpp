@@ -1,5 +1,6 @@
 #include "ModulationAssignPanel.h"
 #include "../dsp/Crumb.h"
+#include "../dsp/EnvelopeEditOps.h"
 
 namespace ana {
 
@@ -310,10 +311,17 @@ void ModulationAssignPanel::syncFromProcessor()
         if (std::abs(static_cast<float>(slider.getValue()) - val) > 0.001f)
             slider.setValue(static_cast<double>(val), juce::dontSendNotification);
     };
-    syncAdsr(volAttack_,  processor_.getVolumeAttack());
-    syncAdsr(volDecay_,   processor_.getVolumeDecay());
-    syncAdsr(volSustain_, processor_.getVolumeSustain());
-    syncAdsr(volRelease_, processor_.getVolumeRelease());
+    // Derived from the drawn volume envelope so the sliders mirror free-form
+    // canvas edits (dragging a slider rebuilds a standard ADSR shape).
+    ana::EnvelopeEditOps::DerivedADSR derived;
+    {
+        const juce::SpinLock::ScopedLockType envLock(processor_.getEnvelopeLock());
+        derived = ana::EnvelopeEditOps::deriveADSR(processor_.getEnvelopeSlot(0));
+    }
+    syncAdsr(volAttack_,  derived.attack);
+    syncAdsr(volDecay_,   derived.decay);
+    syncAdsr(volSustain_, derived.sustain);
+    syncAdsr(volRelease_, derived.release);
 }
 
 } // namespace ana
