@@ -150,6 +150,16 @@ public:
     void resetPartialsFromEngine();
     int getActivePartialCount() const { return additiveSynth_.getActivePartialCount(); }
 
+    // --- Timbre shaping (P6 Round 2): A/B per-partial treatment + BLEND ---
+    void  setTimbreBright(bool isA, float value);   // 0..1, 0.5 neutral
+    void  setTimbreBlur(bool isA, float value);     // 0..1
+    void  setTimbreHpf(bool isA, float value);      // 20..20000 Hz
+    void  setTimbreBlend(float value);              // 0 = A, 1 = B
+    float getTimbreBright(bool isA) const;
+    float getTimbreBlur(bool isA) const;
+    float getTimbreHpf(bool isA) const;
+    float getTimbreBlend() const { return timbreBlend_.load(); }
+
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
     void setResynthesizedBuffer(std::vector<float> buffer);
@@ -435,6 +445,16 @@ private:
     ana::PartialDataSIMD sourcePartials_;
     ana::PartialDataSIMD editedPartials_;
     void refreshPartialsFromEngine();   // message thread: engine -> source/edited -> synth
+    void applyTimbreProcessing();       // message thread: edited -> A/B shape -> blend -> synth
+
+    // Timbre A/B per-partial treatment + blend (P6 Round 2)
+    std::atomic<float> timbreABright_{ 0.5f };
+    std::atomic<float> timbreABlur_{ 0.0f };
+    std::atomic<float> timbreAHpf_{ 20.0f };
+    std::atomic<float> timbreBBright_{ 0.5f };
+    std::atomic<float> timbreBBlur_{ 0.0f };
+    std::atomic<float> timbreBHpf_{ 20.0f };
+    std::atomic<float> timbreBlend_{ 0.5f };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

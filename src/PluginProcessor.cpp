@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "dsp/Crumb.h"
+#include "dsp/TimbreShaper.h"
 #include <cmath>
 #include "dsp/effects/DelayEffect.h"
 #include "dsp/effects/ReverbEffect.h"
@@ -1271,26 +1272,92 @@ void AnaPlugAudioProcessor::refreshPartialsFromEngine()
     }
 
     editedPartials_ = sourcePartials_;
-    additiveSynth_.setPartials(editedPartials_);
+    applyTimbreProcessing();
 }
 
 void AnaPlugAudioProcessor::setSynthMode(bool enabled)
 {
     synthMode_.store(enabled);
     if (enabled)
-        additiveSynth_.setPartials(editedPartials_);
+        applyTimbreProcessing();
 }
 
 void AnaPlugAudioProcessor::setEditedPartials(const ana::PartialDataSIMD& partials)
 {
     editedPartials_ = partials;
     editedPartials_.updateActiveMask();
-    additiveSynth_.setPartials(editedPartials_);
+    applyTimbreProcessing();
 }
 
 void AnaPlugAudioProcessor::resetPartialsFromEngine()
 {
     refreshPartialsFromEngine();
+}
+
+//==============================================================================
+// Timbre shaping (P6 Round 2): A/B per-partial treatment + BLEND
+//==============================================================================
+
+void AnaPlugAudioProcessor::applyTimbreProcessing()
+{
+    const double sr = editedPartials_.sampleRate > 0.0 ? editedPartials_.sampleRate : 44100.0;
+
+    ana::PartialDataSIMD setA = editedPartials_;
+    ana::PartialDataSIMD setB = editedPartials_;
+
+    ana::TimbreShapeParams pa;
+    pa.bright = timbreABright_.load();
+    pa.blur   = timbreABlur_.load();
+    pa.hpfHz  = timbreAHpf_.load();
+
+    ana::TimbreShapeParams pb;
+    pb.bright = timbreBBright_.load();
+    pb.blur   = timbreBBlur_.load();
+    pb.hpfHz  = timbreBHpf_.load();
+
+    ana::TimbreShaper::shape(setA, pa, sr);
+    ana::TimbreShaper::shape(setB, pb, sr);
+
+    additiveSynth_.setPartials(ana::TimbreShaper::blend(setA, setB, timbreBlend_.load()));
+}
+
+void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)
+{
+    (isA ? timbreABright_ : timbreBBright_).store(juce::jlimit(0.0f, 1.0f, value));
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::setTimbreBlur(bool isA, float value)
+{
+    (isA ? timbreABlur_ : timbreBBlur_).store(juce::jlimit(0.0f, 1.0f, value));
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::setTimbreHpf(bool isA, float value)
+{
+    (isA ? timbreAHpf_ : timbreBHpf_).store(juce::jlimit(20.0f, 20000.0f, value));
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::setTimbreBlend(float value)
+{
+    timbreBlend_.store(juce::jlimit(0.0f, 1.0f, value));
+    applyTimbreProcessing();
+}
+
+float AnaPlugAudioProcessor::getTimbreBright(bool isA) const
+{
+    return (isA ? timbreABright_ : timbreBBright_).load();
+}
+
+float AnaPlugAudioProcessor::getTimbreBlur(bool isA) const
+{
+    return (isA ? timbreABlur_ : timbreBBlur_).load();
+}
+
+float AnaPlugAudioProcessor::getTimbreHpf(bool isA) const
+{
+    return (isA ? timbreAHpf_ : timbreBHpf_).load();
 }
 
 //==============================================================================

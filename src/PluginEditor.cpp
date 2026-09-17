@@ -63,6 +63,10 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     addCyberKnob(timbreBlendSlider_, timbreBlendLabel_, "BLEND", 0.0, 1.0, 0.5, 0.01,
                  juce::Slider::LinearHorizontal);
     timbreBlendSlider_.setTooltip("A/B timbre blend (0-100%)");
+    timbreBlendSlider_.onValueChange = [this]()
+    {
+        audioProcessor.setTimbreBlend(static_cast<float>(timbreBlendSlider_.getValue()));
+    };
 
     //==============================================================================
     // Center 鈥?Visual feedback + view selector

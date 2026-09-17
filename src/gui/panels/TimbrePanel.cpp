@@ -5,7 +5,7 @@ namespace ana
 {
 
 TimbrePanel::TimbrePanel(AnaPlugAudioProcessor& processor, bool isA)
-    : processor_(processor)
+    : processor_(processor), isA_(isA)
 {
     panelwidgets::cyberKnob(*this, subSlider_, subLabel_,    "SUB",     0.0, 1.0, 0.0, 0.01);
     panelwidgets::cyberKnob(*this, brightSlider_, brightLabel_, "BRIGHT", 0.0, 1.0, 0.5, 0.01);
@@ -31,6 +31,17 @@ TimbrePanel::TimbrePanel(AnaPlugAudioProcessor& processor, bool isA)
                 static_cast<float>(subSlider_.getValue()));
         };
     }
+
+    // P6 Round 2: per-partial treatment for this side (A or B)
+    brightSlider_.onValueChange = [this]() {
+        processor_.setTimbreBright(isA_, static_cast<float>(brightSlider_.getValue()));
+    };
+    blurSlider_.onValueChange = [this]() {
+        processor_.setTimbreBlur(isA_, static_cast<float>(blurSlider_.getValue()));
+    };
+    hpfSlider_.onValueChange = [this]() {
+        processor_.setTimbreHpf(isA_, static_cast<float>(hpfSlider_.getValue()));
+    };
 }
 
 void TimbrePanel::resized()

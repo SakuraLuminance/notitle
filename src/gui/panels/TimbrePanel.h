@@ -20,6 +20,7 @@ public:
 
 private:
     AnaPlugAudioProcessor& processor_;
+    bool isA_ = true;
     juce::Slider subSlider_;
     juce::Slider brightSlider_;
     juce::Slider blurSlider_;
