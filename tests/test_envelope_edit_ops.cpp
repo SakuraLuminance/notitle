@@ -1,11 +1,10 @@
-#include <catch2/catch_all.hpp>
+﻿#include <catch2/catch_all.hpp>
 #include "dsp/EnvelopeEditOps.h"
 
 namespace
 {
-ana::MultiPointEnvelope makeAdsrLike()
+void makeAdsrLike(ana::MultiPointEnvelope& env)
 {
-    ana::MultiPointEnvelope env;
     env.prepare(48000.0);
     env.addBreakpoint(0.0f, 0.0f);
     env.addBreakpoint(0.1f, 1.0f);
@@ -13,13 +12,13 @@ ana::MultiPointEnvelope makeAdsrLike()
     env.addBreakpoint(0.6f, 0.0f);
     env.setLoopMode(ana::LoopMode::Sustain);
     env.setLoopEnd(2);
-    return env;
 }
 }
 
 TEST_CASE("EnvelopeEditOps: derived ADSR matches the drawn shape", "[envelope][editops]")
 {
-    auto env = makeAdsrLike();
+    ana::MultiPointEnvelope env;
+    makeAdsrLike(env);
 
     const auto adsr = ana::EnvelopeEditOps::deriveADSR(env);
     REQUIRE(adsr.attack  == Catch::Approx(0.1f).margin(0.001f));
@@ -38,7 +37,8 @@ TEST_CASE("EnvelopeEditOps: derived ADSR matches the drawn shape", "[envelope][e
 
 TEST_CASE("EnvelopeEditOps: move is clamped between neighbours and 0..1", "[envelope][editops]")
 {
-    auto env = makeAdsrLike();
+    ana::MultiPointEnvelope env;
+    makeAdsrLike(env);
 
     REQUIRE(ana::EnvelopeEditOps::movePoint(env, 1, -5.0f, 2.0f));
     REQUIRE(env.getBreakpoint(1).time  == Catch::Approx(0.0f).margin(0.001f));
@@ -53,7 +53,8 @@ TEST_CASE("EnvelopeEditOps: move is clamped between neighbours and 0..1", "[enve
 
 TEST_CASE("EnvelopeEditOps: remove keeps at least two points", "[envelope][editops]")
 {
-    auto env = makeAdsrLike();
+    ana::MultiPointEnvelope env;
+    makeAdsrLike(env);
 
     REQUIRE(ana::EnvelopeEditOps::removePoint(env, 1));
     REQUIRE(env.getNumBreakpoints() == 3);
@@ -65,7 +66,8 @@ TEST_CASE("EnvelopeEditOps: remove keeps at least two points", "[envelope][edito
 
 TEST_CASE("EnvelopeEditOps: addPoint respects the breakpoint cap", "[envelope][editops]")
 {
-    auto env = makeAdsrLike();
+    ana::MultiPointEnvelope env;
+    makeAdsrLike(env);
 
     for (int i = 0; i < ana::MultiPointEnvelope::maxBreakpoints; ++i)
         ana::EnvelopeEditOps::addPoint(env, 9.0f, 0.5f, ana::CurveType::Linear);
@@ -94,3 +96,4 @@ TEST_CASE("EnvelopeEditOps: coordinate mapping and hit testing", "[envelope][edi
     REQUIRE(ana::EnvelopeEditOps::hitTestPoint(env, {150.0f, 60.0f}, area, 8.0f) == -1);
     REQUIRE(ana::EnvelopeEditOps::hitTestMarker(env, onFirst, area, 8.0f) == 0);
 }
+

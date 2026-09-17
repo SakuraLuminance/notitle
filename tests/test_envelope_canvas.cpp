@@ -5,9 +5,8 @@
 
 namespace
 {
-ana::MultiPointEnvelope makeEnv()
+void makeEnv(ana::MultiPointEnvelope& env)
 {
-    ana::MultiPointEnvelope env;
     env.prepare(48000.0);
     env.addBreakpoint(0.0f, 0.0f);
     env.addBreakpoint(0.2f, 1.0f);
@@ -15,13 +14,13 @@ ana::MultiPointEnvelope makeEnv()
     env.addBreakpoint(1.0f, 0.0f);
     env.setLoopMode(ana::LoopMode::Sustain);
     env.setLoopEnd(2);
-    return env;
 }
 }
 
 TEST_CASE("EnvelopeCanvas: paint is headless safe", "[ui][envelope]")
 {
-    auto env = makeEnv();
+    ana::MultiPointEnvelope env;
+    makeEnv(env);
 
     ana::EnvelopeCanvas canvas;
     canvas.setBounds(0, 0, 400, 200);
@@ -66,7 +65,8 @@ TEST_CASE("EnvelopeCanvas: paint is headless safe", "[ui][envelope]")
 
 TEST_CASE("EnvelopeCanvas: programmatic edits stay coherent", "[ui][envelope]")
 {
-    auto env = makeEnv();
+    ana::MultiPointEnvelope env;
+    makeEnv(env);
 
     ana::EnvelopeCanvas canvas;
     canvas.setBounds(0, 0, 400, 200);
