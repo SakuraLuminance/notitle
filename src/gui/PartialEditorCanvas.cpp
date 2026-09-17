@@ -621,7 +621,7 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     {
         g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
         g.setFont(CyberpunkTheme::getCyberFont(12.0f));
-        g.drawText("No partial data loaded", bounds,
+        g.drawText("NO PARTIAL DATA LOADED", bounds,
                    juce::Justification::centred);
         return;
     }
