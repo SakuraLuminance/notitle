@@ -923,26 +923,25 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         }
     }
 
-    if (audioProcessor.isEngineLoaded())
+    // Partial-derived views only need this conversion while one of them is
+    // actually visible.  (The old linear timestamp scan was dead work: the SIMD
+    // conversion always reads the most recent frame.)
+    if ((feedbackPanel_.isVisible() || waterfallDisplay_.isVisible()
+         || spectrumEditorCanvas_.isVisible())
+        && audioProcessor.isEngineLoaded())
     {
-        int pos = audioProcessor.getPlaybackPosition();
-        const auto& engine = audioProcessor.getEngine();
-        const auto& partialData = engine.getPartialData();
-        if (!partialData.frames.empty() && engine.getAudioData().sampleRate > 0)
+        const auto& partialData = audioProcessor.getEngine().getPartialData();
+        if (! partialData.frames.empty())
         {
-            double currentTime = static_cast<double>(pos) / engine.getAudioData().sampleRate;
-            size_t bestFrame = 0;
-            double bestDiff = std::abs(partialData.frames[0].timestamp - currentTime);
-            for (size_t i = 0; i < partialData.frames.size(); ++i)
-            {
-                double diff = std::abs(partialData.frames[i].timestamp - currentTime);
-                if (diff < bestDiff) { bestDiff = diff; bestFrame = i; }
-            }
-            // Update visual feedback panel
-            ana::PartialDataSIMD simd = ana::PartialDataSIMD::fromPartialData(partialData);
-            feedbackPanel_.updatePartials(simd);
-            waterfallDisplay_.updatePartials(simd);
-            if (! audioProcessor.isSynthMode())
+            const ana::PartialDataSIMD simd = ana::PartialDataSIMD::fromPartialData(partialData);
+
+            if (feedbackPanel_.isVisible())
+                feedbackPanel_.updatePartials(simd);
+
+            if (waterfallDisplay_.isVisible())
+                waterfallDisplay_.updatePartials(simd);
+
+            if (spectrumEditorCanvas_.isVisible() && ! audioProcessor.isSynthMode())
                 spectrumEditorCanvas_.setPartials(simd);
         }
     }
@@ -951,12 +950,13 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         statusLabel_.setText(">> PITCH FLATTENING <<", juce::dontSendNotification);
 
     // --- Macro visual update: sync slider from controller, update ring colours ---
-    macroPanel_.updateFromController();
+    if (activePage_ == 2)
+        macroPanel_.updateFromController();
 
     // XY Pad 鈫?processor parameter mapping
     // X axis is already written to morphAmount via setXParameter binding
     // Y axis 鈫?apply based on selected target
-    if (xyPad_ != nullptr)
+    if (xyPad_ != nullptr && activePage_ == 0)
     {
         const float yVal = xyPad_->getY();
         switch (xyPad_->getYTarget())
@@ -983,8 +983,11 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     }
 
     // --- Sync modulation panel from processor state (preset reload, etc.) ---
-    modPanel_.syncFromProcessor();
-    envPage_.syncFromProcessor();
+    // Only the active page's panels are synced (hidden pages need no UI work).
+    if (activePage_ == 2)
+        modPanel_.syncFromProcessor();
+    else if (activePage_ == 6)
+        envPage_.syncFromProcessor();
 
     // Spectral particle view (P5): physics tick while the view is active
     if (viewModeCombo_.getSelectedId() == 7)
@@ -994,12 +997,15 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     }
 
     // --- Step Sequencer: sync UI from processor state ---
-    sequencerPanel_.updateFromSequencer();
+    if (activePage_ == 3)
+        sequencerPanel_.updateFromSequencer();
 
     // --- Update filter visualization with live frequency response ---
-    filterPanel_.updateFrequencyResponse();
+    if (activePage_ == 1)
+        filterPanel_.updateFrequencyResponse();
 
     // --- Timbre shape / blend sync (preset reload, MIDI learn, etc.) ---
+    if (activePage_ == 0)
     {
         auto sync = [](juce::Slider& s, float v)
         {
@@ -1039,8 +1045,11 @@ void AnaPlugAudioProcessorEditor::timerCallback()
             if (imageStatusLabel_.getText() != imgText)
                 imageStatusLabel_.setText(imgText, juce::dontSendNotification);
         }
+    }
 
-        // Spectral freeze (P5)
+    // --- Spectral freeze sync (FX page) ---
+    if (activePage_ == 4)
+    {
         if (freezeButton_.getToggleState() != audioProcessor.isSpectralFreezeEnabled())
             freezeButton_.setToggleState(audioProcessor.isSpectralFreezeEnabled(),
                                          juce::dontSendNotification);

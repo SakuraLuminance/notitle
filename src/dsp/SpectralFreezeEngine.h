@@ -133,14 +133,25 @@ public:
     /** Process an audio buffer through the freeze engine.
         The output buffer receives the mix of dry (live) and wet (frozen) signal.
         @param input   Live input audio buffer (read-only).
-        @param output  Output audio buffer (written with the processed result). */
+        @param output  Output buffer (written with the processed result). */
     void processAudio(const juce::AudioBuffer<float>& input,
                       juce::AudioBuffer<float>& output);
+
+    /** Records the live input into the freeze ring without producing output.
+        Used while the engine is idle (no freeze, no crossfade) so a later freeze
+        still has history to capture — avoids a full buffer copy per block. */
+    void recordOnly(const juce::AudioBuffer<float>& input);
     //@}
 
     //==============================================================================
     /** @name State Management */
     //@{
+    /** True while the engine is holding a frozen snapshot. */
+    bool isFrozen() const noexcept { return isFrozen_; }
+
+    /** Current (crossfaded) wet amount — lets callers skip work when idle. */
+    float getCurrentMix() const noexcept { return currentMix_; }
+
     /** Full reset: clears all frozen state, history, and buffers. */
     void reset();
 
@@ -242,7 +253,6 @@ private:
     // Audio buffer freeze state
     std::vector<float> frozenAudioBuffer_;
     int                audioWritePos_ = 0;
-    int                audioReadPos_  = 0;
 
     // Held snapshot of the input taken at freeze time (true freeze: the audio
     // path loops this instead of reading the still-moving live ring buffer).

@@ -227,6 +227,9 @@ public:
     /** Number of frames currently published to the additive synth. */
     int   getImageFrameCount() const { return additiveSynth_.getActiveFrameCount(); }
 
+    /** Spectral freeze stage (post-effects, pre-master).  Audio thread only. */
+    void processSpectralFreeze(juce::AudioBuffer<float>& buffer);
+
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
     void setResynthesizedBuffer(std::vector<float> buffer);
@@ -555,8 +558,16 @@ private:
     std::atomic<int>   freezeMode_{ 0 };
     std::atomic<float> freezeMix_{ 0.5f };
 
+    // Deferred freeze control: the engine is only touched from the audio thread.
+    std::atomic<bool>  freezeEngineRequested_{ false };
+    std::atomic<bool>  freezeTriggerRequested_{ false };
+    int   lastFreezeMode_     = -1;      // audio thread only
+    float lastFreezeMix_      = -1.0f;   // audio thread only
+    bool  lastFreezeApplied_  = false;   // audio thread only
+
     // Time-varying harmonic image (P6b): analysis frames, frame 0 = edited set
     std::vector<ana::PartialDataSIMD> imageFrames_;
+    std::vector<ana::PartialDataSIMD> timbreShapeScratch_;   // reused by applyTimbreProcessing
     std::atomic<bool>  imageEnabled_{ false };
     std::atomic<float> imageRate_{ 2.0f };
     std::atomic<bool>  imageLoop_{ true };

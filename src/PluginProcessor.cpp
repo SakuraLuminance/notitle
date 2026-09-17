@@ -934,11 +934,8 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
                 for (int ch = 0; ch < numChannels; ++ch)
                     buffer.addFrom(ch, 0, voiceBuffer, ch, 0, numSamples, 0.5f);
 
-                // Spectral freeze (P5), post-effects / pre-master: the engine
-                // always records so a freeze captures the live output; when not
-                // frozen the dry/wet mix is zero and the buffer is unchanged.
-                freezeScratch_.makeCopyOf(buffer, true);
-                freezeEngine_.processAudio(freezeScratch_, buffer);
+                // Spectral freeze (P5), post-effects / pre-master
+                processSpectralFreeze(buffer);
 
                 // Apply master volume and pan (output stage)
                 {
@@ -976,9 +973,8 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     for (int ch = 0; ch < numChannels; ++ch)
         buffer.copyFrom(ch, 0, voiceBuffer, ch, 0, numSamples);
 
-    // Spectral freeze (P5), post-effects / pre-master (see note above)
-    freezeScratch_.makeCopyOf(buffer, true);
-    freezeEngine_.processAudio(freezeScratch_, buffer);
+    // Spectral freeze (P5), post-effects / pre-master
+    processSpectralFreeze(buffer);
 
     // Apply master volume and pan (output stage)
     {
@@ -1465,7 +1461,10 @@ void AnaPlugAudioProcessor::applyTimbreProcessing()
     const float generativeM = generativeMix_.load();
 
     // Shape every frame of the image (a single frame when there is no image).
-    std::vector<ana::PartialDataSIMD> shaped = imageFrames_;
+    // The scratch vector keeps its capacity between calls, so parameter moves
+    // do not allocate.
+    auto& shaped = timbreShapeScratch_;
+    shaped = imageFrames_;
 
     if (shaped.empty())
         shaped.push_back(editedPartials_);
@@ -1563,33 +1562,75 @@ void AnaPlugAudioProcessor::advanceParticles(double deltaSeconds)
 
 void AnaPlugAudioProcessor::setSpectralFreezeEnabled(bool enabled)
 {
+    // Published for the UI; applied to the engine on the audio thread.
     freezeEnabled_.store(enabled);
-    freezeEngine_.setFreeze(enabled);
+    freezeEngineRequested_.store(enabled);
 }
 
 void AnaPlugAudioProcessor::triggerSpectralFreeze()
 {
     freezeEnabled_.store(true);
-    freezeEngine_.triggerFreeze();
+    freezeEngineRequested_.store(true);
+    freezeTriggerRequested_.store(true);
 }
 
 void AnaPlugAudioProcessor::setSpectralFreezeMode(int mode)
 {
-    const int m = juce::jlimit(0, 3, mode);
-    freezeMode_.store(m);
-    freezeEngine_.setFreezeMode(static_cast<ana::SpectralFreezeEngine::FreezeMode>(m));
+    freezeMode_.store(juce::jlimit(0, 3, mode));   // applied on the audio thread
 }
 
 void AnaPlugAudioProcessor::setSpectralFreezeMix(float mix)
 {
-    const float m = juce::jlimit(0.0f, 1.0f, mix);
-    freezeMix_.store(m);
-    freezeEngine_.setMix(m);
+    freezeMix_.store(juce::jlimit(0.0f, 1.0f, mix));   // applied on the audio thread
 }
 
 //==============================================================================
 // Time-varying harmonic image (P6b)
 //==============================================================================
+
+void AnaPlugAudioProcessor::processSpectralFreeze(juce::AudioBuffer<float>& buffer)
+{
+    // Apply pending control changes here: the engine is an audio-thread object,
+    // so message-thread setters only publish atomics.
+    const int   mode = freezeMode_.load(std::memory_order_relaxed);
+    const float mix  = freezeMix_.load(std::memory_order_relaxed);
+    const bool  want = freezeEngineRequested_.load(std::memory_order_relaxed);
+
+    if (mode != lastFreezeMode_)
+    {
+        freezeEngine_.setFreezeMode(static_cast<ana::SpectralFreezeEngine::FreezeMode>(mode));
+        lastFreezeMode_ = mode;
+    }
+
+    if (mix != lastFreezeMix_)
+    {
+        freezeEngine_.setMix(mix);
+        lastFreezeMix_ = mix;
+    }
+
+    if (want != lastFreezeApplied_)
+    {
+        freezeEngine_.setFreeze(want);
+        lastFreezeApplied_ = want;
+    }
+
+    if (freezeTriggerRequested_.exchange(false, std::memory_order_relaxed))
+        freezeEngine_.triggerFreeze();
+
+    // While the engine is idle (not frozen and any crossfade finished) it only
+    // needs to record live audio for the next capture — no buffer copies at all.
+    const bool wetPath = want || freezeEngine_.getCurrentMix() > 5.0e-4f;
+
+    if (wetPath)
+    {
+        freezeScratch_.makeCopyOf(buffer, true);
+        freezeEngine_.processAudio(freezeScratch_, buffer);
+    }
+    else
+    {
+        freezeEngine_.recordOnly(buffer);
+    }
+}
 
 void AnaPlugAudioProcessor::setImageEnabled(bool enabled)
 {

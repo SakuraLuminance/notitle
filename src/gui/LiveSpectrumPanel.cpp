@@ -8,7 +8,7 @@ namespace ana
 LiveSpectrumPanel::LiveSpectrumPanel()
 {
     fftBuffer_.assign(static_cast<size_t>(fftSize) * 2, 0.0f);
-    magnitudes_.assign(numBins, 0.0f);
+    binEnergies_.assign(numBins, 0.0f);
     for (int i = 0; i < fftSize; ++i)
         hannWindow_[(size_t) i] = 0.5f * (1.0f - std::cos(
             juce::MathConstants<float>::twoPi * static_cast<float>(i)
@@ -61,11 +61,13 @@ void LiveSpectrumPanel::updateFromSamples(const float* data, int numSamples)
         fftBuffer_[(size_t) i] = 0.0f;
 
     fftEngine_.performRealOnlyForwardTransform(fftBuffer_.data(), true);
+    // Keep squared magnitudes while aggregating: comparing squares preserves the
+    // peak order, so only one sqrt per bar is needed instead of one per bin.
     for (int i = 0; i < numBins; ++i)
     {
         const float re = fftBuffer_[(size_t) (2 * i)];
         const float im = fftBuffer_[(size_t) (2 * i + 1)];
-        magnitudes_[(size_t) i] = std::sqrt(re * re + im * im);
+        binEnergies_[(size_t) i] = re * re + im * im;
     }
 
     // Aggregate bins into log-spaced bars (max energy per band)
@@ -74,8 +76,9 @@ void LiveSpectrumPanel::updateFromSamples(const float* data, int numSamples)
     {
         float peak = 0.0f;
         for (int i = barBinStart_[(size_t) b]; i < barBinEnd_[(size_t) b]; ++i)
-            peak = juce::jmax(peak, magnitudes_[(size_t) i]);
-        const float db = juce::Decibels::gainToDecibels(juce::jmax(peak, 1.0e-9f));
+            peak = juce::jmax(peak, binEnergies_[(size_t) i]);
+        const float db = juce::Decibels::gainToDecibels(
+            std::sqrt(juce::jmax(peak, 1.0e-18f)));
         barLevels_[(size_t) b] = juce::jlimit(0.0f, 1.0f,
             (db - kMinDb) / (kMaxDb - kMinDb));
     }

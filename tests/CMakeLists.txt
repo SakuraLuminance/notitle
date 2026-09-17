@@ -30,6 +30,7 @@ test_envelope_edit_ops.cpp
 test_envelope_canvas.cpp
 test_envelope_persistence.cpp
 test_particle_display.cpp
+test_hpss_engine.cpp
 #test_partial_editor_canvas.cpp
 test_partial_tracker.cpp
     test_peak_detector.cpp
@@ -131,6 +132,7 @@ test_ui_colors.cpp
     ../src/dsp/AdditiveSynth.cpp
     ../src/dsp/TimbreShaper.cpp
     ../src/dsp/EnvelopeEditOps.cpp
+    ../src/dsp/HPSSEngine.cpp
     ../src/dsp/BpmDetector.cpp
     ../src/dsp/DualTimbre.cpp
     ../src/dsp/FilterModulation.cpp

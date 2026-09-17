@@ -170,34 +170,48 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
     const AdditiveFrame& B = bank->frames[f1];
     const int nA = juce::jmin(A.count, AdditiveFrame::kMaxPartials);
     const int nB = juce::jmin(B.count, AdditiveFrame::kMaxPartials);
-    const int n  = juce::jmax(nA, nB);
-    if (n <= 0)
-        return;
 
-    // Interpolated partial table for this sub-block.
+    // Static images (the common case) read straight from frame 0: no
+    // interpolation table is built at all.
+    const float* freqSrc = A.frequency;
+    const float* ampSrc  = A.amplitude;
+    int n = nA;
+
     float iFreq[AdditiveFrame::kMaxPartials];
     float iAmp [AdditiveFrame::kMaxPartials];
-    for (int i = 0; i < n; ++i)
-    {
-        const bool inA = (i < nA);
-        const bool inB = (i < nB);
 
-        if (inA && inB)
+    if (lastFrame > 0)
+    {
+        n = juce::jmax(nA, nB);
+
+        for (int i = 0; i < n; ++i)
         {
-            iFreq[i] = A.frequency[i] + (B.frequency[i] - A.frequency[i]) * fMix;
-            iAmp[i]  = A.amplitude[i] + (B.amplitude[i] - A.amplitude[i]) * fMix;
+            const bool inA = (i < nA);
+            const bool inB = (i < nB);
+
+            if (inA && inB)
+            {
+                iFreq[i] = A.frequency[i] + (B.frequency[i] - A.frequency[i]) * fMix;
+                iAmp[i]  = A.amplitude[i] + (B.amplitude[i] - A.amplitude[i]) * fMix;
+            }
+            else if (inA)
+            {
+                iFreq[i] = A.frequency[i];
+                iAmp[i]  = A.amplitude[i] * (1.0f - fMix);
+            }
+            else
+            {
+                iFreq[i] = B.frequency[i];
+                iAmp[i]  = B.amplitude[i] * fMix;
+            }
         }
-        else if (inA)
-        {
-            iFreq[i] = A.frequency[i];
-            iAmp[i]  = A.amplitude[i] * (1.0f - fMix);
-        }
-        else
-        {
-            iFreq[i] = B.frequency[i];
-            iAmp[i]  = B.amplitude[i] * fMix;
-        }
+
+        freqSrc = iFreq;
+        ampSrc  = iAmp;
     }
+
+    if (n <= 0)
+        return;
 
     const float ratio = bendRatio * (baseFreq / juce::jmax(1.0f, bank->rootHz));
 
@@ -206,7 +220,7 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
     float sinD[AdditiveFrame::kMaxPartials];
     for (int k = 0; k < n; ++k)
     {
-        const float f = juce::jlimit(0.0f, sr * 0.49f, iFreq[k] * ratio);
+        const float f = juce::jlimit(0.0f, sr * 0.49f, freqSrc[k] * ratio);
         const float d = juce::MathConstants<float>::twoPi * f * dt;
         cosD[k] = std::cos(d);
         sinD[k] = std::sin(d);
@@ -227,7 +241,7 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
         float acc = 0.0f;
         for (int k = 0; k < n; ++k)
         {
-            acc += phasorIm[k] * iAmp[k];
+            acc += phasorIm[k] * ampSrc[k];
             const float re = phasorRe[k] * cosD[k] - phasorIm[k] * sinD[k];
             const float im = phasorRe[k] * sinD[k] + phasorIm[k] * cosD[k];
             phasorRe[k] = re;

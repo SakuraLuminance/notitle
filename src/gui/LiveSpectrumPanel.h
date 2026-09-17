@@ -30,7 +30,7 @@ private:
     juce::dsp::FFT fftEngine_{ fftOrder };
     std::array<float, fftSize> hannWindow_{};
     std::vector<float> fftBuffer_;                          // 2*fftSize interleaved
-    std::vector<float> magnitudes_;                         // numBins linear magnitudes
+    std::vector<float> binEnergies_;                        // numBins squared magnitudes
     std::vector<float> barLevels_;                          // per-bar normalised 0..1
     std::vector<float> peakLevels_;                         // per-bar peak hold
     std::vector<int>   barBinStart_;                        // per-bar first bin

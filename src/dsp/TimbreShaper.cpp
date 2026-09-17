@@ -16,7 +16,9 @@ void TimbreShaper::applyBright(PartialDataSIMD& p, float bright01)
     if (std::abs(tilt) < 1.0e-4f)
         return;
 
-    constexpr float refHz = 1000.0f;
+    // exp2(tilt * log2(f / 1000)) instead of pow(f / 1000, tilt): the generic
+    // std::pow dispatch is markedly slower, and this runs per partial per frame.
+    constexpr float kLog2RefHz = 9.96578428f;   // log2(1000)
 
     for (int i = 0; i < PartialDataSIMD::kMaxPartials; ++i)
     {
@@ -24,7 +26,8 @@ void TimbreShaper::applyBright(PartialDataSIMD& p, float bright01)
             continue;
 
         const float f    = std::max(20.0f, p.frequency[i]);
-        const float gain = std::clamp(std::pow(f / refHz, tilt), 0.0625f, 16.0f);
+        const float gain = std::clamp(std::exp2(tilt * (std::log2(f) - kLog2RefHz)),
+                                      0.0625f, 16.0f);
         p.amplitude[i]   = std::clamp(p.amplitude[i] * gain, 0.0f, 1.0f);
     }
 
@@ -52,6 +55,8 @@ void TimbreShaper::applyBlur(PartialDataSIMD& p, float amount01, double sampleRa
     if (amount <= 0.0f || p.activeCount <= 1)
         return;
 
+    // BlurEffect keeps no heap storage (fixed scratch arrays) and is stateless
+    // once attack/decay blur are zero, so a local instance is cheap and safe.
     BlurEffect blur;
     blur.setSampleRate(sampleRate > 0.0 ? sampleRate : 44100.0);
     blur.setAttackBlur(0.0f);
