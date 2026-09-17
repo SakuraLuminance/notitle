@@ -71,7 +71,15 @@ int  getActiveFrameCount() const;  // 测试用（已发布帧数）
 | `5050707` | 图像帧截断/速率夹取/帧内 partial 数不一致时的播放安全测试 |
 | `b227328` | 载入性能：`PartialTracker` 预留帧数组 + `ResynthesisEngine` 复用频谱缓冲 |
 
-**下次 CI 要确认**：① `All tests passed (… in N test cases)`，预期 590+（583 + image/trim/hpss/freeze-record/loop-end/stale-loop 等新用例）；② `Strictness level: 5`；③ 无 `CRASH-OR-FAIL ::` 条目。
+`f8c5f54`（第 9 个）：启用 `PartialEditorCanvas` 作为频谱区 **IMAGE** 视图 + 工具行，笔刷 `onEdited` → `applyImageFromPartialData()` 重建图像帧；`EvolutionPanel` 升为 **EVO 页**（第 8 页签）；tests CMake 启用 `PartialEditorCanvas` 与其 6 个用例。
+
+**下次 CI 要确认**：① `All tests passed (… in N test cases)`，预期 595+（583 + image/trim/hpss/freeze-record/loop-end/stale-loop/sync-ADSR + partial-canvas 6）；② `Strictness level: 5`；③ 无 `CRASH-OR-FAIL ::` 条目。
+
+## 仍剩余（需要独立一轮 + CI 可见时再做）
+
+- **rack 内 MIDI Learn**：`MidiLearn` 的映射目标是 `std::atomic<float>*`，而音效参数走 `EffectBase::get/setParamValue`（非原子）。需要给 `MidiMapping` 加 `std::function<void(float)> setter` / `getter`（原子优先、回调兜底），再经 `EffectRackComponent → EffectSlotWidget → EffectParamPanel` 把动态创建的旋钮注册给编辑器（`setupMidiLearnForEffectKnob`）。属于"小项搭车"，本轮未做以免在无 CI 时改动核心类。
+- **枚举参数真菜单**：尚未明确范围（把枚举参数暴露为宿主可自动化的菜单项），待用户确认后单独设计。
+- 成品 VST3 安装（需 UAC）。
 
 ## 风险
 
