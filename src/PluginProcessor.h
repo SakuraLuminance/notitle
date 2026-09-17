@@ -80,6 +80,7 @@ public:
 #include "dsp/effects/VocalProcessor.h"
 #include "dsp/BlurEffect.h"
 #include "dsp/AdditiveSynth.h"
+#include "dsp/GenerativeTimbreDesigner.h"
 #include "dsp/PrismEffect.h"
 #include "dsp/Harmonizer.h"
 #include "dsp/Randomizer.h"
@@ -159,6 +160,24 @@ public:
     float getTimbreBlur(bool isA) const;
     float getTimbreHpf(bool isA) const;
     float getTimbreBlend() const { return timbreBlend_.load(); }
+
+    //==============================================================================
+    // --- Generative timbre designer (P5) ---
+    /** Blends a generated (latent-driven) harmonic set into the live timbre. */
+    void  setGenerativeTimbreEnabled(bool enabled);
+    bool  isGenerativeTimbreEnabled() const { return generativeEnabled_.load(); }
+    void  setGenerativeTimbreMix(float mix);
+    float getGenerativeTimbreMix() const { return generativeMix_.load(); }
+
+    /** Draws a new random latent vector and regenerates the timbre. */
+    void  randomizeGeneratedTimbre();
+
+    /** Sets the latent vector from the currently edited partial set. */
+    void  captureGeneratedTimbreFromEdit();
+
+    /** 0 = Warm, 1 = Bright, 2 = Dark, 3 = Metallic, 4 = Glassy,
+        5 = Hollow, 6 = Rich, 7 = Thin. */
+    void  setGenerativeTimbrePreset(int preset);
 
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
@@ -470,6 +489,12 @@ private:
     std::atomic<float> timbreBBlur_{ 0.0f };
     std::atomic<float> timbreBHpf_{ 20.0f };
     std::atomic<float> timbreBlend_{ 0.5f };
+
+    // Generative timbre designer (P5): message-thread only, partial domain
+    ana::GenerativeTimbreDesigner timbreDesigner_;
+    ana::PartialDataSIMD           generativeScratch_;
+    std::atomic<bool>  generativeEnabled_{ false };
+    std::atomic<float> generativeMix_{ 0.5f };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

@@ -1007,6 +1007,8 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("timbreBBlur", timbreBBlur_.load(), nullptr);
     state.setProperty("timbreBHpf", timbreBHpf_.load(), nullptr);
     state.setProperty("timbreBlend", timbreBlend_.load(), nullptr);
+    state.setProperty("generativeEnabled", generativeEnabled_.load(), nullptr);
+    state.setProperty("generativeMix", generativeMix_.load(), nullptr);
 
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
@@ -1054,6 +1056,9 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("timbreBBlur"))   setTimbreBlur(false,   (float)state.getProperty("timbreBBlur", 0.0f));
     if (state.hasProperty("timbreBHpf"))    setTimbreHpf(false,    (float)state.getProperty("timbreBHpf", 20.0f));
     if (state.hasProperty("timbreBlend"))   setTimbreBlend((float)state.getProperty("timbreBlend", 0.5f));
+    if (state.hasProperty("generativeMix")) setGenerativeTimbreMix((float)state.getProperty("generativeMix", 0.5f));
+    if (state.hasProperty("generativeEnabled"))
+        setGenerativeTimbreEnabled((bool)state.getProperty("generativeEnabled", false));
     if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
 
     auto presetState = state.getChildWithName("Parameters");
@@ -1368,7 +1373,59 @@ void AnaPlugAudioProcessor::applyTimbreProcessing()
     ana::TimbreShaper::shape(setA, pa, sr);
     ana::TimbreShaper::shape(setB, pb, sr);
 
-    additiveSynth_.setPartials(ana::TimbreShaper::blend(setA, setB, timbreBlend_.load()));
+    auto blended = ana::TimbreShaper::blend(setA, setB, timbreBlend_.load());
+
+    // P5: optionally morph the blended set toward the generated timbre.
+    if (generativeEnabled_.load())
+    {
+        const float generativeMix = generativeMix_.load();
+        if (generativeMix > 0.0f)
+            timbreDesigner_.applyToPartials(blended, generativeMix);
+    }
+
+    additiveSynth_.setPartials(blended);
+}
+
+//==============================================================================
+// Generative timbre designer (P5)
+//==============================================================================
+
+void AnaPlugAudioProcessor::setGenerativeTimbreEnabled(bool enabled)
+{
+    generativeEnabled_.store(enabled);
+
+    if (enabled)
+        timbreDesigner_.generate(generativeScratch_); // make sure generatedTimbre_ is current
+
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::setGenerativeTimbreMix(float mix)
+{
+    generativeMix_.store(juce::jlimit(0.0f, 1.0f, mix));
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::randomizeGeneratedTimbre()
+{
+    timbreDesigner_.randomizeLatent();
+    timbreDesigner_.generate(generativeScratch_);
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::captureGeneratedTimbreFromEdit()
+{
+    timbreDesigner_.captureFromPartials(editedPartials_);
+    timbreDesigner_.generate(generativeScratch_);
+    applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::setGenerativeTimbrePreset(int preset)
+{
+    const int index = juce::jlimit(0, 7, preset);
+    timbreDesigner_.loadPreset(static_cast<ana::GenerativeTimbreDesigner::Preset>(index));
+    timbreDesigner_.generate(generativeScratch_);
+    applyTimbreProcessing();
 }
 
 void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)

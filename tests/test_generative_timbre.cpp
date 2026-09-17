@@ -109,3 +109,61 @@ TEST_CASE("GenerativeTimbreDesigner - generateFromLatent uses matching LUTs", "[
          << " shallow amp[99]=" << shallowOut.amplitude[99]);
     REQUIRE(shallowOut.amplitude[99] > steepOut.amplitude[99]);
 }
+
+TEST_CASE("GenerativeTimbreDesigner - applyToPartials mix semantics", "[timbre][apply]")
+{
+    GenerativeTimbreDesigner designer;
+    designer.loadPreset(GenerativeTimbreDesigner::Preset::Bright);
+
+    PartialDataSIMD generated;
+    designer.generate(generated);
+
+    PartialDataSIMD base;
+    base.sampleRate = 44100.0;
+    base.maxPartials = PartialDataSIMD::kMaxPartials;
+    for (int i = 0; i < 8; ++i)
+    {
+        base.frequency[i] = 100.0f * static_cast<float>(i + 1);
+        base.amplitude[i] = 0.5f;
+        base.phase[i]     = 0.1f * static_cast<float>(i);
+    }
+    base.updateActiveMask();
+
+    SECTION("mix = 0 leaves amplitude, frequency and phase untouched")
+    {
+        PartialDataSIMD out = base;
+        designer.applyToPartials(out, 0.0f);
+
+        for (int i = 0; i < 8; ++i)
+        {
+            REQUIRE(out.amplitude[i] == Catch::Approx(0.5f));
+            REQUIRE(out.frequency[i] == Catch::Approx(base.frequency[i]));
+            REQUIRE(out.phase[i]     == Catch::Approx(base.phase[i]));
+        }
+    }
+
+    SECTION("mix = 1 replaces amplitudes with the generated set")
+    {
+        PartialDataSIMD out = base;
+        designer.applyToPartials(out, 1.0f);
+
+        for (int i = 0; i < PartialDataSIMD::kMaxPartials; ++i)
+            REQUIRE(out.amplitude[i] == Catch::Approx(generated.amplitude[i]).margin(1.0e-6f));
+
+        // Frequency and phase are never overwritten by the blend.
+        REQUIRE(out.frequency[0] == Catch::Approx(base.frequency[0]));
+        REQUIRE(out.phase[0]     == Catch::Approx(base.phase[0]));
+    }
+
+    SECTION("mix = 0.5 is the midpoint blend")
+    {
+        PartialDataSIMD out = base;
+        designer.applyToPartials(out, 0.5f);
+
+        for (int i = 0; i < PartialDataSIMD::kMaxPartials; ++i)
+        {
+            const float expected = base.amplitude[i] * 0.5f + generated.amplitude[i] * 0.5f;
+            REQUIRE(out.amplitude[i] == Catch::Approx(expected).margin(1.0e-6f));
+        }
+    }
+}

@@ -96,6 +96,14 @@ private:
     juce::Slider timbreBlendSlider_;
     juce::Label  timbreBlendLabel_;
 
+    // Generative timbre designer row (P5)
+    juce::Label      genLabel_;
+    juce::TextButton genEnableButton_{ "GEN" };
+    juce::TextButton genRandomButton_{ "RND" };
+    juce::TextButton genCaptureButton_{ "CAP" };
+    juce::ComboBox   genPresetCombo_;
+    juce::Slider     genMixSlider_;
+
     //==============================================================================
     // Center — Spectrum / Partial display
     ana::LiveSpectrumPanel liveSpectrumPanel_;

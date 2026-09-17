@@ -68,6 +68,55 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
         audioProcessor.setTimbreBlend(static_cast<float>(timbreBlendSlider_.getValue()));
     };
 
+    // Generative timbre designer (P5): latent-driven harmonic set blended into the timbre
+    genLabel_.setText("GENERATIVE", juce::dontSendNotification);
+    genLabel_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f));
+    genLabel_.setJustificationType(juce::Justification::centredLeft);
+    genLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::fg_.withAlpha(0.75f));
+    addAndMakeVisible(genLabel_);
+
+    addCyberButton(genEnableButton_);
+    genEnableButton_.setClickingTogglesState(true);
+    genEnableButton_.setTooltip("Blend the generated timbre into the live harmonic set");
+    genEnableButton_.onClick = [this]
+    {
+        audioProcessor.setGenerativeTimbreEnabled(genEnableButton_.getToggleState());
+    };
+    addAndMakeVisible(genEnableButton_);
+
+    addCyberButton(genRandomButton_);
+    genRandomButton_.setTooltip("Randomise the generative latent vector");
+    genRandomButton_.onClick = [this] { audioProcessor.randomizeGeneratedTimbre(); };
+    addAndMakeVisible(genRandomButton_);
+
+    addCyberButton(genCaptureButton_);
+    genCaptureButton_.setTooltip("Seed the latent vector from the current edited partials");
+    genCaptureButton_.onClick = [this] { audioProcessor.captureGeneratedTimbreFromEdit(); };
+    addAndMakeVisible(genCaptureButton_);
+
+    static const char* genPresetNames[] = { "WARM", "BRIGHT", "DARK", "METALLIC",
+                                            "GLASSY", "HOLLOW", "RICH", "THIN" };
+    for (int i = 0; i < 8; ++i)
+        genPresetCombo_.addItem(genPresetNames[i], i + 1);
+    genPresetCombo_.setSelectedId(1, juce::dontSendNotification);
+    genPresetCombo_.setTooltip("Generative timbre preset");
+    genPresetCombo_.onChange = [this]
+    {
+        audioProcessor.setGenerativeTimbrePreset(genPresetCombo_.getSelectedId() - 1);
+    };
+    addAndMakeVisible(genPresetCombo_);
+
+    genMixSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    genMixSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    genMixSlider_.setRange(0.0, 1.0, 0.01);
+    genMixSlider_.setValue(0.5, juce::dontSendNotification);
+    genMixSlider_.setTooltip("Generated timbre blend amount");
+    genMixSlider_.onValueChange = [this]
+    {
+        audioProcessor.setGenerativeTimbreMix(static_cast<float>(genMixSlider_.getValue()));
+    };
+    addAndMakeVisible(genMixSlider_);
+
     //==============================================================================
     // Center 鈥?Visual feedback + view selector
     ANA_CRUMB("ed:center-start");
@@ -560,6 +609,14 @@ void AnaPlugAudioProcessorEditor::resized()
     {
         case 0: // TIMBRE
         {
+            auto genStrip = ca.removeFromBottom(20).reduced(2, 0);
+            genLabel_.setBounds(genStrip.removeFromLeft(74));
+            genEnableButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
+            genRandomButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
+            genCaptureButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
+            genPresetCombo_.setBounds(genStrip.removeFromLeft(96).reduced(2, 0));
+            genMixSlider_.setBounds(genStrip.reduced(4, 0));
+
             auto blendStrip = ca.removeFromBottom(22).reduced(40, 0);
             timbreBlendSlider_.setBounds(blendStrip);
             timbreBlendLabel_.setBounds(blendStrip.translated(0, -16));
@@ -683,6 +740,12 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     timbreBPanel_.setVisible(page == 0);
     timbreBlendSlider_.setVisible(page == 0);
     timbreBlendLabel_.setVisible(page == 0);
+    genLabel_.setVisible(page == 0);
+    genEnableButton_.setVisible(page == 0);
+    genRandomButton_.setVisible(page == 0);
+    genCaptureButton_.setVisible(page == 0);
+    genPresetCombo_.setVisible(page == 0);
+    genMixSlider_.setVisible(page == 0);
     if (xyPad_)
         xyPad_->setVisible(page == 0);
 
@@ -839,6 +902,15 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         sync(timbreBPanel_.getBlurSlider(),   audioProcessor.getTimbreBlur(false));
         sync(timbreBPanel_.getHpfSlider(),    audioProcessor.getTimbreHpf(false));
         sync(timbreBlendSlider_,              audioProcessor.getTimbreBlend());
+
+        // Generative timbre designer (P5)
+        if (genEnableButton_.getToggleState() != audioProcessor.isGenerativeTimbreEnabled())
+            genEnableButton_.setToggleState(audioProcessor.isGenerativeTimbreEnabled(),
+                                            juce::dontSendNotification);
+        if (std::abs(static_cast<float>(genMixSlider_.getValue())
+                     - audioProcessor.getGenerativeTimbreMix()) > 0.001f)
+            genMixSlider_.setValue(static_cast<double>(audioProcessor.getGenerativeTimbreMix()),
+                                   juce::dontSendNotification);
     }
 
     // --- SYNTH mode status ---
