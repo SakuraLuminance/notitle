@@ -353,3 +353,20 @@ TEST_CASE("AdditiveSynth image playback advances through frames", "[additive][im
         REQUIRE_FALSE(synth.hasPartials());
     }
 }
+
+TEST_CASE("AdditiveSynth drops the inaudible partial tail", "[additive][trim]")
+{
+    ana::PartialDataSIMD p;
+    p.sampleRate = 48000.0;
+    p.maxPartials = ana::PartialDataSIMD::kMaxPartials;
+    p.frequency[0] = 440.0f;  p.amplitude[0] = 1.0f;
+    p.frequency[1] = 880.0f;  p.amplitude[1] = 1.0e-5f;   // far below audibility
+    p.frequency[2] = 1320.0f; p.amplitude[2] = 5.0e-5f;
+    p.updateActiveMask();
+
+    ana::AdditiveSynth synth;
+    synth.prepare(48000.0);
+    synth.setPartials(p);
+
+    REQUIRE(synth.getActivePartialCount() == 1);
+}

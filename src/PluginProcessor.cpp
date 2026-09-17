@@ -1406,9 +1406,9 @@ void AnaPlugAudioProcessor::refreshPartialsFromEngine()
         }
     }
 
-    // The spectrum editor always edits the image's first frame, so a freshly
-    // loaded sample starts on the analysis's first frame (what you hear at
-    // note-on) and editing stays consistent with image playback.
+    // The spectrum editor edits one image frame at a time (frame 0 on load), so
+    // editing stays consistent with image playback.
+    imageEditFrame_.store(0);
     editedPartials_ = imageFrames_.empty() ? sourcePartials_ : imageFrames_[0];
 
     applyTimbreProcessing();
@@ -1426,9 +1426,13 @@ void AnaPlugAudioProcessor::setEditedPartials(const ana::PartialDataSIMD& partia
     editedPartials_ = partials;
     editedPartials_.updateActiveMask();
 
-    // The edited set is always the image's first frame.
+    // Write the edit back into the image frame currently being edited.
     if (! imageFrames_.empty())
-        imageFrames_[0] = editedPartials_;
+    {
+        const int frame = juce::jlimit(0, static_cast<int>(imageFrames_.size()) - 1,
+                                       imageEditFrame_.load());
+        imageFrames_[static_cast<std::size_t>(frame)] = editedPartials_;
+    }
 
     applyTimbreProcessing();
 }
@@ -1469,7 +1473,8 @@ void AnaPlugAudioProcessor::applyTimbreProcessing()
     if (shaped.empty())
         shaped.push_back(editedPartials_);
     else
-        shaped[0] = editedPartials_;   // frame 0 is the editor's set
+        shaped[static_cast<std::size_t>(juce::jlimit(0, static_cast<int>(shaped.size()) - 1,
+                                                     imageEditFrame_.load()))] = editedPartials_;
 
     for (auto& set : shaped)
     {
@@ -1649,6 +1654,27 @@ void AnaPlugAudioProcessor::setImageLoop(bool shouldLoop)
 {
     imageLoop_.store(shouldLoop);
     additiveSynth_.setImageLoop(shouldLoop);
+}
+
+void AnaPlugAudioProcessor::setImageEditFrame(int frame)
+{
+    if (imageFrames_.empty())
+    {
+        imageEditFrame_.store(0);
+        return;
+    }
+
+    const int last = static_cast<int>(imageFrames_.size()) - 1;
+    const int previous = juce::jlimit(0, last, imageEditFrame_.load());
+
+    // Persist any edits made to the frame we are leaving before switching.
+    imageFrames_[static_cast<std::size_t>(previous)] = editedPartials_;
+
+    const int next = juce::jlimit(0, last, frame);
+    imageEditFrame_.store(next);
+    editedPartials_ = imageFrames_[static_cast<std::size_t>(next)];
+
+    applyTimbreProcessing();
 }
 
 void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)

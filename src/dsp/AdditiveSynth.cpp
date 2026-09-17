@@ -7,6 +7,9 @@ namespace
 {
 constexpr int kInitialVoices = 16;
 
+/** Partials quieter than this are inaudible at the synth's output gain. */
+constexpr float kMinPartialAmplitude = 2.0e-4f;
+
 struct Cand { float f, a, ph; };
 
 /** Sanitises one partial set into a frame.
@@ -40,7 +43,13 @@ int buildFrame(const PartialDataSIMD& src, int maxP, float nyquistHz,
     std::sort(cands.begin(), cands.end(),
               [](const Cand& x, const Cand& y) { return x.a > y.a; });
 
-    const int n = static_cast<int>(juce::jmin(static_cast<std::size_t>(limit), cands.size()));
+    int n = static_cast<int>(juce::jmin(static_cast<std::size_t>(limit), cands.size()));
+
+    // Drop the inaudible tail (the amplitude sort puts the quietest last).
+    // Real material rarely needs all 128 partials, and the render loop cost is
+    // proportional to the count.
+    while (n > 0 && cands[static_cast<std::size_t>(n - 1)].a <= kMinPartialAmplitude)
+        --n;
 
     if (byFrequency && n > 0)
         std::sort(cands.begin(), cands.begin() + n,

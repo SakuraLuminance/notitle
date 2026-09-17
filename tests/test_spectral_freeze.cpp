@@ -107,3 +107,51 @@ TEST_CASE("SpectralFreezeEngine - frozen audio holds while input goes silent", "
 
     REQUIRE(out.getRMSLevel(0, 0, block) < 0.02f);
 }
+
+// The idle path used by the processor (recordOnly) must still keep enough
+// history for a freeze triggered later to capture audible material.
+TEST_CASE("SpectralFreezeEngine - recordOnly keeps history for a later freeze", "[freeze][record]")
+{
+    SpectralFreezeEngine freeze;
+    freeze.setSampleRate(testSampleRate);
+    freeze.setFftSize(2048);
+    freeze.setFreezeMode(SpectralFreezeEngine::FreezeMode::Snapshot);
+    freeze.setMix(1.0f);
+    freeze.setDryHP(20.0f);
+    freeze.setWetLP(20000.0f);
+
+    constexpr int block = 512;
+    juce::AudioBuffer<float> in(1, block);
+    juce::AudioBuffer<float> out(1, block);
+
+    const double inc = juce::MathConstants<double>::twoPi * 440.0 / testSampleRate;
+    double phase = 0.0;
+
+    for (int blk = 0; blk < 16; ++blk)
+    {
+        for (int s = 0; s < block; ++s)
+        {
+            in.setSample(0, s, static_cast<float>(std::sin(phase)));
+            phase += inc;
+        }
+        freeze.recordOnly(in);      // the processor's idle path
+    }
+
+    REQUIRE_FALSE(freeze.isFrozen());
+
+    freeze.setFreeze(true);
+
+    float frozenRms = 0.0f;
+    for (int blk = 0; blk < 600; ++blk)
+    {
+        in.clear();
+        freeze.processAudio(in, out);
+        if (blk >= 590)
+            frozenRms = out.getRMSLevel(0, 0, block);
+    }
+
+    INFO("frozen rms after recordOnly history: " << frozenRms);
+    REQUIRE(freeze.isFrozen());
+    REQUIRE(freeze.getCurrentMix() > 0.5f);
+    REQUIRE(frozenRms > 0.05f);
+}

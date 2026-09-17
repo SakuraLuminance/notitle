@@ -227,6 +227,10 @@ public:
     /** Number of frames currently published to the additive synth. */
     int   getImageFrameCount() const { return additiveSynth_.getActiveFrameCount(); }
 
+    /** Selects which image frame the spectrum editor edits (0-based). */
+    void  setImageEditFrame(int frame);
+    int   getImageEditFrame() const { return imageEditFrame_.load(); }
+
     /** Spectral freeze stage (post-effects, pre-master).  Audio thread only. */
     void processSpectralFreeze(juce::AudioBuffer<float>& buffer);
 
@@ -571,6 +575,7 @@ private:
     std::atomic<bool>  imageEnabled_{ false };
     std::atomic<float> imageRate_{ 2.0f };
     std::atomic<bool>  imageLoop_{ true };
+    std::atomic<int>   imageEditFrame_{ 0 };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

@@ -17,7 +17,7 @@ P6 的 SYNTH 模式只用**单帧**谐波集（分析结果中 Σamp² 最大帧
 | 编辑语义 | 频谱编辑器仍编辑 `editedPartials_` = **图像第 0 帧**（本轮不做逐帧选择器，列为后续） |
 | 静态集来源变更 | 图像关时的静态集由"Σamp² 最大帧"改为**分析第 0 帧**（= 图像第 0 帧），使编辑器与图像播放一致；`sourcePartials_` 保留最大能量帧仅作兜底 |
 | 音色控件 | bright/HPF/blur/A-B blend/GENERATIVE 对**每一帧**生效（消息线程重算） |
-| 帧选择器/逐帧编辑 | 本轮不做（列为后续；需要 editor UI 与帧索引绑定） |
+| 帧选择器/逐帧编辑 | **已实现**：`setImageEditFrame(n)` + TIMBRE 页 FRAME 滑条；编辑器只改所选帧，切换帧时自动保存上一帧的编辑；状态栏显示 `IMAGE  i/N FRAMES` |
 | 内存 | `Frame` = 128×3 float + count ≈ 1.5 KB；32 帧/库 ≈ 49 KB；发布/激活两库 ≈ 98 KB |
 | 发布 | `publishedGeneration_` 原子计数；音频线程仅在 generation 变化时拷贝整库（避免每块 memcpy） |
 

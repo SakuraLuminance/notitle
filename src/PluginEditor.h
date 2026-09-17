@@ -109,6 +109,7 @@ private:
     juce::TextButton imageEnableButton_{ "IMAGE" };
     juce::Slider     imageRateSlider_;
     juce::TextButton imageLoopButton_{ "LOOP" };
+    juce::Slider     imageFrameSlider_;
     juce::Label      imageStatusLabel_;
 
     // Spectral freeze row (P5, FX page)

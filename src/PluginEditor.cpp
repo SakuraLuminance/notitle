@@ -148,6 +148,18 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     };
     addAndMakeVisible(imageLoopButton_);
 
+    imageFrameSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    imageFrameSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    imageFrameSlider_.setRange(0.0, 1.0, 1.0);   // widened once a sample is loaded
+    imageFrameSlider_.setTooltip("Image frame being edited in the spectrum EDITOR view");
+    imageFrameSlider_.onValueChange = [this]
+    {
+        audioProcessor.setImageEditFrame(
+            static_cast<int>(std::lround(imageFrameSlider_.getValue())));
+        spectrumEditorCanvas_.setPartials(audioProcessor.getEditedPartials());
+    };
+    addAndMakeVisible(imageFrameSlider_);
+
     imageStatusLabel_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f));
     imageStatusLabel_.setJustificationType(juce::Justification::centredLeft);
     imageStatusLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::fg_.withAlpha(0.75f));
@@ -696,6 +708,7 @@ void AnaPlugAudioProcessorEditor::resized()
             imageEnableButton_.setBounds(imageStrip.removeFromLeft(58).reduced(2, 0));
             imageRateSlider_.setBounds(imageStrip.removeFromLeft(150).reduced(4, 0));
             imageLoopButton_.setBounds(imageStrip.removeFromLeft(50).reduced(2, 0));
+            imageFrameSlider_.setBounds(imageStrip.removeFromLeft(150).reduced(4, 0));
             imageStatusLabel_.setBounds(imageStrip);
 
             auto genStrip = ca.removeFromBottom(20).reduced(2, 0);
@@ -839,6 +852,7 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     imageEnableButton_.setVisible(page == 0);
     imageRateSlider_.setVisible(page == 0);
     imageLoopButton_.setVisible(page == 0);
+    imageFrameSlider_.setVisible(page == 0);
     imageStatusLabel_.setVisible(page == 0);
     genLabel_.setVisible(page == 0);
     genEnableButton_.setVisible(page == 0);
@@ -1040,8 +1054,19 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         if (imageLoopButton_.getToggleState() != audioProcessor.isImageLoop())
             imageLoopButton_.setToggleState(audioProcessor.isImageLoop(), juce::dontSendNotification);
         {
-            const juce::String imgText = "IMAGE  " + juce::String(audioProcessor.getImageFrameCount())
-                                       + " FRAMES";
+            const int frameCount = audioProcessor.getImageFrameCount();
+            const double maxFrame = juce::jmax(1.0, static_cast<double>(frameCount - 1));
+
+            if (imageFrameSlider_.getMaximum() != maxFrame)
+                imageFrameSlider_.setRange(0.0, maxFrame, 1.0);
+
+            if (std::abs(static_cast<float>(imageFrameSlider_.getValue())
+                         - static_cast<float>(audioProcessor.getImageEditFrame())) > 0.5f)
+                imageFrameSlider_.setValue(static_cast<double>(audioProcessor.getImageEditFrame()),
+                                           juce::dontSendNotification);
+
+            const juce::String imgText = "IMAGE  " + juce::String(audioProcessor.getImageEditFrame())
+                                       + "/" + juce::String(frameCount) + " FRAMES";
             if (imageStatusLabel_.getText() != imgText)
                 imageStatusLabel_.setText(imgText, juce::dontSendNotification);
         }

@@ -18,6 +18,9 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_core/juce_core.h>
 
+#include "dsp/AdditiveSynth.h"
+#include "dsp/PartialDataSIMD.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -549,4 +552,69 @@ TEST_CASE("Memory Access SoA vs AoS", "[benchmark]")
     };
 
     alignedFree(soa);
+}
+
+// ============================================================================
+// Benchmark: additive synth render (SYNTH mode hot path)
+// ============================================================================
+
+TEST_CASE("Additive Synth Render", "[benchmark]")
+{
+    constexpr double sr = 48000.0;
+    constexpr int block = 512;
+
+    ana::PartialDataSIMD set;
+    set.sampleRate = sr;
+    set.maxPartials = ana::PartialDataSIMD::kMaxPartials;
+    for (int i = 0; i < 128; ++i)
+    {
+        set.frequency[i] = 100.0f * static_cast<float>(i + 1);
+        set.amplitude[i] = 1.0f / static_cast<float>(i + 1);
+    }
+    set.updateActiveMask();
+
+    ana::AdditiveSynth synth;
+    synth.prepare(sr);
+    synth.setRootNote(60);
+    synth.setMaxPartials(128);
+    synth.setPartials(set);
+
+    juce::AudioBuffer<float> buffer(2, block);
+    juce::MidiBuffer startNotes;
+    for (int n = 0; n < 8; ++n)
+        startNotes.addEvent(juce::MidiMessage::noteOn(1, 48 + n * 3,
+                                                      static_cast<juce::uint8>(100)), 0);
+
+    buffer.clear();
+    synth.renderNextBlock(buffer, startNotes, 0, block);
+    const juce::MidiBuffer emptyMidi;
+
+    BENCHMARK("static set, 8 voices, 512 samples")
+    {
+        buffer.clear();
+        synth.renderNextBlock(buffer, emptyMidi, 0, block);
+        return buffer.getMagnitude(0, block);
+    };
+
+    // 32-frame image: measures the per-sub-block interpolation path.
+    std::vector<ana::PartialDataSIMD> frames;
+    for (int f = 0; f < ana::AdditiveSynth::kMaxFrames; ++f)
+    {
+        ana::PartialDataSIMD frame = set;
+        for (int i = 0; i < 128; ++i)
+            frame.amplitude[i] = 1.0f / static_cast<float>((i + 1 + f) % 16 + 1);
+        frame.updateActiveMask();
+        frames.push_back(frame);
+    }
+
+    synth.setFrames(frames);
+    synth.setImageEnabled(true);
+    synth.setImageRate(4.0f);
+
+    BENCHMARK("32-frame image, 8 voices, 512 samples")
+    {
+        buffer.clear();
+        synth.renderNextBlock(buffer, emptyMidi, 0, block);
+        return buffer.getMagnitude(0, block);
+    };
 }
