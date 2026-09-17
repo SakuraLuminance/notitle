@@ -3,6 +3,61 @@
 namespace ana
 {
 
+namespace
+{
+constexpr int kInitialVoices = 16;
+
+struct Cand { float f, a, ph; };
+
+/** Sanitises one partial set into a frame.
+    keepByAmplitude = true  -> keep the loudest N (single static set)
+    keepByAmplitude = false -> keep the N lowest-frequency partials, then order
+                               by frequency (image frames: stable index across
+                               frames so interpolation is musically sensible) */
+int buildFrame(const PartialDataSIMD& src, int maxP, float nyquistHz,
+               bool byFrequency, AdditiveFrame& out)
+{
+    std::vector<Cand> cands;
+    cands.reserve(static_cast<std::size_t>(maxP));
+
+    for (int i = 0; i < PartialDataSIMD::kMaxPartials; ++i)
+    {
+        const float a = src.amplitude[i];
+        const float f = src.frequency[i];
+        if (! std::isfinite(a) || ! std::isfinite(f)) continue;
+        if (a <= 1.0e-6f) continue;
+        if (f <= 0.0f || f >= nyquistHz) continue;
+
+        cands.push_back({ f,
+                          juce::jlimit(0.0f, 1.0f, a),
+                          std::isfinite(src.phase[i]) ? src.phase[i] : 0.0f });
+    }
+
+    const int limit = juce::jlimit(1, AdditiveFrame::kMaxPartials, maxP);
+
+    // Always keep the loudest N, then (for image frames) order those by
+    // frequency so partial index i stays comparable between frames.
+    std::sort(cands.begin(), cands.end(),
+              [](const Cand& x, const Cand& y) { return x.a > y.a; });
+
+    const int n = static_cast<int>(juce::jmin(static_cast<std::size_t>(limit), cands.size()));
+
+    if (byFrequency && n > 0)
+        std::sort(cands.begin(), cands.begin() + n,
+                  [](const Cand& x, const Cand& y) { return x.f < y.f; });
+
+    out.count = n;
+    for (int i = 0; i < n; ++i)
+    {
+        out.frequency[i] = cands[static_cast<std::size_t>(i)].f;
+        out.amplitude[i] = cands[static_cast<std::size_t>(i)].a;
+        out.phase[i]     = cands[static_cast<std::size_t>(i)].ph;
+    }
+
+    return n;
+}
+}
+
 //==============================================================================
 // AdditiveVoice
 //==============================================================================
@@ -22,11 +77,14 @@ void AdditiveVoice::noteStarted()
 
     envelopeLevel = 0.0f;
     releaseStart  = 0.0f;
+    framePos      = 0.0f;
 
-    const int n = snapshot != nullptr ? snapshot->count : 0;
-    for (int k = 0; k < AdditiveSnapshot::kMaxPartials; ++k)
+    const AdditiveFrame* first =
+        (bank != nullptr && bank->frameCount > 0) ? &bank->frames[0] : nullptr;
+    const int n = (first != nullptr) ? first->count : 0;
+    for (int k = 0; k < AdditiveFrame::kMaxPartials; ++k)
     {
-        const float ph = (k < n) ? snapshot->phase[k] : 0.0f;
+        const float ph = (k < n) ? first->phase[k] : 0.0f;
         phasorRe[k] = std::cos(ph);
         phasorIm[k] = std::sin(ph);
     }
@@ -71,7 +129,7 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
                                     int startSample, int numSamples)
 {
     State currentState = state_.load(std::memory_order_relaxed);
-    if (currentState == State::free || snapshot == nullptr || snapshot->count <= 0)
+    if (currentState == State::free || bank == nullptr || bank->frameCount <= 0)
         return;
 
     const double srD = getSampleRate();
@@ -81,15 +139,74 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
     const float sr = static_cast<float>(srD);
     const float dt = 1.0f / sr;
 
-    const int n = juce::jmin(snapshot->count, AdditiveSnapshot::kMaxPartials);
-    const float ratio = bendRatio * (baseFreq / juce::jmax(1.0f, snapshot->rootHz));
+    // --- Advance the image position (once per render call = per sub-block) ---
+    const int lastFrame = bank->frameCount - 1;
+    int f0 = 0, f1 = 0;
+    float fMix = 0.0f;
+
+    if (lastFrame > 0)
+    {
+        const float last = static_cast<float>(lastFrame);
+        framePos += framesPerBlock;
+
+        if (framePos >= last)
+        {
+            if (imageLoop)
+                framePos -= last * std::floor(framePos / last);
+            else
+                framePos = last;
+        }
+        else if (framePos < 0.0f)
+        {
+            framePos = 0.0f;
+        }
+
+        f0 = juce::jlimit(0, lastFrame, static_cast<int>(framePos));
+        f1 = juce::jmin(lastFrame, f0 + 1);
+        fMix = juce::jlimit(0.0f, 1.0f, framePos - static_cast<float>(f0));
+    }
+
+    const AdditiveFrame& A = bank->frames[f0];
+    const AdditiveFrame& B = bank->frames[f1];
+    const int nA = juce::jmin(A.count, AdditiveFrame::kMaxPartials);
+    const int nB = juce::jmin(B.count, AdditiveFrame::kMaxPartials);
+    const int n  = juce::jmax(nA, nB);
+    if (n <= 0)
+        return;
+
+    // Interpolated partial table for this sub-block.
+    float iFreq[AdditiveFrame::kMaxPartials];
+    float iAmp [AdditiveFrame::kMaxPartials];
+    for (int i = 0; i < n; ++i)
+    {
+        const bool inA = (i < nA);
+        const bool inB = (i < nB);
+
+        if (inA && inB)
+        {
+            iFreq[i] = A.frequency[i] + (B.frequency[i] - A.frequency[i]) * fMix;
+            iAmp[i]  = A.amplitude[i] + (B.amplitude[i] - A.amplitude[i]) * fMix;
+        }
+        else if (inA)
+        {
+            iFreq[i] = A.frequency[i];
+            iAmp[i]  = A.amplitude[i] * (1.0f - fMix);
+        }
+        else
+        {
+            iFreq[i] = B.frequency[i];
+            iAmp[i]  = B.amplitude[i] * fMix;
+        }
+    }
+
+    const float ratio = bendRatio * (baseFreq / juce::jmax(1.0f, bank->rootHz));
 
     // Per-partial rotation coefficients (block rate).
-    float cosD[AdditiveSnapshot::kMaxPartials];
-    float sinD[AdditiveSnapshot::kMaxPartials];
+    float cosD[AdditiveFrame::kMaxPartials];
+    float sinD[AdditiveFrame::kMaxPartials];
     for (int k = 0; k < n; ++k)
     {
-        const float f = juce::jlimit(0.0f, sr * 0.49f, snapshot->frequency[k] * ratio);
+        const float f = juce::jlimit(0.0f, sr * 0.49f, iFreq[k] * ratio);
         const float d = juce::MathConstants<float>::twoPi * f * dt;
         cosD[k] = std::cos(d);
         sinD[k] = std::sin(d);
@@ -110,7 +227,7 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
         float acc = 0.0f;
         for (int k = 0; k < n; ++k)
         {
-            acc += phasorIm[k] * snapshot->amplitude[k];
+            acc += phasorIm[k] * iAmp[k];
             const float re = phasorRe[k] * cosD[k] - phasorIm[k] * sinD[k];
             const float im = phasorRe[k] * sinD[k] + phasorIm[k] * cosD[k];
             phasorRe[k] = re;
@@ -189,11 +306,6 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
 // AdditiveSynth
 //==============================================================================
 
-namespace
-{
-constexpr int kInitialVoices = 16;
-}
-
 AdditiveSynth::AdditiveSynth()
 {
     for (int i = 0; i < kInitialVoices; ++i)
@@ -214,47 +326,50 @@ void AdditiveSynth::prepare(double newSampleRate)
     setCurrentPlaybackSampleRate(newSampleRate > 0.0 ? newSampleRate : 44100.0);
 }
 
+void AdditiveSynth::publishBank(const AdditiveBank& next)
+{
+    {
+        const juce::SpinLock::ScopedLockType sl(partialLock_);
+        published_ = next;
+    }
+
+    publishedCount_.store(next.frameCount > 0 ? next.frames[0].count : 0,
+                          std::memory_order_relaxed);
+    publishedFrames_.store(next.frameCount, std::memory_order_relaxed);
+    publishedGeneration_.fetch_add(1, std::memory_order_release);
+}
+
 void AdditiveSynth::setPartials(const PartialDataSIMD& src)
 {
     const int maxP = juce::jlimit(1, kMaxPartials, maxPartials_.load(std::memory_order_relaxed));
     const double sr = getSampleRate() > 0.0 ? getSampleRate() : 44100.0;
     const float nyq = static_cast<float>(sr * 0.5);
 
-    struct Cand { float f, a, ph; };
-    std::vector<Cand> cands;
-    cands.reserve(static_cast<std::size_t>(maxP));
+    AdditiveBank next;
+    next.frameCount = 1;
+    buildFrame(src, maxP, nyq, false, next.frames[0]);
+    publishBank(next);
+}
 
-    for (int i = 0; i < kMaxPartials; ++i)
+void AdditiveSynth::setFrames(const std::vector<PartialDataSIMD>& frames)
+{
+    const int maxP = juce::jlimit(1, kMaxPartials, maxPartials_.load(std::memory_order_relaxed));
+    const double sr = getSampleRate() > 0.0 ? getSampleRate() : 44100.0;
+    const float nyq = static_cast<float>(sr * 0.5);
+
+    AdditiveBank next;
+
+    if (! frames.empty())
     {
-        const float a = src.amplitude[i];
-        const float f = src.frequency[i];
-        if (! std::isfinite(a) || ! std::isfinite(f)) continue;
-        if (a <= 1.0e-6f) continue;
-        if (f <= 0.0f || f >= nyq) continue;
-        cands.push_back({ f,
-                          juce::jlimit(0.0f, 1.0f, a),
-                          std::isfinite(src.phase[i]) ? src.phase[i] : 0.0f });
+        const int count = static_cast<int>(
+            juce::jmin(frames.size(), static_cast<std::size_t>(kMaxFrames)));
+        next.frameCount = count;
+
+        for (int i = 0; i < count; ++i)
+            buildFrame(frames[static_cast<std::size_t>(i)], maxP, nyq, true, next.frames[i]);
     }
 
-    std::sort(cands.begin(), cands.end(),
-              [](const Cand& x, const Cand& y) { return x.a > y.a; });
-
-    const int n = static_cast<int>(juce::jmin(static_cast<std::size_t>(maxP), cands.size()));
-
-    AdditiveSnapshot next;
-    next.count = n;
-    for (int i = 0; i < n; ++i)
-    {
-        next.frequency[i] = cands[static_cast<std::size_t>(i)].f;
-        next.amplitude[i] = cands[static_cast<std::size_t>(i)].a;
-        next.phase[i]     = cands[static_cast<std::size_t>(i)].ph;
-    }
-
-    {
-        const juce::SpinLock::ScopedLockType sl(partialLock_);
-        published_ = next;
-    }
-    publishedCount_.store(n, std::memory_order_relaxed);
+    publishBank(next);
 }
 
 void AdditiveSynth::clearPartials()
@@ -309,19 +424,37 @@ int AdditiveSynth::getNumActiveVoices() const
 void AdditiveSynth::renderNextSubBlock(juce::AudioBuffer<float>& outputAudio,
                                        int startSample, int numSamples)
 {
+    const int generation = publishedGeneration_.load(std::memory_order_acquire);
+    if (generation != activeGeneration_)
     {
         // Non-blocking: if the message thread is mid-write, keep last good copy.
         const juce::SpinLock::ScopedTryLockType lock(partialLock_);
         if (lock.isLocked())
+        {
             active_ = published_;
+            activeGeneration_ = generation;
+        }
     }
 
     active_.rootHz = rootHzFrom(rootNote_.load(std::memory_order_relaxed),
                                 rootFineTune_.load(std::memory_order_relaxed));
 
+    // Image playback speed for this sub-block (frames per sub-block).
+    float framesPerBlock = 0.0f;
+    const double sr = getSampleRate();
+    if (imageEnabled_.load(std::memory_order_relaxed) && active_.frameCount > 1 && sr > 0.0)
+        framesPerBlock = imageRate_.load(std::memory_order_relaxed)
+                       * static_cast<float>(static_cast<double>(numSamples) / sr);
+
+    const bool loop = imageLoop_.load(std::memory_order_relaxed);
+
     for (int i = 0; i < getNumVoices(); ++i)
         if (auto* v = static_cast<AdditiveVoice*>(getVoice(i)))
-            v->snapshot = &active_;
+        {
+            v->bank = &active_;
+            v->framesPerBlock = framesPerBlock;
+            v->imageLoop = loop;
+        }
 
     for (int ch = 0; ch < outputAudio.getNumChannels(); ++ch)
         outputAudio.clear(ch, startSample, numSamples);

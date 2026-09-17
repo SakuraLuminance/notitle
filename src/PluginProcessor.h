@@ -211,6 +211,22 @@ public:
     void  setSpectralFreezeMix(float mix);
     float getSpectralFreezeMix() const { return freezeMix_.load(); }
 
+    //==============================================================================
+    // --- Time-varying harmonic image (P6b) ---
+    /** Enables frame-advancing playback of the analysed harmonic image. */
+    void  setImageEnabled(bool enabled);
+    bool  isImageEnabled() const { return imageEnabled_.load(); }
+
+    /** Image advance rate in frames per second (0 = hold frame 0). */
+    void  setImageRate(float framesPerSecond);
+    float getImageRate() const { return imageRate_.load(); }
+
+    void  setImageLoop(bool shouldLoop);
+    bool  isImageLoop() const { return imageLoop_.load(); }
+
+    /** Number of frames currently published to the additive synth. */
+    int   getImageFrameCount() const { return additiveSynth_.getActiveFrameCount(); }
+
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
     void setResynthesizedBuffer(std::vector<float> buffer);
@@ -538,6 +554,12 @@ private:
     std::atomic<bool>  freezeEnabled_{ false };
     std::atomic<int>   freezeMode_{ 0 };
     std::atomic<float> freezeMix_{ 0.5f };
+
+    // Time-varying harmonic image (P6b): analysis frames, frame 0 = edited set
+    std::vector<ana::PartialDataSIMD> imageFrames_;
+    std::atomic<bool>  imageEnabled_{ false };
+    std::atomic<float> imageRate_{ 2.0f };
+    std::atomic<bool>  imageLoop_{ true };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

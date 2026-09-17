@@ -105,6 +105,12 @@ private:
     juce::ComboBox   genPresetCombo_;
     juce::Slider     genMixSlider_;
 
+    // Time-varying harmonic image row (P6b, TIMBRE page)
+    juce::TextButton imageEnableButton_{ "IMAGE" };
+    juce::Slider     imageRateSlider_;
+    juce::TextButton imageLoopButton_{ "LOOP" };
+    juce::Label      imageStatusLabel_;
+
     // Spectral freeze row (P5, FX page)
     juce::TextButton freezeButton_{ "FREEZE" };
     juce::TextButton freezeTrigButton_{ "TRIG" };

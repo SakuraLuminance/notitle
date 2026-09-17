@@ -148,7 +148,7 @@ void SpectralFreezeEngine::setSampleRate(double sr)
 void SpectralFreezeEngine::setFftSize(int size)
 {
     // Snap to the nearest valid power of two in [256, 8192]
-    int s = clamp(static_cast<float>(size), 256.0f, 8192.0f);
+    const int s = static_cast<int>(clamp(static_cast<float>(size), 256.0f, 8192.0f));
     int valid = 256;
     while (valid * 2 <= s && valid * 2 <= 8192)
         valid *= 2;
@@ -198,9 +198,9 @@ void SpectralFreezeEngine::process(PartialDataSIMD& partials, int /*currentFrame
                     const int maxIdx = static_cast<int>(motionFrames_.size()) - 1;
                     motionReadPosition_ = static_cast<int>(freezePoint_
                         * static_cast<float>(maxIdx));
-                    motionReadPosition_ = clamp(
+                    motionReadPosition_ = static_cast<int>(clamp(
                         static_cast<float>(motionReadPosition_),
-                        0.0f, static_cast<float>(maxIdx));
+                        0.0f, static_cast<float>(maxIdx)));
                 }
                 else
                 {

@@ -432,6 +432,11 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     {
         voiceManager.prepare(sampleRate);
         additiveSynth_.prepare(sampleRate);
+
+    // P6b: time-varying harmonic image settings
+    additiveSynth_.setImageEnabled(imageEnabled_.load());
+    additiveSynth_.setImageRate(imageRate_.load());
+    additiveSynth_.setImageLoop(imageLoop_.load());
         partialMod_.prepare(sampleRate);
         subHarmonicGen_.setSampleRate(sampleRate);
 
@@ -1043,6 +1048,9 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("freezeEnabled", freezeEnabled_.load(), nullptr);
     state.setProperty("freezeMode", freezeMode_.load(), nullptr);
     state.setProperty("freezeMix", freezeMix_.load(), nullptr);
+    state.setProperty("imageEnabled", imageEnabled_.load(), nullptr);
+    state.setProperty("imageRate", imageRate_.load(), nullptr);
+    state.setProperty("imageLoop", imageLoop_.load(), nullptr);
 
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
@@ -1096,6 +1104,9 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("freezeMode"))    setSpectralFreezeMode((int)state.getProperty("freezeMode", 0));
     if (state.hasProperty("freezeMix"))     setSpectralFreezeMix((float)state.getProperty("freezeMix", 0.5f));
     if (state.hasProperty("freezeEnabled")) setSpectralFreezeEnabled((bool)state.getProperty("freezeEnabled", false));
+    if (state.hasProperty("imageRate"))     setImageRate((float)state.getProperty("imageRate", 2.0f));
+    if (state.hasProperty("imageLoop"))     setImageLoop((bool)state.getProperty("imageLoop", true));
+    if (state.hasProperty("imageEnabled"))  setImageEnabled((bool)state.getProperty("imageEnabled", false));
     if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
 
     auto presetState = state.getChildWithName("Parameters");
@@ -1363,7 +1374,47 @@ void AnaPlugAudioProcessor::refreshPartialsFromEngine()
         sourcePartials_.updateActiveMask();
     }
 
-    editedPartials_ = sourcePartials_;
+    // --- P6b: build the time-varying harmonic image (evenly subsampled frames) ---
+    imageFrames_.clear();
+
+    const auto& pdFrames = engine.getPartialData();
+    if (! pdFrames.frames.empty())
+    {
+        const int total = static_cast<int>(pdFrames.frames.size());
+        const int count = juce::jmin(ana::AdditiveSynth::kMaxFrames, total);
+        imageFrames_.reserve(static_cast<std::size_t>(count));
+
+        for (int i = 0; i < count; ++i)
+        {
+            const int srcIndex = (count > 1)
+                ? static_cast<int>(static_cast<double>(i) * (total - 1) / (count - 1))
+                : 0;
+            const auto& frame = pdFrames.frames[
+                static_cast<std::size_t>(juce::jlimit(0, total - 1, srcIndex))];
+
+            ana::PartialDataSIMD f;
+            f.maxPartials = pdFrames.maxPartials;
+            f.sampleRate  = pdFrames.sampleRate;
+            f.hopSize     = pdFrames.hopSize;
+
+            const int cnt = juce::jmin(static_cast<int>(frame.partials.size()),
+                                       ana::PartialDataSIMD::kMaxPartials);
+            for (int p = 0; p < cnt; ++p)
+            {
+                f.frequency[p] = frame.partials[static_cast<std::size_t>(p)].frequency;
+                f.amplitude[p] = frame.partials[static_cast<std::size_t>(p)].amplitude;
+                f.phase[p]     = frame.partials[static_cast<std::size_t>(p)].phase;
+            }
+            f.updateActiveMask();
+            imageFrames_.push_back(f);
+        }
+    }
+
+    // The spectrum editor always edits the image's first frame, so a freshly
+    // loaded sample starts on the analysis's first frame (what you hear at
+    // note-on) and editing stays consistent with image playback.
+    editedPartials_ = imageFrames_.empty() ? sourcePartials_ : imageFrames_[0];
+
     applyTimbreProcessing();
 }
 
@@ -1378,6 +1429,11 @@ void AnaPlugAudioProcessor::setEditedPartials(const ana::PartialDataSIMD& partia
 {
     editedPartials_ = partials;
     editedPartials_.updateActiveMask();
+
+    // The edited set is always the image's first frame.
+    if (! imageFrames_.empty())
+        imageFrames_[0] = editedPartials_;
+
     applyTimbreProcessing();
 }
 
@@ -1394,9 +1450,6 @@ void AnaPlugAudioProcessor::applyTimbreProcessing()
 {
     const double sr = editedPartials_.sampleRate > 0.0 ? editedPartials_.sampleRate : 44100.0;
 
-    ana::PartialDataSIMD setA = editedPartials_;
-    ana::PartialDataSIMD setB = editedPartials_;
-
     ana::TimbreShapeParams pa;
     pa.bright = timbreABright_.load();
     pa.blur   = timbreABlur_.load();
@@ -1407,20 +1460,34 @@ void AnaPlugAudioProcessor::applyTimbreProcessing()
     pb.blur   = timbreBBlur_.load();
     pb.hpfHz  = timbreBHpf_.load();
 
-    ana::TimbreShaper::shape(setA, pa, sr);
-    ana::TimbreShaper::shape(setB, pb, sr);
+    const float blend       = timbreBlend_.load();
+    const bool  generative  = generativeEnabled_.load();
+    const float generativeM = generativeMix_.load();
 
-    auto blended = ana::TimbreShaper::blend(setA, setB, timbreBlend_.load());
+    // Shape every frame of the image (a single frame when there is no image).
+    std::vector<ana::PartialDataSIMD> shaped = imageFrames_;
 
-    // P5: optionally morph the blended set toward the generated timbre.
-    if (generativeEnabled_.load())
+    if (shaped.empty())
+        shaped.push_back(editedPartials_);
+    else
+        shaped[0] = editedPartials_;   // frame 0 is the editor's set
+
+    for (auto& set : shaped)
     {
-        const float generativeMix = generativeMix_.load();
-        if (generativeMix > 0.0f)
-            timbreDesigner_.applyToPartials(blended, generativeMix);
+        ana::PartialDataSIMD setA = set;
+        ana::PartialDataSIMD setB = set;
+
+        ana::TimbreShaper::shape(setA, pa, sr);
+        ana::TimbreShaper::shape(setB, pb, sr);
+
+        set = ana::TimbreShaper::blend(setA, setB, blend);
+
+        // P5: optionally morph toward the generated timbre.
+        if (generative && generativeM > 0.0f)
+            timbreDesigner_.applyToPartials(set, generativeM);
     }
 
-    additiveSynth_.setPartials(blended);
+    additiveSynth_.setFrames(shaped);
 }
 
 //==============================================================================
@@ -1518,6 +1585,29 @@ void AnaPlugAudioProcessor::setSpectralFreezeMix(float mix)
     const float m = juce::jlimit(0.0f, 1.0f, mix);
     freezeMix_.store(m);
     freezeEngine_.setMix(m);
+}
+
+//==============================================================================
+// Time-varying harmonic image (P6b)
+//==============================================================================
+
+void AnaPlugAudioProcessor::setImageEnabled(bool enabled)
+{
+    imageEnabled_.store(enabled);
+    additiveSynth_.setImageEnabled(enabled);
+}
+
+void AnaPlugAudioProcessor::setImageRate(float framesPerSecond)
+{
+    const float rate = juce::jlimit(0.0f, 20.0f, framesPerSecond);
+    imageRate_.store(rate);
+    additiveSynth_.setImageRate(rate);
+}
+
+void AnaPlugAudioProcessor::setImageLoop(bool shouldLoop)
+{
+    imageLoop_.store(shouldLoop);
+    additiveSynth_.setImageLoop(shouldLoop);
 }
 
 void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)

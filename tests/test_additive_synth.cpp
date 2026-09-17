@@ -205,3 +205,151 @@ TEST_CASE("setPartials under interleaved rendering does not tear or crash", "[ad
     }
     REQUIRE(true);
 }
+
+//==============================================================================
+// P6b: time-varying harmonic image
+
+namespace
+{
+float goertzelMag(const juce::AudioBuffer<float>& buf, float freq, double sr)
+{
+    const int n = buf.getNumSamples();
+    const float* x = buf.getReadPointer(0);
+    const double w = juce::MathConstants<double>::twoPi * static_cast<double>(freq) / sr;
+    const double c = 2.0 * std::cos(w);
+    double s0 = 0.0, s1 = 0.0, s2 = 0.0;
+    for (int i = 0; i < n; ++i)
+    {
+        s0 = static_cast<double>(x[i]) + c * s1 - s2;
+        s2 = s1;
+        s1 = s0;
+    }
+    return static_cast<float>(std::sqrt(s1 * s1 + s2 * s2 - c * s1 * s2));
+}
+}
+
+TEST_CASE("AdditiveSynth image playback advances through frames", "[additive][image]")
+{
+    constexpr double sr = 48000.0;
+    constexpr int block = 512;
+
+    ana::PartialDataSIMD f0, f1;
+    f0.sampleRate = f1.sampleRate = sr;
+    f0.frequency[0] = 440.0f;  f0.amplitude[0] = 1.0f;
+    f1.frequency[0] = 2000.0f; f1.amplitude[0] = 1.0f;
+    f0.updateActiveMask();
+    f1.updateActiveMask();
+
+    juce::MidiBuffer emptyMidi;
+
+    auto render = [&](ana::AdditiveSynth& synth, int blocks, juce::AudioBuffer<float>& last)
+    {
+        juce::AudioBuffer<float> buf(1, block);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 60, static_cast<juce::uint8>(100)), 0);
+
+        for (int b = 0; b < blocks; ++b)
+        {
+            buf.clear();
+            if (b == 0)
+                synth.renderNextBlock(buf, midi, 0, block);
+            else
+                synth.renderNextBlock(buf, emptyMidi, 0, block);
+
+            if (b == blocks - 1)
+                last.makeCopyOf(buf);
+        }
+    };
+
+    SECTION("image off renders frame 0")
+    {
+        ana::AdditiveSynth synth;
+        synth.prepare(sr);
+        synth.setRootNote(60);
+        synth.setFrames({ f0, f1 });
+        REQUIRE(synth.getActiveFrameCount() == 2);
+
+        juce::AudioBuffer<float> last(1, block);
+        render(synth, 20, last);
+
+        REQUIRE(goertzelMag(last, 440.0f, sr) > goertzelMag(last, 2000.0f, sr) * 4.0f);
+    }
+
+    SECTION("image on without loop reaches the last frame")
+    {
+        ana::AdditiveSynth synth;
+        synth.prepare(sr);
+        synth.setRootNote(60);
+        synth.setFrames({ f0, f1 });
+        synth.setImageEnabled(true);
+        synth.setImageLoop(false);
+        synth.setImageRate(20.0f);   // 2-frame image completes in 50 ms
+
+        juce::AudioBuffer<float> last(1, block);
+        render(synth, 30, last);     // ~0.32 s, well past the image end
+
+        REQUIRE(goertzelMag(last, 2000.0f, sr) > goertzelMag(last, 440.0f, sr) * 4.0f);
+    }
+
+    SECTION("image on with loop wraps back to frame 0")
+    {
+        ana::AdditiveSynth synth;
+        synth.prepare(sr);
+        synth.setRootNote(60);
+        synth.setFrames({ f0, f1 });
+        synth.setImageEnabled(true);
+        synth.setImageLoop(true);
+        synth.setImageRate(12.0f);
+
+        // 1 frame per second at rate 1 would land back on frame 0; with rate 12
+        // and 30 * 512 samples (0.32 s) the position wraps several times, so the
+        // output must contain energy at both frequencies over the run.
+        juce::AudioBuffer<float> acc(1, block);
+        juce::AudioBuffer<float> buf(1, block);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 60, static_cast<juce::uint8>(100)), 0);
+
+        double e440 = 0.0, e2000 = 0.0;
+        for (int b = 0; b < 30; ++b)
+        {
+            buf.clear();
+            if (b == 0)
+                synth.renderNextBlock(buf, midi, 0, block);
+            else
+                synth.renderNextBlock(buf, emptyMidi, 0, block);
+
+            const double m440  = goertzelMag(buf, 440.0f, sr);
+            const double m2000 = goertzelMag(buf, 2000.0f, sr);
+            e440  = std::max(e440, m440);
+            e2000 = std::max(e2000, m2000);
+        }
+
+        REQUIRE(e440  > 0.0);
+        REQUIRE(e2000 > 0.0);
+    }
+
+    SECTION("single frame image is safe and static")
+    {
+        ana::AdditiveSynth synth;
+        synth.prepare(sr);
+        synth.setRootNote(60);
+        synth.setFrames({ f0 });
+        synth.setImageEnabled(true);
+        synth.setImageRate(8.0f);
+
+        juce::AudioBuffer<float> last(1, block);
+        render(synth, 20, last);
+
+        REQUIRE(synth.getActiveFrameCount() == 1);
+        REQUIRE(goertzelMag(last, 440.0f, sr) > goertzelMag(last, 2000.0f, sr) * 4.0f);
+    }
+
+    SECTION("empty frames clear the bank")
+    {
+        ana::AdditiveSynth synth;
+        synth.prepare(sr);
+        synth.setFrames(std::vector<ana::PartialDataSIMD>{});
+        REQUIRE(synth.getActiveFrameCount() == 0);
+        REQUIRE_FALSE(synth.hasPartials());
+    }
+}

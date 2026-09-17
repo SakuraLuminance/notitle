@@ -117,6 +117,42 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     };
     addAndMakeVisible(genMixSlider_);
 
+    // Time-varying harmonic image (P6b): advances through analysed frames
+    addCyberButton(imageEnableButton_);
+    imageEnableButton_.setClickingTogglesState(true);
+    imageEnableButton_.setTooltip("Play the analysed harmonic image over time (frame advance)");
+    imageEnableButton_.onClick = [this]
+    {
+        audioProcessor.setImageEnabled(imageEnableButton_.getToggleState());
+    };
+    addAndMakeVisible(imageEnableButton_);
+
+    imageRateSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    imageRateSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    imageRateSlider_.setRange(0.0, 20.0, 0.1);
+    imageRateSlider_.setValue(2.0, juce::dontSendNotification);
+    imageRateSlider_.setTooltip("Image advance rate (frames per second)");
+    imageRateSlider_.onValueChange = [this]
+    {
+        audioProcessor.setImageRate(static_cast<float>(imageRateSlider_.getValue()));
+    };
+    addAndMakeVisible(imageRateSlider_);
+
+    addCyberButton(imageLoopButton_);
+    imageLoopButton_.setClickingTogglesState(true);
+    imageLoopButton_.setToggleState(true, juce::dontSendNotification);
+    imageLoopButton_.setTooltip("Loop the image (off = hold the last frame)");
+    imageLoopButton_.onClick = [this]
+    {
+        audioProcessor.setImageLoop(imageLoopButton_.getToggleState());
+    };
+    addAndMakeVisible(imageLoopButton_);
+
+    imageStatusLabel_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f));
+    imageStatusLabel_.setJustificationType(juce::Justification::centredLeft);
+    imageStatusLabel_.setColour(juce::Label::textColourId, ana::CyberpunkTheme::fg_.withAlpha(0.75f));
+    addAndMakeVisible(imageStatusLabel_);
+
     // Spectral freeze (P5): holds the output spectrum post-effects
     addCyberButton(freezeButton_);
     freezeButton_.setClickingTogglesState(true);
@@ -656,6 +692,12 @@ void AnaPlugAudioProcessorEditor::resized()
     {
         case 0: // TIMBRE
         {
+            auto imageStrip = ca.removeFromBottom(20).reduced(2, 0);
+            imageEnableButton_.setBounds(imageStrip.removeFromLeft(58).reduced(2, 0));
+            imageRateSlider_.setBounds(imageStrip.removeFromLeft(150).reduced(4, 0));
+            imageLoopButton_.setBounds(imageStrip.removeFromLeft(50).reduced(2, 0));
+            imageStatusLabel_.setBounds(imageStrip);
+
             auto genStrip = ca.removeFromBottom(20).reduced(2, 0);
             genLabel_.setBounds(genStrip.removeFromLeft(74));
             genEnableButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
@@ -794,6 +836,10 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     timbreBPanel_.setVisible(page == 0);
     timbreBlendSlider_.setVisible(page == 0);
     timbreBlendLabel_.setVisible(page == 0);
+    imageEnableButton_.setVisible(page == 0);
+    imageRateSlider_.setVisible(page == 0);
+    imageLoopButton_.setVisible(page == 0);
+    imageStatusLabel_.setVisible(page == 0);
     genLabel_.setVisible(page == 0);
     genEnableButton_.setVisible(page == 0);
     genRandomButton_.setVisible(page == 0);
@@ -976,6 +1022,23 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                      - audioProcessor.getGenerativeTimbreMix()) > 0.001f)
             genMixSlider_.setValue(static_cast<double>(audioProcessor.getGenerativeTimbreMix()),
                                    juce::dontSendNotification);
+
+        // Time-varying harmonic image (P6b)
+        if (imageEnableButton_.getToggleState() != audioProcessor.isImageEnabled())
+            imageEnableButton_.setToggleState(audioProcessor.isImageEnabled(),
+                                              juce::dontSendNotification);
+        if (std::abs(static_cast<float>(imageRateSlider_.getValue())
+                     - audioProcessor.getImageRate()) > 0.001f)
+            imageRateSlider_.setValue(static_cast<double>(audioProcessor.getImageRate()),
+                                      juce::dontSendNotification);
+        if (imageLoopButton_.getToggleState() != audioProcessor.isImageLoop())
+            imageLoopButton_.setToggleState(audioProcessor.isImageLoop(), juce::dontSendNotification);
+        {
+            const juce::String imgText = "IMAGE  " + juce::String(audioProcessor.getImageFrameCount())
+                                       + " FRAMES";
+            if (imageStatusLabel_.getText() != imgText)
+                imageStatusLabel_.setText(imgText, juce::dontSendNotification);
+        }
 
         // Spectral freeze (P5)
         if (freezeButton_.getToggleState() != audioProcessor.isSpectralFreezeEnabled())
