@@ -105,6 +105,12 @@ private:
     juce::ComboBox   genPresetCombo_;
     juce::Slider     genMixSlider_;
 
+    // Spectral freeze row (P5, FX page)
+    juce::TextButton freezeButton_{ "FREEZE" };
+    juce::TextButton freezeTrigButton_{ "TRIG" };
+    juce::ComboBox   freezeModeCombo_;
+    juce::Slider     freezeMixSlider_;
+
     //==============================================================================
     // Center — Spectrum / Partial display
     ana::LiveSpectrumPanel liveSpectrumPanel_;

@@ -82,6 +82,7 @@ public:
 #include "dsp/AdditiveSynth.h"
 #include "dsp/GenerativeTimbreDesigner.h"
 #include "dsp/SpectralParticleSystem.h"
+#include "dsp/SpectralFreezeEngine.h"
 #include "dsp/PrismEffect.h"
 #include "dsp/Harmonizer.h"
 #include "dsp/Randomizer.h"
@@ -193,6 +194,22 @@ public:
     void advanceParticles(double deltaSeconds);
 
     ana::SpectralParticleSystem& getParticleSystem() { return particleSystem_; }
+
+    //==============================================================================
+    // --- Spectral freeze (P5) ---
+    /** Holds (or releases) the frozen output spectrum. */
+    void setSpectralFreezeEnabled(bool enabled);
+    bool isSpectralFreezeEnabled() const { return freezeEnabled_.load(); }
+
+    /** One-shot capture of the current output spectrum. */
+    void triggerSpectralFreeze();
+
+    /** 0 = Snapshot, 1 = Accumulate, 2 = Motion, 3 = Reverse. */
+    void setSpectralFreezeMode(int mode);
+    int  getSpectralFreezeMode() const { return freezeMode_.load(); }
+
+    void  setSpectralFreezeMix(float mix);
+    float getSpectralFreezeMix() const { return freezeMix_.load(); }
 
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
@@ -514,6 +531,13 @@ private:
     // Spectral particle view (P5): visual-only, driven from the editor timer
     ana::SpectralParticleSystem particleSystem_;
     std::atomic<bool> particlesEnabled_{ false };
+
+    // Spectral freeze (P5): post-effects, pre-master output freeze
+    ana::SpectralFreezeEngine freezeEngine_;
+    juce::AudioBuffer<float>  freezeScratch_;
+    std::atomic<bool>  freezeEnabled_{ false };
+    std::atomic<int>   freezeMode_{ 0 };
+    std::atomic<float> freezeMix_{ 0.5f };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

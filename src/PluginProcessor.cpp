@@ -463,6 +463,27 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
 
         effectsChain_.prepare(spec);
 
+    // Spectral freeze (P5): configure + warm the audio path off the audio thread.
+    {
+        freezeEngine_.setSampleRate(spec.sampleRate);
+        freezeEngine_.setFftSize(2048);
+        freezeEngine_.setFreezeMode(static_cast<ana::SpectralFreezeEngine::FreezeMode>(
+            juce::jlimit(0, 3, freezeMode_.load())));
+        freezeEngine_.setMix(freezeMix_.load());
+
+        const int freezeChannels = juce::jmax(1, static_cast<int>(spec.numChannels));
+        const int freezeBlock    = static_cast<int>(spec.maximumBlockSize);
+
+        freezeScratch_.setSize(freezeChannels, freezeBlock, false, true, false);
+
+        juce::AudioBuffer<float> warmIn(freezeChannels, freezeBlock);
+        warmIn.clear();
+        freezeEngine_.setFreeze(true);                    // allocates ring + filters, captures silence
+        freezeEngine_.processAudio(warmIn, freezeScratch_);
+        freezeEngine_.setFreeze(false);
+        freezeEngine_.processAudio(warmIn, freezeScratch_);
+    }
+
         // Prepare the vocal character processor
         vocalProcessor_.prepare(spec);
 
@@ -908,6 +929,12 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
                 for (int ch = 0; ch < numChannels; ++ch)
                     buffer.addFrom(ch, 0, voiceBuffer, ch, 0, numSamples, 0.5f);
 
+                // Spectral freeze (P5), post-effects / pre-master: the engine
+                // always records so a freeze captures the live output; when not
+                // frozen the dry/wet mix is zero and the buffer is unchanged.
+                freezeScratch_.makeCopyOf(buffer, true);
+                freezeEngine_.processAudio(freezeScratch_, buffer);
+
                 // Apply master volume and pan (output stage)
                 {
                     const float vol = masterVol_.load();
@@ -943,6 +970,10 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // No resynthesis: just copy VoiceManager output to main buffer
     for (int ch = 0; ch < numChannels; ++ch)
         buffer.copyFrom(ch, 0, voiceBuffer, ch, 0, numSamples);
+
+    // Spectral freeze (P5), post-effects / pre-master (see note above)
+    freezeScratch_.makeCopyOf(buffer, true);
+    freezeEngine_.processAudio(freezeScratch_, buffer);
 
     // Apply master volume and pan (output stage)
     {
@@ -1009,6 +1040,9 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("timbreBlend", timbreBlend_.load(), nullptr);
     state.setProperty("generativeEnabled", generativeEnabled_.load(), nullptr);
     state.setProperty("generativeMix", generativeMix_.load(), nullptr);
+    state.setProperty("freezeEnabled", freezeEnabled_.load(), nullptr);
+    state.setProperty("freezeMode", freezeMode_.load(), nullptr);
+    state.setProperty("freezeMix", freezeMix_.load(), nullptr);
 
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
@@ -1059,6 +1093,9 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("generativeMix")) setGenerativeTimbreMix((float)state.getProperty("generativeMix", 0.5f));
     if (state.hasProperty("generativeEnabled"))
         setGenerativeTimbreEnabled((bool)state.getProperty("generativeEnabled", false));
+    if (state.hasProperty("freezeMode"))    setSpectralFreezeMode((int)state.getProperty("freezeMode", 0));
+    if (state.hasProperty("freezeMix"))     setSpectralFreezeMix((float)state.getProperty("freezeMix", 0.5f));
+    if (state.hasProperty("freezeEnabled")) setSpectralFreezeEnabled((bool)state.getProperty("freezeEnabled", false));
     if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
 
     auto presetState = state.getChildWithName("Parameters");
@@ -1451,6 +1488,36 @@ void AnaPlugAudioProcessor::advanceParticles(double deltaSeconds)
 {
     if (particlesEnabled_.load())
         particleSystem_.update(juce::jlimit(0.001, 0.2, deltaSeconds));
+}
+
+//==============================================================================
+// Spectral freeze (P5)
+//==============================================================================
+
+void AnaPlugAudioProcessor::setSpectralFreezeEnabled(bool enabled)
+{
+    freezeEnabled_.store(enabled);
+    freezeEngine_.setFreeze(enabled);
+}
+
+void AnaPlugAudioProcessor::triggerSpectralFreeze()
+{
+    freezeEnabled_.store(true);
+    freezeEngine_.triggerFreeze();
+}
+
+void AnaPlugAudioProcessor::setSpectralFreezeMode(int mode)
+{
+    const int m = juce::jlimit(0, 3, mode);
+    freezeMode_.store(m);
+    freezeEngine_.setFreezeMode(static_cast<ana::SpectralFreezeEngine::FreezeMode>(m));
+}
+
+void AnaPlugAudioProcessor::setSpectralFreezeMix(float mix)
+{
+    const float m = juce::jlimit(0.0f, 1.0f, mix);
+    freezeMix_.store(m);
+    freezeEngine_.setMix(m);
 }
 
 void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)

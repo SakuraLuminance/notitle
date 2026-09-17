@@ -117,6 +117,47 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     };
     addAndMakeVisible(genMixSlider_);
 
+    // Spectral freeze (P5): holds the output spectrum post-effects
+    addCyberButton(freezeButton_);
+    freezeButton_.setClickingTogglesState(true);
+    freezeButton_.setTooltip("Freeze the current output spectrum");
+    freezeButton_.onClick = [this]
+    {
+        audioProcessor.setSpectralFreezeEnabled(freezeButton_.getToggleState());
+    };
+    addAndMakeVisible(freezeButton_);
+
+    addCyberButton(freezeTrigButton_);
+    freezeTrigButton_.setTooltip("One-shot freeze: capture the spectrum now");
+    freezeTrigButton_.onClick = [this]
+    {
+        audioProcessor.triggerSpectralFreeze();
+        freezeButton_.setToggleState(true, juce::dontSendNotification);
+    };
+    addAndMakeVisible(freezeTrigButton_);
+
+    static const char* freezeModeNames[] = { "SNAPSHOT", "ACCUMULATE", "MOTION", "REVERSE" };
+    for (int i = 0; i < 4; ++i)
+        freezeModeCombo_.addItem(freezeModeNames[i], i + 1);
+    freezeModeCombo_.setSelectedId(1, juce::dontSendNotification);
+    freezeModeCombo_.setTooltip("Freeze algorithm");
+    freezeModeCombo_.onChange = [this]
+    {
+        audioProcessor.setSpectralFreezeMode(freezeModeCombo_.getSelectedId() - 1);
+    };
+    addAndMakeVisible(freezeModeCombo_);
+
+    freezeMixSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    freezeMixSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    freezeMixSlider_.setRange(0.0, 1.0, 0.01);
+    freezeMixSlider_.setValue(0.5, juce::dontSendNotification);
+    freezeMixSlider_.setTooltip("Frozen / live blend");
+    freezeMixSlider_.onValueChange = [this]
+    {
+        audioProcessor.setSpectralFreezeMix(static_cast<float>(freezeMixSlider_.getValue()));
+    };
+    addAndMakeVisible(freezeMixSlider_);
+
     //==============================================================================
     // Center 鈥?Visual feedback + view selector
     ANA_CRUMB("ed:center-start");
@@ -664,6 +705,13 @@ void AnaPlugAudioProcessorEditor::resized()
             auto vocalRow = fxArea.removeFromTop(18).reduced(pad);
             vocalCharacterLabel_.setBounds(vocalRow.removeFromLeft(34));
             vocalCharacterCombo_.setBounds(vocalRow.reduced(0, 1));
+
+            auto freezeRow = fxArea.removeFromTop(18).reduced(pad);
+            freezeButton_.setBounds(freezeRow.removeFromLeft(66).reduced(1));
+            freezeTrigButton_.setBounds(freezeRow.removeFromLeft(46).reduced(1));
+            freezeModeCombo_.setBounds(freezeRow.removeFromLeft(104).reduced(1));
+            freezeMixSlider_.setBounds(freezeRow.reduced(4, 0));
+
             effectRack_.setBounds(fxArea.reduced(1, pad));
             break;
         }
@@ -769,6 +817,10 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     harmButton_.setVisible(page == 4);
     vocalCharacterLabel_.setVisible(page == 4);
     vocalCharacterCombo_.setVisible(page == 4);
+    freezeButton_.setVisible(page == 4);
+    freezeTrigButton_.setVisible(page == 4);
+    freezeModeCombo_.setVisible(page == 4);
+    freezeMixSlider_.setVisible(page == 4);
     effectRack_.setVisible(page == 4);
 
     transportBar_.setVisible(page == 5);
@@ -924,6 +976,18 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                      - audioProcessor.getGenerativeTimbreMix()) > 0.001f)
             genMixSlider_.setValue(static_cast<double>(audioProcessor.getGenerativeTimbreMix()),
                                    juce::dontSendNotification);
+
+        // Spectral freeze (P5)
+        if (freezeButton_.getToggleState() != audioProcessor.isSpectralFreezeEnabled())
+            freezeButton_.setToggleState(audioProcessor.isSpectralFreezeEnabled(),
+                                         juce::dontSendNotification);
+        if (freezeModeCombo_.getSelectedId() != audioProcessor.getSpectralFreezeMode() + 1)
+            freezeModeCombo_.setSelectedId(audioProcessor.getSpectralFreezeMode() + 1,
+                                           juce::dontSendNotification);
+        if (std::abs(static_cast<float>(freezeMixSlider_.getValue())
+                     - audioProcessor.getSpectralFreezeMix()) > 0.001f)
+            freezeMixSlider_.setValue(static_cast<double>(audioProcessor.getSpectralFreezeMix()),
+                                      juce::dontSendNotification);
     }
 
     // --- SYNTH mode status ---

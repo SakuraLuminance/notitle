@@ -293,11 +293,27 @@ void SpectralFreezeEngine::processAudio(const juce::AudioBuffer<float>& input,
     // ---- 2. Handle pending freeze ----
     if (pendingFreeze_)
     {
-        pendingFreeze_   = false;
-        isFrozen_        = true;
-        audioReadPos_    = audioWritePos_ - bufSize;  // start from one buffer-length ago
-        if (audioReadPos_ < 0)
-            audioReadPos_ += bufSize * 256;  // ensure positive for modulo
+        pendingFreeze_ = false;
+        isFrozen_      = true;
+
+        // Take a fixed snapshot of the most recent bufSize input samples.  The
+        // live ring keeps moving, so a freeze must hold its own copy.
+        capturedAudio_.assign(static_cast<size_t>(bufSize), 0.0f);
+        {
+            const long long writePos = audioWritePos_;
+            for (int s = 0; s < bufSize; ++s)
+            {
+                long long idx = (writePos - bufSize + s) % bufSize;
+                if (idx < 0)
+                    idx += bufSize;
+                capturedAudio_[static_cast<size_t>(s)] =
+                    frozenAudioBuffer_[static_cast<size_t>(idx)];
+            }
+        }
+        capturedLength_  = bufSize;
+        capturedReadPos_ = 0;
+
+        audioReadPos_ = audioWritePos_ - bufSize;  // retained for compatibility
     }
 
     // ---- 3. Update crossfade ----
@@ -338,6 +354,7 @@ void SpectralFreezeEngine::processAudio(const juce::AudioBuffer<float>& input,
     }
 
     // ---- 6. Process each channel ----
+    const int readBase = capturedReadPos_;
     for (int ch = 0; ch < numChannels; ++ch)
     {
         const float* inSamples  = input.getReadPointer(ch);
@@ -348,33 +365,44 @@ void SpectralFreezeEngine::processAudio(const juce::AudioBuffer<float>& input,
 
         for (int s = 0; s < numSamples; ++s)
         {
-            // Determine the frozen (wet) sample
+            // Determine the frozen (wet) sample.  The held snapshot is looped so
+            // the frozen spectrum does not drain away as the live input moves on.
             float wetSample;
-            if (isFrozen_)
+            if (isFrozen_ && capturedLength_ > 0)
             {
-                int readOffset;
+                const int len = capturedLength_;
+                const int pos = readBase + s;
+                int idx;
+
                 switch (mode_)
                 {
                     case FreezeMode::Reverse:
-                        readOffset = -s;
+                        idx = len - 1 - (pos % len);
                         break;
+
                     case FreezeMode::Motion:
-                        // Slowly advance through the buffer at the evolution rate
-                        readOffset = static_cast<int>(
-                            static_cast<float>(s) * evolutionRate_);
+                        // Read the snapshot at a fraction of real speed.
+                        idx = static_cast<int>(std::fmod(
+                            static_cast<double>(pos) * static_cast<double>(evolutionRate_),
+                            static_cast<double>(len)));
                         break;
-                    default:
-                        readOffset = s;
+
+                    case FreezeMode::Accumulate:
+                        // Slowly merge the live signal into the held snapshot.
+                        if (ch == 0)
+                        {
+                            float& held = capturedAudio_[static_cast<size_t>(pos % len)];
+                            held = held * 0.999f + inSamples[s] * 0.001f;
+                        }
+                        idx = pos % len;
+                        break;
+
+                    default: // Snapshot
+                        idx = pos % len;
                         break;
                 }
 
-                int readPos = audioReadPos_ + readOffset;
-
-                // Keep read position positive for safe modulo
-                while (readPos < 0)
-                    readPos += bufSize * 256;
-
-                wetSample = frozenAudioBuffer_[static_cast<size_t>(readPos % bufSize)];
+                wetSample = capturedAudio_[static_cast<size_t>(idx)];
             }
             else
             {
@@ -390,10 +418,14 @@ void SpectralFreezeEngine::processAudio(const juce::AudioBuffer<float>& input,
         }
     }
 
-    // ---- 6. Advance buffer positions ----
+    // ---- 7. Advance buffer positions ----
     audioWritePos_ += numSamples;
-    if (isFrozen_)
-        audioReadPos_ += numSamples;
+    if (isFrozen_ && capturedLength_ > 0)
+    {
+        capturedReadPos_ += numSamples;
+        if (capturedReadPos_ >= capturedLength_ * 1024)
+            capturedReadPos_ %= capturedLength_;
+    }
 }
 
 //==============================================================================

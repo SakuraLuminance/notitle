@@ -244,6 +244,12 @@ private:
     int                audioWritePos_ = 0;
     int                audioReadPos_  = 0;
 
+    // Held snapshot of the input taken at freeze time (true freeze: the audio
+    // path loops this instead of reading the still-moving live ring buffer).
+    std::vector<float> capturedAudio_;
+    int                capturedLength_  = 0;
+    int                capturedReadPos_ = 0;
+
     // Audio path filters (per-channel)
     std::vector<juce::dsp::IIR::Filter<float>> dryHPFilters_;
     std::vector<juce::dsp::IIR::Filter<float>> wetLPFilters_;
