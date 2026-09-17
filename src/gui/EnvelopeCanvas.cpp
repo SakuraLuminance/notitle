@@ -133,8 +133,8 @@ void EnvelopeCanvas::paint(juce::Graphics& g)
         const float xls = EnvelopeEditOps::timeToX(*env_, env_->getBreakpoint(ls).time, plot);
         g.setColour(CyberpunkTheme::cyan_.withAlpha(0.55f));
         g.drawLine(xls, plot.getY(), xls, plot.getBottom(), 1.0f);
-        g.setFont(CyberpunkTheme::getCyberFont(8.0f));
-        g.drawText("LS", juce::Rectangle<float>(xls - 9.0f, plot.getY() + 1.0f, 18.0f, 9.0f),
+        g.setFont(CyberpunkTheme::getCyberFont(9.0f));
+        g.drawText("LS", juce::Rectangle<float>(xls - 10.0f, plot.getY() + 1.0f, 20.0f, 10.0f),
                    juce::Justification::centred);
 
         const int le = env_->getLoopEnd();
