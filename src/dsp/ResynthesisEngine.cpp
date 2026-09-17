@@ -37,12 +37,16 @@ std::vector<float> ResynthesisEngine::resynthesize(
     juce::dsp::WindowingFunction<float> window(
         fftSize, juce::dsp::WindowingFunction<float>::hann);
 
+    // One reusable spectrum buffer: allocating and zeroing a fresh vector per
+    // frame dominated the offline load time on long samples.
+    std::vector<float> spectrum(static_cast<size_t>(fftSize) * 2, 0.0f);
+
     for (size_t frameIdx = 0; frameIdx < numFrames; ++frameIdx)
     {
         const auto& frame = partialData.frames[frameIdx];
 
         // Create empty spectrum
-        std::vector<float> spectrum(fftSize * 2, 0.0f);
+        std::fill(spectrum.begin(), spectrum.end(), 0.0f);
 
         // Write partials to spectrum
         for (const auto& partial : frame.partials)

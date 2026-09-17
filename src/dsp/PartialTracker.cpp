@@ -29,6 +29,10 @@ PartialData PartialTracker::trackPartials(
 
     const double frameDuration = config.hopSize / audio.sampleRate;
 
+    // One frame per analysis frame: reserve up front so the (large) frame
+    // objects are never moved around during reallocation.
+    result.frames.reserve(frames.size());
+
     for (size_t i = 0; i < frames.size(); ++i)
     {
         auto peaks = detector.detectPeaks(frames[i], config, audio.sampleRate);
