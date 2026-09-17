@@ -968,6 +968,16 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("mpeMasterChannel", voiceManager.getMPEMasterChannel(), nullptr);
     state.setProperty("subHarmonicLevel", subHarmonicLevel_.load(), nullptr);
 
+    // Additive synth + timbre shaping (P6)
+    state.setProperty("synthMode", synthMode_.load(), nullptr);
+    state.setProperty("timbreABright", timbreABright_.load(), nullptr);
+    state.setProperty("timbreABlur", timbreABlur_.load(), nullptr);
+    state.setProperty("timbreAHpf", timbreAHpf_.load(), nullptr);
+    state.setProperty("timbreBBright", timbreBBright_.load(), nullptr);
+    state.setProperty("timbreBBlur", timbreBBlur_.load(), nullptr);
+    state.setProperty("timbreBHpf", timbreBHpf_.load(), nullptr);
+    state.setProperty("timbreBlend", timbreBlend_.load(), nullptr);
+
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
 
@@ -1005,6 +1015,16 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     
     if (state.hasProperty("mpeEnabled")) setMPEEnabled(state.getProperty("mpeEnabled"));
     if (state.hasProperty("mpeMasterChannel")) setMPEMasterChannel(juce::jlimit(0, 15, (int)state.getProperty("mpeMasterChannel")));
+
+    // Additive synth + timbre shaping (P6)
+    if (state.hasProperty("timbreABright")) setTimbreBright(true,  (float)state.getProperty("timbreABright", 0.5f));
+    if (state.hasProperty("timbreABlur"))   setTimbreBlur(true,    (float)state.getProperty("timbreABlur", 0.0f));
+    if (state.hasProperty("timbreAHpf"))    setTimbreHpf(true,     (float)state.getProperty("timbreAHpf", 20.0f));
+    if (state.hasProperty("timbreBBright")) setTimbreBright(false, (float)state.getProperty("timbreBBright", 0.5f));
+    if (state.hasProperty("timbreBBlur"))   setTimbreBlur(false,   (float)state.getProperty("timbreBBlur", 0.0f));
+    if (state.hasProperty("timbreBHpf"))    setTimbreHpf(false,    (float)state.getProperty("timbreBHpf", 20.0f));
+    if (state.hasProperty("timbreBlend"))   setTimbreBlend((float)state.getProperty("timbreBlend", 0.5f));
+    if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
 
     auto presetState = state.getChildWithName("Parameters");
     if (presetState.isValid())

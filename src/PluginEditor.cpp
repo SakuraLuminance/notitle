@@ -814,6 +814,27 @@ void AnaPlugAudioProcessorEditor::timerCallback()
 
     // --- Update filter visualization with live frequency response ---
     filterPanel_.updateFrequencyResponse();
+
+    // --- Timbre shape / blend sync (preset reload, MIDI learn, etc.) ---
+    {
+        auto sync = [](juce::Slider& s, float v)
+        {
+            if (std::abs(static_cast<float>(s.getValue()) - v) > 0.001f)
+                s.setValue(static_cast<double>(v), juce::dontSendNotification);
+        };
+        sync(timbreAPanel_.getBrightSlider(), audioProcessor.getTimbreBright(true));
+        sync(timbreAPanel_.getBlurSlider(),   audioProcessor.getTimbreBlur(true));
+        sync(timbreAPanel_.getHpfSlider(),    audioProcessor.getTimbreHpf(true));
+        sync(timbreBPanel_.getBrightSlider(), audioProcessor.getTimbreBright(false));
+        sync(timbreBPanel_.getBlurSlider(),   audioProcessor.getTimbreBlur(false));
+        sync(timbreBPanel_.getHpfSlider(),    audioProcessor.getTimbreHpf(false));
+        sync(timbreBlendSlider_,              audioProcessor.getTimbreBlend());
+    }
+
+    // --- SYNTH mode status ---
+    if (audioProcessor.isSynthMode())
+        statusLabel_.setText(">> SYNTH: " + juce::String(audioProcessor.getActivePartialCount())
+                             + " PARTIALS <<", juce::dontSendNotification);
 }
 
 //==============================================================================
