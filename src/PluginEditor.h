@@ -131,6 +131,9 @@ private:
     /** Reused by the editor timer for scope/live-spectrum pulls (no per-tick alloc). */
     std::vector<float> scopeScratch_;
 
+    /** Last edited-partials version pushed to the spectrum editor canvas. */
+    int lastCanvasPartialsVersion_ = -1;
+
     //==============================================================================
     // Process panel — Filter
     ana::FilterPanel filterPanel_;

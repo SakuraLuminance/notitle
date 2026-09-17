@@ -231,6 +231,10 @@ public:
     void  setImageEditFrame(int frame);
     int   getImageEditFrame() const { return imageEditFrame_.load(); }
 
+    /** Bumped whenever the edited set changes from the processor side (sample
+        load, image frame switch) so editors can refresh without polling data. */
+    int   getEditedPartialsVersion() const { return editedPartialsVersion_.load(); }
+
     /** Spectral freeze stage (post-effects, pre-master).  Audio thread only. */
     void processSpectralFreeze(juce::AudioBuffer<float>& buffer);
 
@@ -576,6 +580,7 @@ private:
     std::atomic<float> imageRate_{ 2.0f };
     std::atomic<bool>  imageLoop_{ true };
     std::atomic<int>   imageEditFrame_{ 0 };
+    std::atomic<int>   editedPartialsVersion_{ 0 };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

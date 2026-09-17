@@ -938,6 +938,19 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         }
     }
 
+    // Authoritative edited-set changes (sample load, image frame switch) must
+    // reach the spectrum editor canvas even in SYNTH mode, where playback does
+    // not feed it.  Version-gated so in-progress canvas edits are never clobbered.
+    if (spectrumEditorCanvas_.isVisible())
+    {
+        const int editVersion = audioProcessor.getEditedPartialsVersion();
+        if (editVersion != lastCanvasPartialsVersion_)
+        {
+            lastCanvasPartialsVersion_ = editVersion;
+            spectrumEditorCanvas_.setPartials(audioProcessor.getEditedPartials());
+        }
+    }
+
     // Partial-derived views only need this conversion while one of them is
     // actually visible.  (The old linear timestamp scan was dead work: the SIMD
     // conversion always reads the most recent frame.)

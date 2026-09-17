@@ -1410,6 +1410,7 @@ void AnaPlugAudioProcessor::refreshPartialsFromEngine()
     // editing stays consistent with image playback.
     imageEditFrame_.store(0);
     editedPartials_ = imageFrames_.empty() ? sourcePartials_ : imageFrames_[0];
+    editedPartialsVersion_.fetch_add(1, std::memory_order_release);
 
     applyTimbreProcessing();
 }
@@ -1673,6 +1674,7 @@ void AnaPlugAudioProcessor::setImageEditFrame(int frame)
     const int next = juce::jlimit(0, last, frame);
     imageEditFrame_.store(next);
     editedPartials_ = imageFrames_[static_cast<std::size_t>(next)];
+    editedPartialsVersion_.fetch_add(1, std::memory_order_release);
 
     applyTimbreProcessing();
 }
