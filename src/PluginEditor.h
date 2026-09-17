@@ -97,6 +97,7 @@ private:
     // Timbre blend
     juce::Slider timbreBlendSlider_;
     juce::Label  timbreBlendLabel_;
+    juce::Label  timbreBlendReadout_;
 
     // Generative timbre designer row (P5)
     juce::Label      genLabel_;
@@ -105,12 +106,15 @@ private:
     juce::TextButton genCaptureButton_{ "CAP" };
     juce::ComboBox   genPresetCombo_;
     juce::Slider     genMixSlider_;
+    juce::Label      genMixReadout_;
 
     // Time-varying harmonic image row (P6b, TIMBRE page)
     juce::TextButton imageEnableButton_{ "IMAGE" };
     juce::Slider     imageRateSlider_;
     juce::TextButton imageLoopButton_{ "LOOP" };
     juce::Slider     imageFrameSlider_;
+    juce::Label      imageRateReadout_;
+    juce::Label      imageFrameReadout_;
     juce::Label      imageStatusLabel_;
 
     // Spectral freeze row (P5, FX page)
@@ -118,6 +122,7 @@ private:
     juce::TextButton freezeTrigButton_{ "TRIG" };
     juce::ComboBox   freezeModeCombo_;
     juce::Slider     freezeMixSlider_;
+    juce::Label      freezeMixReadout_;
 
     //==============================================================================
     // Center — Spectrum / Partial display
@@ -227,6 +232,9 @@ private:
     void creditsButtonClicked();
     void updateStatus();
     void onViewModeChanged();
+
+    /** Refreshes the compact image row value read-outs. */
+    void updateImageReadouts();
 
     // Effect preset helpers
     void populateEffectPresets();

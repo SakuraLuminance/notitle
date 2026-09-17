@@ -582,12 +582,16 @@ void PartialEditorCanvas::mouseWheelMove(const juce::MouseEvent& e,
 void PartialEditorCanvas::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
-    g.fillAll(CyberpunkTheme::bg_);
+    g.fillAll(CyberpunkTheme::bg_.darker(CyberpunkTheme::kCanvasBgDarken));
+
+    // Match the frame treatment of the other canvases.
+    g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasBorderAlpha));
+    g.drawRect(bounds, 1);
 
     if (numFrames == 0 || numPartials == 0)
     {
         g.setColour(CyberpunkTheme::fg_.withAlpha(0.5f));
-        g.setFont(14.0f);
+        g.setFont(CyberpunkTheme::getCyberFont(12.0f));
         g.drawText("No partial data loaded", bounds,
                    juce::Justification::centred);
         return;
@@ -619,7 +623,7 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     }
 
     // --- Grid overlay ---
-    g.setColour(CyberpunkTheme::fg_.withAlpha(0.15f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasGridAlpha));
 
     // Vertical grid lines (every 10 frames, or fewer if zoomed out)
     int frameStep = std::max(1, numFrames / 40);
@@ -646,7 +650,7 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     g.drawRect(area.toNearestInt(), 1);
 
     // --- Axis labels ---
-    g.setFont(juce::Font(10.0f, juce::Font::plain));
+    g.setFont(CyberpunkTheme::getCyberFont(CyberpunkTheme::kReadoutFontH));
 
     // Frequency labels (Y axis, left margin)
     g.setColour(CyberpunkTheme::fg_.withAlpha(0.6f));

@@ -66,7 +66,13 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     timbreBlendSlider_.onValueChange = [this]()
     {
         audioProcessor.setTimbreBlend(static_cast<float>(timbreBlendSlider_.getValue()));
+        timbreBlendReadout_.setText(ana::CyberpunkTheme::formatPercent(
+                                        static_cast<float>(timbreBlendSlider_.getValue())),
+                                    juce::dontSendNotification);
     };
+    ana::CyberpunkTheme::styleReadout(timbreBlendReadout_);
+    timbreBlendReadout_.setText("50%", juce::dontSendNotification);
+    addAndMakeVisible(timbreBlendReadout_);
 
     // Generative timbre designer (P5): latent-driven harmonic set blended into the timbre
     genLabel_.setText("GENERATIVE", juce::dontSendNotification);
@@ -114,8 +120,14 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     genMixSlider_.onValueChange = [this]
     {
         audioProcessor.setGenerativeTimbreMix(static_cast<float>(genMixSlider_.getValue()));
+        genMixReadout_.setText(ana::CyberpunkTheme::formatPercent(
+                                   static_cast<float>(genMixSlider_.getValue())),
+                               juce::dontSendNotification);
     };
     addAndMakeVisible(genMixSlider_);
+    ana::CyberpunkTheme::styleReadout(genMixReadout_);
+    genMixReadout_.setText("50%", juce::dontSendNotification);
+    addAndMakeVisible(genMixReadout_);
 
     // Time-varying harmonic image (P6b): advances through analysed frames
     addCyberButton(imageEnableButton_);
@@ -135,6 +147,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     imageRateSlider_.onValueChange = [this]
     {
         audioProcessor.setImageRate(static_cast<float>(imageRateSlider_.getValue()));
+        updateImageReadouts();
     };
     addAndMakeVisible(imageRateSlider_);
 
@@ -157,8 +170,17 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
         audioProcessor.setImageEditFrame(
             static_cast<int>(std::lround(imageFrameSlider_.getValue())));
         spectrumEditorCanvas_.setPartials(audioProcessor.getEditedPartials());
+        updateImageReadouts();
     };
     addAndMakeVisible(imageFrameSlider_);
+
+    for (auto* l : { &imageRateReadout_, &imageFrameReadout_ })
+    {
+        ana::CyberpunkTheme::styleReadout(*l);
+        addAndMakeVisible(*l);
+    }
+
+    updateImageReadouts();
 
     imageStatusLabel_.setFont(ana::CyberpunkTheme::getCyberFont(10.0f));
     imageStatusLabel_.setJustificationType(juce::Justification::centredLeft);
@@ -203,8 +225,14 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     freezeMixSlider_.onValueChange = [this]
     {
         audioProcessor.setSpectralFreezeMix(static_cast<float>(freezeMixSlider_.getValue()));
+        freezeMixReadout_.setText(ana::CyberpunkTheme::formatPercent(
+                                      static_cast<float>(freezeMixSlider_.getValue())),
+                                  juce::dontSendNotification);
     };
     addAndMakeVisible(freezeMixSlider_);
+    ana::CyberpunkTheme::styleReadout(freezeMixReadout_);
+    freezeMixReadout_.setText("50%", juce::dontSendNotification);
+    addAndMakeVisible(freezeMixReadout_);
 
     //==============================================================================
     // Center 鈥?Visual feedback + view selector
@@ -742,22 +770,27 @@ void AnaPlugAudioProcessorEditor::resized()
     {
         case 0: // TIMBRE
         {
-            auto imageStrip = ca.removeFromBottom(20).reduced(2, 0);
-            imageEnableButton_.setBounds(imageStrip.removeFromLeft(58).reduced(2, 0));
-            imageRateSlider_.setBounds(imageStrip.removeFromLeft(150).reduced(4, 0));
-            imageLoopButton_.setBounds(imageStrip.removeFromLeft(50).reduced(2, 0));
-            imageFrameSlider_.setBounds(imageStrip.removeFromLeft(150).reduced(4, 0));
+            auto imageStrip = ca.removeFromBottom(ana::CyberpunkTheme::kControlHeight).reduced(2, 0);
+            imageEnableButton_.setBounds(imageStrip.removeFromLeft(56).reduced(2, 0));
+            imageRateSlider_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kSliderWidth).reduced(4, 0));
+            imageRateReadout_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kReadoutWidth));
+            imageLoopButton_.setBounds(imageStrip.removeFromLeft(46).reduced(2, 0));
+            imageFrameSlider_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kSliderWidth).reduced(4, 0));
+            imageFrameReadout_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kReadoutWidth));
             imageStatusLabel_.setBounds(imageStrip);
 
-            auto genStrip = ca.removeFromBottom(20).reduced(2, 0);
+            auto genStrip = ca.removeFromBottom(ana::CyberpunkTheme::kControlHeight).reduced(2, 0);
             genLabel_.setBounds(genStrip.removeFromLeft(74));
             genEnableButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
             genRandomButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
-            genCaptureButton_.setBounds(genStrip.removeFromLeft(42).reduced(2, 0));
+            genCaptureButton_.setBounds(genStrip.removeFromLeft(44).reduced(2, 0));
             genPresetCombo_.setBounds(genStrip.removeFromLeft(96).reduced(2, 0));
-            genMixSlider_.setBounds(genStrip.reduced(4, 0));
+            genMixSlider_.setBounds(genStrip.removeFromLeft(
+                juce::jmax(80, genStrip.getWidth() - ana::CyberpunkTheme::kReadoutWidth)).reduced(4, 0));
+            genMixReadout_.setBounds(genStrip);
 
             auto blendStrip = ca.removeFromBottom(22).reduced(40, 0);
+            timbreBlendReadout_.setBounds(blendStrip.removeFromRight(ana::CyberpunkTheme::kReadoutWidth));
             timbreBlendSlider_.setBounds(blendStrip);
             timbreBlendLabel_.setBounds(blendStrip.translated(0, -16));
 
@@ -799,11 +832,13 @@ void AnaPlugAudioProcessorEditor::resized()
             vocalCharacterLabel_.setBounds(vocalRow.removeFromLeft(34));
             vocalCharacterCombo_.setBounds(vocalRow.reduced(0, 1));
 
-            auto freezeRow = fxArea.removeFromTop(18).reduced(pad);
+            auto freezeRow = fxArea.removeFromTop(ana::CyberpunkTheme::kControlHeight).reduced(pad);
             freezeButton_.setBounds(freezeRow.removeFromLeft(66).reduced(1));
             freezeTrigButton_.setBounds(freezeRow.removeFromLeft(46).reduced(1));
             freezeModeCombo_.setBounds(freezeRow.removeFromLeft(104).reduced(1));
-            freezeMixSlider_.setBounds(freezeRow.reduced(4, 0));
+            freezeMixSlider_.setBounds(freezeRow.removeFromLeft(
+                juce::jmax(80, freezeRow.getWidth() - ana::CyberpunkTheme::kReadoutWidth)).reduced(4, 0));
+            freezeMixReadout_.setBounds(freezeRow);
 
             effectRack_.setBounds(fxArea.reduced(1, pad));
             break;
@@ -881,6 +916,18 @@ void AnaPlugAudioProcessorEditor::resized()
 }
 
 //==============================================================================
+void AnaPlugAudioProcessorEditor::updateImageReadouts()
+{
+    imageRateReadout_.setText(ana::CyberpunkTheme::formatNumber(
+                                  static_cast<float>(imageRateSlider_.getValue()), 1) + " f/s",
+                              juce::dontSendNotification);
+
+    const int frameCount = juce::jmax(1, audioProcessor.getImageFrameCount());
+    imageFrameReadout_.setText(juce::String(audioProcessor.getImageEditFrame())
+                               + "/" + juce::String(frameCount),
+                               juce::dontSendNotification);
+}
+
 void AnaPlugAudioProcessorEditor::setActivePage(int page)
 {
     if (page < 0 || page > 7)
@@ -892,10 +939,13 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     timbreBPanel_.setVisible(page == 0);
     timbreBlendSlider_.setVisible(page == 0);
     timbreBlendLabel_.setVisible(page == 0);
+    timbreBlendReadout_.setVisible(page == 0);
     imageEnableButton_.setVisible(page == 0);
     imageRateSlider_.setVisible(page == 0);
     imageLoopButton_.setVisible(page == 0);
     imageFrameSlider_.setVisible(page == 0);
+    imageRateReadout_.setVisible(page == 0);
+    imageFrameReadout_.setVisible(page == 0);
     imageStatusLabel_.setVisible(page == 0);
     genLabel_.setVisible(page == 0);
     genEnableButton_.setVisible(page == 0);
@@ -903,6 +953,7 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     genCaptureButton_.setVisible(page == 0);
     genPresetCombo_.setVisible(page == 0);
     genMixSlider_.setVisible(page == 0);
+    genMixReadout_.setVisible(page == 0);
     if (xyPad_)
         xyPad_->setVisible(page == 0);
 
@@ -924,6 +975,7 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     freezeTrigButton_.setVisible(page == 4);
     freezeModeCombo_.setVisible(page == 4);
     freezeMixSlider_.setVisible(page == 4);
+    freezeMixReadout_.setVisible(page == 4);
     effectRack_.setVisible(page == 4);
 
     transportBar_.setVisible(page == 5);
@@ -1103,6 +1155,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         sync(timbreBPanel_.getBlurSlider(),   audioProcessor.getTimbreBlur(false));
         sync(timbreBPanel_.getHpfSlider(),    audioProcessor.getTimbreHpf(false));
         sync(timbreBlendSlider_,              audioProcessor.getTimbreBlend());
+        timbreBlendReadout_.setText(ana::CyberpunkTheme::formatPercent(
+                                        static_cast<float>(timbreBlendSlider_.getValue())),
+                                    juce::dontSendNotification);
 
         // Generative timbre designer (P5)
         if (genEnableButton_.getToggleState() != audioProcessor.isGenerativeTimbreEnabled())
@@ -1112,6 +1167,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                      - audioProcessor.getGenerativeTimbreMix()) > 0.001f)
             genMixSlider_.setValue(static_cast<double>(audioProcessor.getGenerativeTimbreMix()),
                                    juce::dontSendNotification);
+        genMixReadout_.setText(ana::CyberpunkTheme::formatPercent(
+                                   static_cast<float>(genMixSlider_.getValue())),
+                               juce::dontSendNotification);
 
         // Time-varying harmonic image (P6b)
         if (imageEnableButton_.getToggleState() != audioProcessor.isImageEnabled())
@@ -1135,8 +1193,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                 imageFrameSlider_.setValue(static_cast<double>(audioProcessor.getImageEditFrame()),
                                            juce::dontSendNotification);
 
-            const juce::String imgText = "IMAGE  " + juce::String(audioProcessor.getImageEditFrame())
-                                       + "/" + juce::String(frameCount) + " FRAMES";
+            updateImageReadouts();
+
+            const juce::String imgText = juce::String(frameCount) + " FRAMES";
             if (imageStatusLabel_.getText() != imgText)
                 imageStatusLabel_.setText(imgText, juce::dontSendNotification);
         }
@@ -1155,6 +1214,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                      - audioProcessor.getSpectralFreezeMix()) > 0.001f)
             freezeMixSlider_.setValue(static_cast<double>(audioProcessor.getSpectralFreezeMix()),
                                       juce::dontSendNotification);
+        freezeMixReadout_.setText(ana::CyberpunkTheme::formatPercent(
+                                      static_cast<float>(freezeMixSlider_.getValue())),
+                                  juce::dontSendNotification);
     }
 
     // --- SYNTH mode status ---

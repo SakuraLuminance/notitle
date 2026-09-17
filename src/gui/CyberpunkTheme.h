@@ -258,6 +258,37 @@ public:
     }
 
     //==============================================================================
+    // Shared visual tokens: keep every panel's rhythm identical.
+    static constexpr int   kControlHeight    = 20;   // one control row
+    static constexpr int   kRowGap           = 2;    // between stacked controls
+    static constexpr int   kSliderWidth      = 132;
+    static constexpr int   kReadoutWidth     = 48;
+    static constexpr float kReadoutFontH     = 10.0f;
+    static constexpr float kCanvasBgDarken   = 0.25f;
+    static constexpr float kCanvasBorderAlpha = 0.20f;
+    static constexpr float kCanvasGridAlpha   = 0.08f;
+
+    /** Compact value strings used by parameter read-outs. */
+    static juce::String formatPercent(float v, int decimals = 0)
+    {
+        return juce::String(v * 100.0f, decimals) + "%";
+    }
+
+    static juce::String formatNumber(float v, int decimals = 1)
+    {
+        return juce::String(v, decimals);
+    }
+
+    /** Styles a small right-aligned value read-out next to a control. */
+    static void styleReadout(juce::Label& label)
+    {
+        label.setFont(getCyberFont(kReadoutFontH));
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, fg_.withAlpha(0.72f));
+        label.setInterceptsMouseClicks(false, false);
+    }
+
+    //==============================================================================
     // Draw a "cyber-grid" background pattern
     static void drawGridBackground(juce::Graphics& g, juce::Rectangle<int> bounds)
     {

@@ -91,10 +91,10 @@ void EnvelopeCanvas::paint(juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat();
 
-    g.setColour(CyberpunkTheme::bg_.darker(0.25f));
+    g.setColour(CyberpunkTheme::bg_.darker(CyberpunkTheme::kCanvasBgDarken));
     g.fillRect(bounds);
 
-    g.setColour(CyberpunkTheme::fg_.withAlpha(0.25f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasBorderAlpha));
     g.drawRect(bounds, 1.0f);
 
     const auto plot = getPlotArea();
@@ -102,7 +102,7 @@ void EnvelopeCanvas::paint(juce::Graphics& g)
         return;
 
     // --- Grid ---
-    g.setColour(CyberpunkTheme::fg_.withAlpha(0.10f));
+    g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasGridAlpha));
     for (int i = 0; i <= 4; ++i)
     {
         const float y = plot.getY() + plot.getHeight() * static_cast<float>(i) / 4.0f;
@@ -211,7 +211,7 @@ void EnvelopeCanvas::paint(juce::Graphics& g)
     }
 
     // --- Readouts ---
-    g.setFont(CyberpunkTheme::getCyberFont(9.5f));
+    g.setFont(CyberpunkTheme::getCyberFont(CyberpunkTheme::kReadoutFontH));
 
     if (readoutVisible_)
     {

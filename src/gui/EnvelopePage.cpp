@@ -140,8 +140,8 @@ EnvelopePage::EnvelopePage(AnaPlugAudioProcessor& processor)
     };
     addAndMakeVisible(resetButton_);
 
+    CyberpunkTheme::styleReadout(readoutLabel_);
     readoutLabel_.setJustificationType(juce::Justification::centredRight);
-    readoutLabel_.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.85f));
     addAndMakeVisible(readoutLabel_);
 
     refreshControls();
@@ -221,7 +221,7 @@ void EnvelopePage::resized()
     env2Slot_.setBounds(slotCol.removeFromTop(22).reduced(0, 2));
     env3Slot_.setBounds(slotCol.removeFromTop(22).reduced(0, 2));
 
-    auto paramRow = area.removeFromBottom(22).reduced(2, 1);
+    auto paramRow = area.removeFromBottom(CyberpunkTheme::kControlHeight).reduced(2, 1);
     loopModeCombo_.setBounds(paramRow.removeFromLeft(96));
     syncButton_.setBounds(paramRow.removeFromLeft(52).reduced(3, 0));
     beatDivCombo_.setBounds(paramRow.removeFromLeft(66).reduced(2, 0));
