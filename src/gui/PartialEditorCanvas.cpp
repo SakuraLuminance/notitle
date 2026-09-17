@@ -259,6 +259,7 @@ void PartialEditorCanvas::undo()
                       : 0;
 
     repaint();
+    notifyEdited();
 }
 
 void PartialEditorCanvas::redo()
@@ -283,6 +284,7 @@ void PartialEditorCanvas::redo()
                       : 0;
 
     repaint();
+    notifyEdited();
 }
 
 // ============================================================================
@@ -296,6 +298,7 @@ void PartialEditorCanvas::clear()
         std::fill(row.begin(), row.end(), 0.0f);
 
     repaint();
+    notifyEdited();
 }
 
 void PartialEditorCanvas::normalize()
@@ -315,6 +318,7 @@ void PartialEditorCanvas::normalize()
     }
 
     repaint();
+    notifyEdited();
 }
 
 void PartialEditorCanvas::smooth()
@@ -342,6 +346,7 @@ void PartialEditorCanvas::smooth()
 
     gridAmplitudes = std::move(smoothed);
     repaint();
+    notifyEdited();
 }
 
 // ============================================================================
@@ -425,10 +430,17 @@ void PartialEditorCanvas::fillRectangle(juce::Point<int> from,
                 = std::clamp(value, 0.0f, 1.0f);
 }
 
+void PartialEditorCanvas::notifyEdited()
+{
+    if (onEdited)
+        onEdited();
+}
+
 void PartialEditorCanvas::commitStroke()
 {
     // Nothing extra needed; the undo state was pushed at mouseDown
     isDragging = false;
+    notifyEdited();
 }
 
 // ============================================================================

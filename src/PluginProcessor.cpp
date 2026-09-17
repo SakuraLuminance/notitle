@@ -1371,40 +1371,7 @@ void AnaPlugAudioProcessor::refreshPartialsFromEngine()
     }
 
     // --- P6b: build the time-varying harmonic image (evenly subsampled frames) ---
-    imageFrames_.clear();
-
-    const auto& pdFrames = engine.getPartialData();
-    if (! pdFrames.frames.empty())
-    {
-        const int total = static_cast<int>(pdFrames.frames.size());
-        const int count = juce::jmin(ana::AdditiveSynth::kMaxFrames, total);
-        imageFrames_.reserve(static_cast<std::size_t>(count));
-
-        for (int i = 0; i < count; ++i)
-        {
-            const int srcIndex = (count > 1)
-                ? static_cast<int>(static_cast<double>(i) * (total - 1) / (count - 1))
-                : 0;
-            const auto& frame = pdFrames.frames[
-                static_cast<std::size_t>(juce::jlimit(0, total - 1, srcIndex))];
-
-            ana::PartialDataSIMD f;
-            f.maxPartials = pdFrames.maxPartials;
-            f.sampleRate  = pdFrames.sampleRate;
-            f.hopSize     = pdFrames.hopSize;
-
-            const int cnt = juce::jmin(static_cast<int>(frame.partials.size()),
-                                       ana::PartialDataSIMD::kMaxPartials);
-            for (int p = 0; p < cnt; ++p)
-            {
-                f.frequency[p] = frame.partials[static_cast<std::size_t>(p)].frequency;
-                f.amplitude[p] = frame.partials[static_cast<std::size_t>(p)].amplitude;
-                f.phase[p]     = frame.partials[static_cast<std::size_t>(p)].phase;
-            }
-            f.updateActiveMask();
-            imageFrames_.push_back(f);
-        }
-    }
+    buildImageFramesFromPartialData(engine.getPartialData());
 
     // The spectrum editor edits one image frame at a time (frame 0 on load), so
     // editing stays consistent with image playback.
@@ -1420,6 +1387,54 @@ void AnaPlugAudioProcessor::setSynthMode(bool enabled)
     synthMode_.store(enabled);
     if (enabled)
         applyTimbreProcessing();
+}
+
+void AnaPlugAudioProcessor::buildImageFramesFromPartialData(const ana::PartialData& pd)
+{
+    imageFrames_.clear();
+
+    if (pd.frames.empty())
+        return;
+
+    const int total = static_cast<int>(pd.frames.size());
+    const int count = juce::jmin(ana::AdditiveSynth::kMaxFrames, total);
+    imageFrames_.reserve(static_cast<std::size_t>(count));
+
+    for (int i = 0; i < count; ++i)
+    {
+        const int srcIndex = (count > 1)
+            ? static_cast<int>(static_cast<double>(i) * (total - 1) / (count - 1))
+            : 0;
+        const auto& frame = pd.frames[
+            static_cast<std::size_t>(juce::jlimit(0, total - 1, srcIndex))];
+
+        ana::PartialDataSIMD f;
+        f.maxPartials = pd.maxPartials;
+        f.sampleRate  = pd.sampleRate;
+        f.hopSize     = pd.hopSize;
+
+        const int cnt = juce::jmin(static_cast<int>(frame.partials.size()),
+                                   ana::PartialDataSIMD::kMaxPartials);
+        for (int p = 0; p < cnt; ++p)
+        {
+            f.frequency[p] = frame.partials[static_cast<std::size_t>(p)].frequency;
+            f.amplitude[p] = frame.partials[static_cast<std::size_t>(p)].amplitude;
+            f.phase[p]     = frame.partials[static_cast<std::size_t>(p)].phase;
+        }
+        f.updateActiveMask();
+        imageFrames_.push_back(f);
+    }
+}
+
+void AnaPlugAudioProcessor::applyImageFromPartialData(const ana::PartialData& data)
+{
+    buildImageFramesFromPartialData(data);
+
+    imageEditFrame_.store(0);
+    editedPartials_ = imageFrames_.empty() ? ana::PartialDataSIMD{} : imageFrames_[0];
+    editedPartialsVersion_.fetch_add(1, std::memory_order_release);
+
+    applyTimbreProcessing();
 }
 
 void AnaPlugAudioProcessor::setEditedPartials(const ana::PartialDataSIMD& partials)

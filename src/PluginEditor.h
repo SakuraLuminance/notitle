@@ -17,6 +17,7 @@
 #include "gui/ModulationAssignPanel.h"
 #include "gui/EnvelopePage.h"
 #include "gui/ParticleDisplay.h"
+#include "gui/PartialEditorCanvas.h"
 #include "gui/EffectRackComponent.h"
 #include "gui/panels/TimbrePanel.h"
 #include "gui/panels/FilterPanel.h"
@@ -125,6 +126,14 @@ private:
     ana::WaterfallDisplay waterfallDisplay_;
     ana::SpectrumEditorCanvas spectrumEditorCanvas_;
     ana::ParticleDisplay particleDisplay_;
+
+    // Time x partial image editor (draw the harmonic image over time)
+    ana::PartialEditorCanvas partialEditorCanvas_;
+    juce::TextButton imgUndoButton_   { "UNDO" };
+    juce::TextButton imgRedoButton_   { "REDO" };
+    juce::TextButton imgClearButton_  { "CLEAR" };
+    juce::TextButton imgNormButton_   { "NORM" };
+    juce::TextButton imgSmoothButton_ { "SMOOTH" };
     std::unique_ptr<ana::WaveformDisplay> waveformDisplay_;
     juce::ComboBox viewModeCombo_;   // Bars / Waterfall / Editor / 3D / Scope
 

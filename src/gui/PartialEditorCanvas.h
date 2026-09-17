@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <functional>
 #include <vector>
 #include "../dsp/PartialData.h"
 
@@ -30,6 +31,10 @@ public:
     void setPartialData(const PartialData& data);
     PartialData getModifiedPartialData() const;
 
+    /** Number of analysis frames currently held (0 = nothing loaded). */
+    int  getNumFrames() const noexcept { return numFrames; }
+    bool isEmpty() const noexcept { return numFrames == 0 || numPartials == 0; }
+
     void setBrushSize(int pixels);
     void setBrushMode(BrushMode mode);
 
@@ -38,6 +43,10 @@ public:
     void clear();
     void normalize();
     void smooth();
+
+    /** Called after an edit is committed (stroke, undo/redo, clear, ...) so the
+        host can push the modified grid to the engine. */
+    std::function<void()> onEdited;
 
 private:
     // Canvas margin for axis labels
@@ -97,6 +106,7 @@ private:
     static constexpr int maxUndoLevels = 20;
 
     void pushUndoState();
+    void notifyEdited();
 
     // Colour helpers
     static juce::Colour amplitudeToColour(float amplitude);

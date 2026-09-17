@@ -235,8 +235,15 @@ public:
         load, image frame switch) so editors can refresh without polling data. */
     int   getEditedPartialsVersion() const { return editedPartialsVersion_.load(); }
 
+    /** Replaces the whole harmonic image from an edited time x partial grid
+        (the PartialEditorCanvas "draw the image" view). */
+    void  applyImageFromPartialData(const ana::PartialData& data);
+
     /** Spectral freeze stage (post-effects, pre-master).  Audio thread only. */
     void processSpectralFreeze(juce::AudioBuffer<float>& buffer);
+
+    /** Rebuilds imageFrames_ (<= kMaxFrames, evenly subsampled) from analysis data. */
+    void buildImageFramesFromPartialData(const ana::PartialData& pd);
 
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;

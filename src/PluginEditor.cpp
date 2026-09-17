@@ -224,6 +224,32 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     particleDisplay_.setVisible(false);
     particleDisplay_.setParticleSystem(&audioProcessor.getParticleSystem());
 
+    // Time x partial image editor (P6b): draw the harmonic image directly.
+    addAndMakeVisible(partialEditorCanvas_);
+    partialEditorCanvas_.setVisible(false);
+    partialEditorCanvas_.onEdited = [this]
+    {
+        audioProcessor.applyImageFromPartialData(partialEditorCanvas_.getModifiedPartialData());
+    };
+
+    for (auto* b : { &imgUndoButton_, &imgRedoButton_, &imgClearButton_,
+                     &imgNormButton_, &imgSmoothButton_ })
+    {
+        addCyberButton(*b);
+        addAndMakeVisible(*b);
+        b->setVisible(false);
+    }
+    imgUndoButton_.setTooltip("Undo the last image stroke");
+    imgRedoButton_.setTooltip("Redo the last undone stroke");
+    imgClearButton_.setTooltip("Clear the whole image");
+    imgNormButton_.setTooltip("Normalise the image to full scale");
+    imgSmoothButton_.setTooltip("Smooth the image (3x3)");
+    imgUndoButton_.onClick   = [this] { partialEditorCanvas_.undo(); };
+    imgRedoButton_.onClick   = [this] { partialEditorCanvas_.redo(); };
+    imgClearButton_.onClick  = [this] { partialEditorCanvas_.clear(); };
+    imgNormButton_.onClick   = [this] { partialEditorCanvas_.normalize(); };
+    imgSmoothButton_.onClick = [this] { partialEditorCanvas_.smooth(); };
+
     viewModeCombo_.addItem("LIVE", 1);
     viewModeCombo_.addItem("PARTIALS", 2);
     viewModeCombo_.addItem("WATERFALL", 3);
@@ -231,6 +257,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     viewModeCombo_.addItem("3D", 5);
     viewModeCombo_.addItem("SCOPE", 6);
     viewModeCombo_.addItem("PARTICLES", 7);
+    viewModeCombo_.addItem("IMAGE", 8);
     viewModeCombo_.setSelectedId(1);
     viewModeCombo_.onChange = [this] { onViewModeChanged(); };
     viewModeCombo_.setTooltip("View mode: LIVE/PARTIALS/WATERFALL/EDITOR/3D/SCOPE");
@@ -634,7 +661,7 @@ void AnaPlugAudioProcessorEditor::computeRegions(juce::Rectangle<int> bounds, Re
 }
 
 //==============================================================================
-static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV" };
+static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV", "EVO" };
 
 void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
 {
@@ -649,7 +676,7 @@ void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
     // Region borders
     ana::CyberpunkTheme::drawPanelBorder(g, r.spectrum, "SPECTRUM", ana::CyberpunkTheme::cyan_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.content,
-        kPageNames[juce::jlimit(0, 6, activePage_)], ana::CyberpunkTheme::magenta_);
+        kPageNames[juce::jlimit(0, 7, activePage_)], ana::CyberpunkTheme::magenta_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.statusBar, "", ana::CyberpunkTheme::fg_.withAlpha(0.15f));
 
     // Title bar
@@ -694,6 +721,17 @@ void AnaPlugAudioProcessorEditor::resized()
         waveformDisplay_->setBounds(fbArea.reduced(2));
     spectrumEditorCanvas_.setBounds(fbArea.reduced(2));
     particleDisplay_.setBounds(fbArea.reduced(2));
+
+    {
+        auto imgArea = fbArea.reduced(2);
+        auto imgTools = imgArea.removeFromTop(18).reduced(1);
+        imgUndoButton_.setBounds(imgTools.removeFromLeft(56).reduced(1));
+        imgRedoButton_.setBounds(imgTools.removeFromLeft(56).reduced(1));
+        imgClearButton_.setBounds(imgTools.removeFromLeft(58).reduced(1));
+        imgNormButton_.setBounds(imgTools.removeFromLeft(54).reduced(1));
+        imgSmoothButton_.setBounds(imgTools.removeFromLeft(66).reduced(1));
+        partialEditorCanvas_.setBounds(imgArea);
+    }
 
     // -- Page tab strip --
     pageTabs_.setBounds(r.tabBar);
@@ -823,6 +861,11 @@ void AnaPlugAudioProcessorEditor::resized()
         case 6: // ENV
             envPage_.setBounds(ca);
             break;
+
+        case 7: // EVO (DNA)
+            if (evolutionPanel != nullptr)
+                evolutionPanel->setBounds(ca.reduced(4));
+            break;
     }
 
     // -- Status bar (compact 35px) --
@@ -840,7 +883,7 @@ void AnaPlugAudioProcessorEditor::resized()
 //==============================================================================
 void AnaPlugAudioProcessorEditor::setActivePage(int page)
 {
-    if (page < 0 || page > 6)
+    if (page < 0 || page > 7)
         return;
     activePage_ = page;
 
@@ -907,6 +950,10 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
 
     envPage_.setVisible(page == 6);
 
+    // DNA evolution panel is created on first use (DNA EVOLVE button / EVO tab).
+    if (evolutionPanel != nullptr)
+        evolutionPanel->setVisible(page == 7);
+
     resized();
 }
 
@@ -936,6 +983,15 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                                         % audioProcessor.kScopeBufferSize));
             }
         }
+    }
+
+    // Image editor: pull the analysis grid when a new sample appears (the frame
+    // count changes); existing edits are never reloaded over.
+    if (partialEditorCanvas_.isVisible() && audioProcessor.isEngineLoaded())
+    {
+        const auto& imagePd = audioProcessor.getEngine().getPartialData();
+        if (partialEditorCanvas_.getNumFrames() != static_cast<int>(imagePd.frames.size()))
+            partialEditorCanvas_.setPartialData(imagePd);
     }
 
     // Authoritative edited-set changes (sample load, image frame switch) must
@@ -1122,6 +1178,10 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
         waveformDisplay_->setVisible(false);
     particleDisplay_.setVisible(false);
     audioProcessor.setParticlesEnabled(false);
+    partialEditorCanvas_.setVisible(false);
+    for (auto* b : { &imgUndoButton_, &imgRedoButton_, &imgClearButton_,
+                     &imgNormButton_, &imgSmoothButton_ })
+        b->setVisible(false);
 
     switch (mode)
     {
@@ -1156,6 +1216,20 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
             particleDisplay_.setVisible(true);
             audioProcessor.setParticlesEnabled(true);
             audioProcessor.syncParticlesFromEdit();
+            break;
+
+        case 8: // IMAGE - draw the time x partial harmonic image
+            partialEditorCanvas_.setVisible(true);
+            for (auto* b : { &imgUndoButton_, &imgRedoButton_, &imgClearButton_,
+                             &imgNormButton_, &imgSmoothButton_ })
+                b->setVisible(true);
+
+            if (audioProcessor.isEngineLoaded())
+            {
+                const auto& pd = audioProcessor.getEngine().getPartialData();
+                if (partialEditorCanvas_.getNumFrames() != static_cast<int>(pd.frames.size()))
+                    partialEditorCanvas_.setPartialData(pd);
+            }
             break;
 
         default: // fallback to live
@@ -1229,12 +1303,15 @@ void AnaPlugAudioProcessorEditor::presetButtonClicked()
 //==============================================================================
 void AnaPlugAudioProcessorEditor::dnaButtonClicked()
 {
-    evolutionPanel = std::make_unique<ana::EvolutionPanel>(audioProcessor);
-    evolutionPanel->setSize(500, 440);
-    juce::CallOutBox::launchAsynchronously(
-        std::move(evolutionPanel),
-        dnaButton_.getScreenBounds(),
-        this);
+    // The panel lives on its own page now (instead of a transient call-out).
+    if (evolutionPanel == nullptr)
+    {
+        evolutionPanel = std::make_unique<ana::EvolutionPanel>(audioProcessor);
+        addAndMakeVisible(*evolutionPanel);
+    }
+
+    // Route through the tab strip so the highlighted tab follows along.
+    pageTabs_.setActive(7);
 }
 
 //==============================================================================
