@@ -28,6 +28,7 @@ test_additive_synth.cpp
 test_timbre_shaper.cpp
 test_envelope_edit_ops.cpp
 test_envelope_canvas.cpp
+test_envelope_persistence.cpp
 #test_partial_editor_canvas.cpp
 test_partial_tracker.cpp
     test_peak_detector.cpp

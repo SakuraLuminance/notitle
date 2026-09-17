@@ -178,7 +178,8 @@ void MultiPointEnvelope::setSustain(float level)
 
 void MultiPointEnvelope::setRelease(float time)
 {
-    release_ = juce::jlimit(0.0f, 10.0f, time);
+    // 30s ceiling matches PresetManager's volume-ADSR deserialisation clamp.
+    release_ = juce::jlimit(0.0f, 30.0f, time);
     rebuildADSR();
 }
 

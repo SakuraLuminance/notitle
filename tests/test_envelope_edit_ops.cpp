@@ -58,7 +58,7 @@ TEST_CASE("EnvelopeEditOps: remove keeps at least two points", "[envelope][edito
 
     REQUIRE(ana::EnvelopeEditOps::removePoint(env, 1));
     REQUIRE(env.getNumBreakpoints() == 3);
-    REQUIRE(ana::EnvelopeEditOps::removePoint(env, 0));
+
     REQUIRE(ana::EnvelopeEditOps::removePoint(env, 0));
     REQUIRE(env.getNumBreakpoints() == 2);
     REQUIRE_FALSE(ana::EnvelopeEditOps::removePoint(env, 0));

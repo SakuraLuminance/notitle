@@ -1229,6 +1229,64 @@ bool PresetManager::deserialiseLFOConfig(const juce::ValueTree& tree)
 // ENV Config (per-ENV ADSR parameters, 3 ENVs)
 //==============================================================================
 
+namespace
+{
+// Breakpoint shape + loop/sync state (P4).  Written alongside the legacy ADSR
+// scalars so old presets still load and new ones keep free-form drawings.
+void writeEnvelopeShape(juce::ValueTree& node, const MultiPointEnvelope& env)
+{
+    node.setProperty("loopMode",  static_cast<int>(env.getLoopMode()), nullptr);
+    node.setProperty("loopStart", env.getLoopStart(), nullptr);
+    node.setProperty("loopEnd",   env.getLoopEnd(), nullptr);
+    node.setProperty("sync",      env.getSyncMode(), nullptr);
+    node.setProperty("tempo",     env.getTempo(), nullptr);
+    node.setProperty("beatDiv",   env.getBeatDivision(), nullptr);
+
+    for (int p = 0; p < env.getNumBreakpoints(); ++p)
+    {
+        const auto& bp = env.getBreakpoint(p);
+        juce::ValueTree point("P");
+        point.setProperty("time",  bp.time, nullptr);
+        point.setProperty("value", bp.value, nullptr);
+        point.setProperty("curve", static_cast<int>(bp.curve), nullptr);
+        node.addChild(point, -1, nullptr);
+    }
+}
+
+bool readEnvelopeShape(const juce::ValueTree& node, MultiPointEnvelope& env)
+{
+    int pointCount = 0;
+    for (int c = 0; c < node.getNumChildren(); ++c)
+        if (node.getChild(c).hasType("P"))
+            ++pointCount;
+
+    if (pointCount < 2)
+        return false; // legacy ADSR-only node: keep the rebuilt ADSR shape
+
+    env.clearBreakpoints();
+
+    for (int c = 0; c < node.getNumChildren(); ++c)
+    {
+        const auto point = node.getChild(c);
+        if (! point.hasType("P"))
+            continue;
+
+        const int curveIndex = juce::jlimit(0, 2, (int) point.getProperty("curve", 0));
+        env.addBreakpoint((float) point.getProperty("time", 0.0f),
+                          (float) point.getProperty("value", 0.0f),
+                          static_cast<CurveType>(curveIndex));
+    }
+
+    env.setLoopMode(static_cast<LoopMode>(juce::jlimit(0, 3, (int) node.getProperty("loopMode", 0))));
+    env.setLoopStart((int) node.getProperty("loopStart", 0));
+    env.setLoopEnd((int) node.getProperty("loopEnd", -1));
+    env.setSyncMode((bool) node.getProperty("sync", false));
+    env.setTempo((double) node.getProperty("tempo", 120.0));
+    env.setBeatDivision((double) node.getProperty("beatDiv", 1.0));
+    return true;
+}
+}
+
 juce::ValueTree PresetManager::serialiseENVConfig() const
 {
     // Hold the envelope lock (when wired) so we never read breakpoints while the
@@ -1250,6 +1308,7 @@ juce::ValueTree PresetManager::serialiseENVConfig() const
             envTree.setProperty("decay",   env.getDecay(), nullptr);
             envTree.setProperty("sustain", env.getSustain(), nullptr);
             envTree.setProperty("release", env.getRelease(), nullptr);
+            writeEnvelopeShape(envTree, env);
             tree.addChild(envTree, -1, nullptr);
         }
     }
@@ -1283,6 +1342,7 @@ bool PresetManager::deserialiseENVConfig(const juce::ValueTree& tree)
         env.setDecay((float)envTree.getProperty("decay", 0.5f));
         env.setSustain((float)envTree.getProperty("sustain", 0.7f));
         env.setRelease((float)envTree.getProperty("release", 1.0f));
+        readEnvelopeShape(envTree, env);
     }
 
     return true;
@@ -1306,6 +1366,7 @@ juce::ValueTree PresetManager::serialiseVolumeADSR() const
         tree.setProperty("decay",   volumeAdsrRef_->getDecay(), nullptr);
         tree.setProperty("sustain", volumeAdsrRef_->getSustain(), nullptr);
         tree.setProperty("release", volumeAdsrRef_->getRelease(), nullptr);
+        writeEnvelopeShape(tree, *volumeAdsrRef_);
     }
 
     return tree;
@@ -1326,6 +1387,7 @@ bool PresetManager::deserialiseVolumeADSR(const juce::ValueTree& tree)
     volumeAdsrRef_->setDecay(juce::jlimit(0.0f, 10.0f, (float)tree.getProperty("decay", 0.2f)));
     volumeAdsrRef_->setSustain(juce::jlimit(0.0f, 1.0f, (float)tree.getProperty("sustain", 0.7f)));
     volumeAdsrRef_->setRelease(juce::jlimit(0.0f, 30.0f, (float)tree.getProperty("release", 0.3f)));
+    readEnvelopeShape(tree, *volumeAdsrRef_);
 
     return true;
 }

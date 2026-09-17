@@ -53,7 +53,7 @@ int beatDivToItemId(double beats)
 EnvelopePage::EnvelopePage(AnaPlugAudioProcessor& processor)
     : processor_(processor)
 {
-    for (auto* b : { &volSlot_, &env1Slot_, &env2Slot_ })
+    for (auto* b : { &volSlot_, &env1Slot_, &env2Slot_, &env3Slot_ })
     {
         b->setClickingTogglesState(true);
         b->setRadioGroupId(2501);
@@ -67,6 +67,7 @@ EnvelopePage::EnvelopePage(AnaPlugAudioProcessor& processor)
     volSlot_.onClick  = [this] { selectSlot(0); };
     env1Slot_.onClick = [this] { selectSlot(1); };
     env2Slot_.onClick = [this] { selectSlot(2); };
+    env3Slot_.onClick = [this] { selectSlot(3); };
     volSlot_.setToggleState(true, juce::dontSendNotification);
 
     addAndMakeVisible(canvas_);
@@ -149,7 +150,7 @@ EnvelopePage::EnvelopePage(AnaPlugAudioProcessor& processor)
 //==============================================================================
 void EnvelopePage::selectSlot(int slot)
 {
-    activeSlot_ = juce::jlimit(0, 2, slot);
+    activeSlot_ = juce::jlimit(0, 3, slot);
     canvas_.setEnvelope(&processor_.getEnvelopeSlot(activeSlot_));
     refreshControls();
     canvas_.repaint();
@@ -218,6 +219,7 @@ void EnvelopePage::resized()
     volSlot_.setBounds(slotCol.removeFromTop(22).reduced(0, 2));
     env1Slot_.setBounds(slotCol.removeFromTop(22).reduced(0, 2));
     env2Slot_.setBounds(slotCol.removeFromTop(22).reduced(0, 2));
+    env3Slot_.setBounds(slotCol.removeFromTop(22).reduced(0, 2));
 
     auto paramRow = area.removeFromBottom(22).reduced(2, 1);
     loopModeCombo_.setBounds(paramRow.removeFromLeft(96));

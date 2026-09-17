@@ -38,6 +38,7 @@ private:
     juce::TextButton volSlot_  { "VOL" };
     juce::TextButton env1Slot_ { "ENV1" };
     juce::TextButton env2Slot_ { "ENV2" };
+    juce::TextButton env3Slot_ { "ENV3" };
 
     EnvelopeCanvas canvas_;
 
