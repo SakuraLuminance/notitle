@@ -370,3 +370,58 @@ TEST_CASE("AdditiveSynth drops the inaudible partial tail", "[additive][trim]")
 
     REQUIRE(synth.getActivePartialCount() == 1);
 }
+
+TEST_CASE("AdditiveSynth image configuration is clamped and truncated", "[additive][image]")
+{
+    ana::PartialDataSIMD f;
+    f.sampleRate = 48000.0;
+    f.frequency[0] = 440.0f;
+    f.amplitude[0] = 1.0f;
+    f.updateActiveMask();
+
+    ana::AdditiveSynth synth;
+    synth.prepare(48000.0);
+
+    // More frames than the bank can hold are truncated, never overflowed.
+    std::vector<ana::PartialDataSIMD> many(ana::AdditiveSynth::kMaxFrames + 8, f);
+    synth.setFrames(many);
+    REQUIRE(synth.getActiveFrameCount() == ana::AdditiveSynth::kMaxFrames);
+
+    SECTION("negative rate is clamped to zero")
+    {
+        synth.setImageRate(-4.0f);
+        REQUIRE(synth.getImageRate() == Catch::Approx(0.0f));
+    }
+
+    SECTION("frames with differing partial counts are safe to play")
+    {
+        ana::PartialDataSIMD two;
+        two.sampleRate = 48000.0;
+        two.frequency[0] = 440.0f; two.amplitude[0] = 1.0f;
+        two.frequency[1] = 1320.0f; two.amplitude[1] = 0.5f;
+        two.updateActiveMask();
+
+        ana::AdditiveSynth s;
+        s.prepare(48000.0);
+        s.setRootNote(60);
+        s.setFrames({ f, two });     // 1 partial -> 2 partials
+        s.setImageEnabled(true);
+        s.setImageRate(10.0f);
+
+        juce::AudioBuffer<float> buf(1, 512);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 60, static_cast<juce::uint8>(100)), 0);
+
+        for (int b = 0; b < 40; ++b)
+        {
+            buf.clear();
+            if (b == 0)
+                s.renderNextBlock(buf, midi, 0, 512);
+            else
+                s.renderNextBlock(buf, juce::MidiBuffer(), 0, 512);
+
+            // NaN/Inf anywhere would propagate into the magnitude.
+            REQUIRE(std::isfinite(buf.getMagnitude(0, 512)));
+        }
+    }
+}
