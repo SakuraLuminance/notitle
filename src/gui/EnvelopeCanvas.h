@@ -69,6 +69,10 @@ private:
 
     juce::Point<float> mousePos_;
 
+    // Reused by paint() so repaints do not allocate path storage.
+    juce::Path curvePath_;
+    juce::Path fillPath_;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeCanvas)
 };
 

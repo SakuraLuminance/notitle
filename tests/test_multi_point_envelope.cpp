@@ -908,3 +908,21 @@ TEST_CASE("MultiPointEnvelope: P4 loop boundaries + new API", "[envelope][p4]")
         REQUIRE(env.getTimePositionSeconds() == Catch::Approx(0.5).margin(0.01));
     }
 }
+
+TEST_CASE("MultiPointEnvelope: stale loop indices never crash", "[envelope][p4][robustness]")
+{
+    MultiPointEnvelope env;
+    env.addBreakpoint(0.0f, 0.0f);
+    env.addBreakpoint(0.5f, 1.0f);
+    env.addBreakpoint(1.0f, 0.0f);
+
+    env.setLoopMode(LoopMode::PingPong);
+    env.setLoopStart(2);
+    env.setLoopEnd(2);
+
+    env.prepare(48000.0);
+    env.trigger();
+
+    for (int i = 0; i < 200; ++i)
+        REQUIRE(std::isfinite(env.process(256)));
+}

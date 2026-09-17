@@ -128,6 +128,9 @@ private:
     std::unique_ptr<ana::WaveformDisplay> waveformDisplay_;
     juce::ComboBox viewModeCombo_;   // Bars / Waterfall / Editor / 3D / Scope
 
+    /** Reused by the editor timer for scope/live-spectrum pulls (no per-tick alloc). */
+    std::vector<float> scopeScratch_;
+
     //==============================================================================
     // Process panel — Filter
     ana::FilterPanel filterPanel_;

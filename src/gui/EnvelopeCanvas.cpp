@@ -150,7 +150,9 @@ void EnvelopeCanvas::paint(juce::Graphics& g)
 
     // --- Curve ---
     {
-        juce::Path curve;
+        juce::Path& curve = curvePath_;
+        curve.clear();
+
         for (int i = 0; i < n - 1; ++i)
         {
             const auto a = env_->getBreakpoint(i);
@@ -170,7 +172,9 @@ void EnvelopeCanvas::paint(juce::Graphics& g)
             }
         }
 
-        juce::Path filled = curve;
+        juce::Path& filled = fillPath_;
+        filled.clear();
+        filled.addPath(curve);
         filled.lineTo(plot.getRight(), plot.getBottom());
         filled.lineTo(plot.getX(), plot.getBottom());
         filled.closeSubPath();

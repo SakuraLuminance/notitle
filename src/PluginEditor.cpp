@@ -916,24 +916,25 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     // MIDI Learn: indicator blink, timeout, parameter polling
     updateMidiLearnState();
 
-    // Live spectrum always tracks the final output (independent of the sample engine)
+    // Live spectrum / scope views share one scratch buffer, and the whole block
+    // is skipped when neither view is up (the FFT + repaint is not free).
     {
-        std::vector<float> scope;
-        if (audioProcessor.getScopeOutput(scope))
-            liveSpectrumPanel_.updateFromSamples(scope.data(), static_cast<int>(scope.size()));
-    }
+        const bool liveUp  = liveSpectrumPanel_.isVisible();
+        const bool scopeUp = (waveformDisplay_ != nullptr && waveformDisplay_->isVisible());
 
-    // Push scope buffer data to WaveformDisplay when SCOPE mode is active
-    // (scope capture is unconditional in processBlock; no engine dependency)
-    if (waveformDisplay_ && waveformDisplay_->isVisible())
-    {
-        std::vector<float> scopeData;
-        if (audioProcessor.getScopeOutput(scopeData))
+        if ((liveUp || scopeUp) && audioProcessor.getScopeOutput(scopeScratch_))
         {
-            waveformDisplay_->setSamples(scopeData);
-            waveformDisplay_->setPlaybackPosition(
-                static_cast<double>(audioProcessor.getPlaybackPosition()
-                                    % audioProcessor.kScopeBufferSize));
+            if (liveUp)
+                liveSpectrumPanel_.updateFromSamples(scopeScratch_.data(),
+                                                     static_cast<int>(scopeScratch_.size()));
+
+            if (scopeUp)
+            {
+                waveformDisplay_->setSamples(scopeScratch_);
+                waveformDisplay_->setPlaybackPosition(
+                    static_cast<double>(audioProcessor.getPlaybackPosition()
+                                        % audioProcessor.kScopeBufferSize));
+            }
         }
     }
 

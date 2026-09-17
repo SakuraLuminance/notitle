@@ -97,3 +97,20 @@ TEST_CASE("EnvelopeEditOps: coordinate mapping and hit testing", "[envelope][edi
     REQUIRE(ana::EnvelopeEditOps::hitTestMarker(env, onFirst, area, 8.0f) == 0);
 }
 
+
+TEST_CASE("EnvelopeEditOps: LOOP END hit testing", "[envelope][editops]")
+{
+    ana::MultiPointEnvelope env;
+    env.addBreakpoint(0.0f, 0.0f);
+    env.addBreakpoint(0.5f, 1.0f);
+    env.addBreakpoint(1.0f, 0.0f);
+    env.setLoopStart(0);
+    env.setLoopEnd(2);
+
+    const juce::Rectangle<float> area(10.0f, 20.0f, 200.0f, 100.0f);
+    const float xLast = ana::EnvelopeEditOps::timeToX(env, 1.0f, area);
+    const juce::Point<float> nearLoopEnd(xLast, 40.0f);
+
+    REQUIRE(ana::EnvelopeEditOps::hitTestMarker(env, nearLoopEnd, area, 8.0f) == 1);
+    REQUIRE(ana::EnvelopeEditOps::hitTestMarker(env, {xLast + 60.0f, 40.0f}, area, 8.0f) == -1);
+}
