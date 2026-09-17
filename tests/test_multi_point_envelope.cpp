@@ -357,9 +357,8 @@ TEST_CASE("MultiPointEnvelope: loop modes", "[envelope][loop]")
         float midRiseVal = env.getValue();
         REQUIRE(midRiseVal == Catch::Approx(0.5f).margin(0.01f));
 
-        // After wrapping from 0.6 to 0 and coming up to 0.1 again:
-        advance(env, 24000); // advance to 0.6s (end of first cycle)
-        advance(env, 4800);  // 0.1s into second cycle
+        // Advance exactly one loop length (loopEnd = 0.4s) from t=0.1s:
+        advance(env, 19200); // 0.4s -> wraps back to t=0.1s within the loop
         float loopedVal = env.getValue();
         REQUIRE(loopedVal == Catch::Approx(midRiseVal).margin(0.01f));
     }
@@ -819,5 +818,93 @@ TEST_CASE("MultiPointEnvelope: specific curve verification", "[envelope][curves]
         REQUIRE(testCurve(CurveType::Linear) == Catch::Approx(0.8f).margin(0.001f));
         REQUIRE(testCurve(CurveType::Exponential) == Catch::Approx(0.8f).margin(0.001f));
         REQUIRE(testCurve(CurveType::SCurve) == Catch::Approx(0.8f).margin(0.001f));
+    }
+}
+
+//==============================================================================
+TEST_CASE("MultiPointEnvelope: P4 loop boundaries + new API", "[envelope][p4]")
+{
+    SECTION("forward loops within [loopStart, loopEnd], not total end")
+    {
+        MultiPointEnvelope env;
+        env.addBreakpoint(0.0f, 0.0f);
+        env.addBreakpoint(0.2f, 1.0f);
+        env.addBreakpoint(0.4f, 0.5f);
+        env.addBreakpoint(0.6f, 0.0f);   // outside the loop range
+        env.setLoopMode(LoopMode::Forward);
+        env.setLoopStart(0);
+        env.setLoopEnd(2);
+        env.prepare(48000.0);
+        env.trigger();
+
+        advance(env, 4800);              // t = 0.1 -> rising segment
+        REQUIRE(env.getValue() == Catch::Approx(0.5f).margin(0.01f));
+
+        advance(env, 19200);             // +0.4s = exactly one loop length
+        REQUIRE(env.getValue() == Catch::Approx(0.5f).margin(0.01f));
+        REQUIRE(env.isActive());
+
+        bool sawPeak = false;
+        for (int i = 0; i < 200; ++i)
+            if (advance(env, 48) > 0.999f) { sawPeak = true; break; }
+        REQUIRE(sawPeak);
+    }
+
+    SECTION("ping-pong reflects at loopEnd, not total end")
+    {
+        MultiPointEnvelope env;
+        env.addBreakpoint(0.0f, 0.0f);
+        env.addBreakpoint(0.1f, 1.0f);
+        env.addBreakpoint(0.2f, 0.0f);
+        env.addBreakpoint(0.5f, 0.0f);   // outside loop range
+        env.setLoopMode(LoopMode::PingPong);
+        env.setLoopStart(0);
+        env.setLoopEnd(2);
+        env.prepare(48000.0);
+        env.trigger();
+
+        advance(env, 4800);              // 0.1s -> peak
+        REQUIRE(env.getValue() == Catch::Approx(1.0f).margin(0.01f));
+        advance(env, 4800);              // 0.2s -> reflect at loopEnd
+        REQUIRE(env.getValue() == Catch::Approx(0.0f).margin(0.01f));
+        advance(env, 4800);              // back to 0.1s
+        REQUIRE(env.getValue() == Catch::Approx(1.0f).margin(0.01f));
+        for (int i = 0; i < 50; ++i)
+            advance(env, 480);
+        REQUIRE(env.isActive());
+    }
+
+    SECTION("setBreakpointCurve changes the segment shape")
+    {
+        MultiPointEnvelope env;
+        env.addBreakpoint(0.0f, 0.0f);
+        env.addBreakpoint(1.0f, 1.0f, CurveType::Linear);
+        env.prepare(48000.0);
+        env.setBreakpointCurve(1, CurveType::Exponential);
+        env.trigger();
+        advance(env, 12000);             // 0.25s -> exponential overshoots linear
+        REQUIRE(env.getValue() > 0.25f);
+    }
+
+    SECTION("getTimeInSeconds honours sync mode")
+    {
+        MultiPointEnvelope env;
+        env.setTempo(120.0);
+        env.setBeatDivision(1.0);
+        env.setSyncMode(true);
+        REQUIRE(env.getTimeInSeconds(2.0f) == Catch::Approx(1.0)); // 2 beats @ 120bpm
+        env.setSyncMode(false);
+        REQUIRE(env.getTimeInSeconds(2.0f) == Catch::Approx(2.0));
+    }
+
+    SECTION("getTimePositionSeconds tracks playback")
+    {
+        MultiPointEnvelope env;
+        env.addBreakpoint(0.0f, 0.0f);
+        env.addBreakpoint(1.0f, 1.0f);
+        env.prepare(48000.0);
+        env.trigger();
+        advance(env, 24000);
+        REQUIRE(env.getTimePositionSeconds() == Catch::Approx(0.5).margin(0.01));
     }
 }

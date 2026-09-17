@@ -92,6 +92,14 @@ const Breakpoint& MultiPointEnvelope::getBreakpoint(int index) const
     return breakpoints[static_cast<size_t>(index)];
 }
 
+void MultiPointEnvelope::setBreakpointCurve(int index, CurveType curve)
+{
+    if (index < 0 || index >= static_cast<int>(breakpoints.size()))
+        return;
+
+    breakpoints[static_cast<size_t>(index)].curve = curve;
+}
+
 //==============================================================================
 void MultiPointEnvelope::setLoopMode(LoopMode mode) noexcept   { loopMode = mode; }
 LoopMode MultiPointEnvelope::getLoopMode() const noexcept      { return loopMode; }
@@ -205,7 +213,7 @@ bool MultiPointEnvelope::isActive() const noexcept  { return active; }
 bool MultiPointEnvelope::isReleased() const noexcept { return released; }
 
 //==============================================================================
-double MultiPointEnvelope::timeToSeconds(float breakpointTime) const
+double MultiPointEnvelope::getTimeInSeconds(float breakpointTime) const
 {
     if (syncEnabled)
     {
@@ -266,15 +274,20 @@ float MultiPointEnvelope::interpolateValue(float v0, float v1, float t, CurveTyp
 void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
 {
     const int numSegments = static_cast<int>(breakpoints.size()) - 1;
-    const double totalEndSec = timeToSeconds(breakpoints[numSegments].time);
-    const double loopStartSec = timeToSeconds(breakpoints[loopStartIndex].time);
-    const double loopEndSec = (loopEndIndex > loopStartIndex)
-        ? timeToSeconds(breakpoints[loopEndIndex].time)
+    const double totalEndSec = getTimeInSeconds(breakpoints[numSegments].time);
+
+    // Guard stale loop indices (removeBreakpoint/clearBreakpoints can leave them
+    // behind).  Forward/PingPong only actually loop when a loop range was
+    // configured (setLoopEnd); mode selected but range left at its default (-1)
+    // means "play once and stop" — there is no boundary to loop within.
+    const int safeLoopStart = juce::jlimit(0, numSegments, loopStartIndex);
+    const bool loopConfigured = (loopEndIndex >= 0 && loopEndIndex <= numSegments);
+    const int safeLoopEnd = loopConfigured ? loopEndIndex : numSegments;
+
+    const double loopStartSec = getTimeInSeconds(breakpoints[safeLoopStart].time);
+    const double loopEndSec = (safeLoopEnd > safeLoopStart)
+        ? getTimeInSeconds(breakpoints[safeLoopEnd].time)
         : totalEndSec;
-    // Forward/PingPong only actually loop when a loop range was configured
-    // (setLoopEnd).  Mode selected but range left at its default (-1) means
-    // "play once and stop" — otherwise there is no boundary to loop within.
-    const bool loopConfigured = loopEndIndex >= 0;
 
     // PingPong traverses time in BOTH directions; all other modes march forward.
     if (loopMode == LoopMode::PingPong && loopConfigured && direction < 0)
@@ -288,54 +301,34 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
     {
         timePosSeconds = loopEndSec;
     }
+    // Forward: wrap back to loop start at the loop end (when a range is configured)
+    else if (loopMode == LoopMode::Forward && loopConfigured)
+    {
+        if (timePosSeconds >= loopEndSec)
+        {
+            const double wrapRange = loopEndSec - loopStartSec;
+            timePosSeconds = (wrapRange > 0.0)
+                ? loopStartSec + std::fmod(timePosSeconds - loopStartSec, wrapRange)
+                : loopStartSec;
+        }
+    }
+    // PingPong: reflect at the loop end while travelling forward
+    else if (loopMode == LoopMode::PingPong && loopConfigured && direction > 0)
+    {
+        if (timePosSeconds >= loopEndSec)
+        {
+            direction = -1;
+            const double overshoot = timePosSeconds - loopEndSec;
+            timePosSeconds = loopEndSec - std::min(overshoot, loopEndSec - loopStartSec);
+            if (timePosSeconds < loopStartSec)
+                timePosSeconds = loopStartSec;
+        }
+    }
     // General: reached the absolute end of the envelope
     else if (timePosSeconds >= totalEndSec)
     {
-        switch (loopMode)
-        {
-            case LoopMode::Forward:
-            {
-                if (! loopConfigured)
-                {
-                    handleEnvelopeEnd();
-                    return;
-                }
-                // Wrap back to loop start
-                const double wrapRange = totalEndSec - loopStartSec;
-                if (wrapRange > 0.0)
-                {
-                    timePosSeconds = loopStartSec
-                        + std::fmod(timePosSeconds - loopStartSec, wrapRange);
-                }
-                else
-                {
-                    timePosSeconds = loopStartSec;
-                }
-                break;
-            }
-            case LoopMode::PingPong:
-            {
-                if (! loopConfigured)
-                {
-                    handleEnvelopeEnd();
-                    return;
-                }
-                // Reverse direction, reflect overshoot
-                direction = -1;
-                const double overshoot = timePosSeconds - totalEndSec;
-                timePosSeconds = totalEndSec - std::min(overshoot, totalEndSec - loopStartSec);
-                if (timePosSeconds < loopStartSec)
-                    timePosSeconds = loopStartSec;
-                break;
-            }
-            case LoopMode::Sustain:
-                // Released sustain reached the end
-                handleEnvelopeEnd();
-                return;
-            default:
-                handleEnvelopeEnd();
-                return;
-        }
+        handleEnvelopeEnd();
+        return;
     }
 
     // Ping-pong: reverse at loop start when going backward
@@ -352,8 +345,8 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
     int segment = -1;
     for (int i = 0; i < numSegments; ++i)
     {
-        const double s = timeToSeconds(breakpoints[i].time);
-        const double e = timeToSeconds(breakpoints[i + 1].time);
+        const double s = getTimeInSeconds(breakpoints[i].time);
+        const double e = getTimeInSeconds(breakpoints[i + 1].time);
         if (timePosSeconds >= s && timePosSeconds < e)
         {
             segment = i;
@@ -377,8 +370,8 @@ void MultiPointEnvelope::advanceEnvelope(double deltaSeconds)
     // Value is purely position-based: a ping-pong traversal passing a point
     // backwards must read the same value as the forward pass through it (the
     // direction is already expressed by the time position itself).
-    const double segStart = timeToSeconds(breakpoints[segment].time);
-    const double segEnd   = timeToSeconds(breakpoints[segment + 1].time);
+    const double segStart = getTimeInSeconds(breakpoints[segment].time);
+    const double segEnd   = getTimeInSeconds(breakpoints[segment + 1].time);
     const double segDur   = segEnd - segStart;
     const float p = (segDur > 0.0)
         ? juce::jlimit(0.0f, 1.0f,

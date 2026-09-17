@@ -114,6 +114,12 @@ public:
     */
     const Breakpoint& getBreakpoint(int index) const;
 
+    /** Replaces the curve type of the breakpoint at the given index.
+        The curve shapes the segment ENDING at that breakpoint.
+        Does nothing if the index is out of range.
+    */
+    void setBreakpointCurve(int index, CurveType curve);
+
     //==============================================================================
     /** Sets the loop mode. */
     void setLoopMode(LoopMode mode) noexcept;
@@ -222,11 +228,14 @@ public:
     /** Returns the current envelope value without advancing. */
     float getValue() const noexcept;
 
+    /** Converts a breakpoint time to seconds, honouring tempo sync. */
+    double getTimeInSeconds(float breakpointTime) const;
+
+    /** Returns the current playback position of the envelope in seconds. */
+    double getTimePositionSeconds() const noexcept { return timePosSeconds; }
+
 private:
     //==============================================================================
-    /** Converts breakpoint time to seconds based on sync mode. */
-    double timeToSeconds(float breakpointTime) const;
-
     /** Internal advance by a time delta in seconds. */
     void advanceEnvelope(double deltaSeconds);
 
