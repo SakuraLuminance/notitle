@@ -738,6 +738,44 @@ TEST_CASE("GranularSynthesizer can play grains backwards", "[granular]")
     REQUIRE(biggestGap > 0.001f);                        // but not the same audio
 }
 
+TEST_CASE("GranularSynthesizer reports grain direction to the display", "[granular]")
+{
+    const std::vector<float> source(48000, 0.5f);
+    ana::GranularSynthesizer::GrainSnapshot cloud[64];
+    juce::AudioBuffer<float> buf(2, 512);
+
+    auto render = [&](float reverseProbability)
+    {
+        ana::GranularSynthesizer synth;
+        synth.setSourceBuffer(source, 48000.0);
+        synth.setGrainSize(50.0f);
+        synth.setDensity(200.0f);
+        synth.setPosition(0.5f);
+        synth.setAmplitude(0.5f);
+        synth.setReverseProbability(reverseProbability);
+
+        for (int b = 0; b < 40; ++b)
+        {
+            buf.clear();
+            synth.process(buf);
+        }
+
+        const int count = synth.getActiveGrainSnapshots(cloud, 64);
+        REQUIRE(count > 0);
+
+        int reversedCount = 0;
+        for (int i = 0; i < count; ++i)
+            if (cloud[i].reversed)
+                ++reversedCount;
+
+        return reversedCount;
+    };
+
+    REQUIRE(render(0.0f) == 0);      // every grain forward
+    REQUIRE(render(1.0f) > 0);       // the display can tell them apart
+}
+
+
 
 
 

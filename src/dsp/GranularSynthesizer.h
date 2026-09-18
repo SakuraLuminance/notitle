@@ -151,6 +151,7 @@ public:
         float progress  = 0.0f;   // 0 = just spawned, 1 = about to finish
         float amplitude = 0.0f;   // grain amplitude, 0..1
         float pan       = 0.0f;   // -1 = left, +1 = right
+        bool  reversed  = false;  // true when the grain reads backwards
     };
 
     //==============================================================================

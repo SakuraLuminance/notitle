@@ -265,6 +265,7 @@ int GranularSynthesizer::getActiveGrainSnapshots(GrainSnapshot* out, int maxCoun
                         : 1.0f;
         s.amplitude = juce::jlimit(0.0f, 1.0f, g.amplitude);
         s.pan       = juce::jlimit(-1.0f, 1.0f, g.panR - g.panL);
+        s.reversed  = g.pitchRatio < 0.0;
     }
 
     return written;

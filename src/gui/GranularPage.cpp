@@ -425,6 +425,12 @@ void GranularPage::paint(juce::Graphics& g)
                         .interpolatedWith(CyberpunkTheme::magenta_, progress)
                         .withAlpha(juce::jlimit(0.15f, 1.0f, s.amplitude)));
         g.fillRect(juce::Rectangle<float>(x - w * 0.5f, y - 1.0f, w, 2.0f));
+
+        // Which way the grain is travelling: a cap on the leading edge.  This is
+        // the only place REVERSE is visible - the bar itself spans the same
+        // region either way.
+        const float capX = s.reversed ? x - w * 0.5f : x + w * 0.5f;
+        g.drawVerticalLine(static_cast<int>(capX), y - 3.0f, y + 3.0f);
     }
 }
 
