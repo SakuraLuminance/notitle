@@ -1459,6 +1459,7 @@ void AnaPlugAudioProcessor::refreshPartialsFromEngine()
     imageEditFrame_.store(0);
     editedPartials_ = imageFrames_.empty() ? sourcePartials_ : imageFrames_[0];
     editedPartialsVersion_.fetch_add(1, std::memory_order_release);
+    imageAnalysisVersion_.fetch_add(1, std::memory_order_release);
 
     applyTimbreProcessing();
 }

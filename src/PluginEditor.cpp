@@ -1074,6 +1074,26 @@ void AnaPlugAudioProcessorEditor::resized()
 }
 
 //==============================================================================
+void AnaPlugAudioProcessorEditor::syncImageCanvasFromEngine()
+{
+    if (! audioProcessor.isEngineLoaded())
+        return;
+
+    const int version    = audioProcessor.getImageAnalysisVersion();
+    const int frameCount = static_cast<int>(audioProcessor.getImageFrames().size());
+
+    if (version == lastImageAnalysisVersion_
+        && partialEditorCanvas_.getNumFrames() == frameCount)
+        return;
+
+    lastImageAnalysisVersion_ = version;
+
+    bool  harmonic = false;
+    float f0       = 0.0f;
+    partialEditorCanvas_.setPartialData(buildImageGrid(audioProcessor, harmonic, f0));
+    partialEditorCanvas_.setHarmonicAxis(harmonic, f0);
+}
+
 void AnaPlugAudioProcessorEditor::updateImageReadouts()
 {
     imageRateReadout_.setText(ana::CyberpunkTheme::formatNumber(
@@ -1198,19 +1218,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         }
     }
 
-    // Image editor: pull the analysis grid when a new sample appears (the frame
-    // count changes); existing edits are never reloaded over.
-    if (partialEditorCanvas_.isVisible() && audioProcessor.isEngineLoaded())
-    {
-        const int frameCount = static_cast<int>(audioProcessor.getImageFrames().size());
-        if (partialEditorCanvas_.getNumFrames() != frameCount)
-        {
-            bool  harmonic = false;
-            float f0       = 0.0f;
-            partialEditorCanvas_.setPartialData(buildImageGrid(audioProcessor, harmonic, f0));
-            partialEditorCanvas_.setHarmonicAxis(harmonic, f0);
-        }
-    }
+    // Image editor: pull the analysis grid whenever the engine rebuilt it.
+    if (partialEditorCanvas_.isVisible())
+        syncImageCanvasFromEngine();
 
     // Authoritative edited-set changes (sample load, image frame switch) must
     // reach the spectrum editor canvas even in SYNTH mode, where playback does
@@ -1459,17 +1469,9 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
                              &imgNormButton_, &imgSmoothButton_ })
                 b->setVisible(true);
 
-            if (audioProcessor.isEngineLoaded())
-            {
-                const int frameCount = static_cast<int>(audioProcessor.getImageFrames().size());
-                if (partialEditorCanvas_.getNumFrames() != frameCount)
-                {
-                    bool  harmonic = false;
-                    float f0       = 0.0f;
-                    partialEditorCanvas_.setPartialData(buildImageGrid(audioProcessor, harmonic, f0));
-                    partialEditorCanvas_.setHarmonicAxis(harmonic, f0);
-                }
-            }
+            // Loads only when the analysis generation moved on - re-entering the
+            // view keeps the user's painting and their undo history.
+            syncImageCanvasFromEngine();
             break;
 
         default: // fallback to live

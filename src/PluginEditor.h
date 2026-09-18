@@ -222,6 +222,9 @@ private:
     // detached (it resolves colours through its parent).
     std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
 
+    /** Analysis generation the IMAGE canvas was last built from (-1 = never). */
+    int lastImageAnalysisVersion_ = -1;
+
     // Status
     juce::Label statusLabel_;
     juce::TextButton dnaButton_{"DNA EVOLVE"};
@@ -248,6 +251,13 @@ private:
 
     /** Refreshes the compact image row value read-outs. */
     void updateImageReadouts();
+
+    /** Reloads the IMAGE canvas from the engine's harmonic image.  Driven by the
+        processor's analysis generation (not the frame count, which is capped and
+        therefore shared by different samples) so a new sample is never edited
+        through the previous sample's grid.  Edits made in the canvas do not bump
+        that generation, so in-progress drawing and its undo history survive. */
+    void syncImageCanvasFromEngine();
 
     // Effect preset helpers
     void populateEffectPresets();

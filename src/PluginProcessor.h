@@ -240,6 +240,9 @@ public:
         load, image frame switch) so editors can refresh without polling data. */
     int   getEditedPartialsVersion() const { return editedPartialsVersion_.load(); }
 
+    /** Increments every time the harmonic image is rebuilt from the analysis. */
+    int   getImageAnalysisVersion() const { return imageAnalysisVersion_.load(); }
+
     /** Replaces the whole harmonic image from an edited time x partial grid
         (the PartialEditorCanvas "draw the image" view).
         @a harmonicAxisF0 is the axis the grid rows were drawn on (see
@@ -706,6 +709,13 @@ private:
     std::atomic<int>   imageCurve_{ 0 };
     std::atomic<int>   imageEditFrame_{ 0 };
     std::atomic<int>   editedPartialsVersion_{ 0 };
+
+    // Bumped whenever the engine's analysis is rebuilt (sample load, pre-analysis
+    // change, spectrum/image edits that re-bin).  The IMAGE canvas reloads on this
+    // counter rather than on the frame count: the image is capped at kMaxFrames,
+    // so two different samples of ordinary length share a frame count and the
+    // canvas would otherwise keep showing - and editing - the previous sample.
+    std::atomic<int>   imageAnalysisVersion_{ 0 };
     std::atomic<float> imageFundamental_{ 0.0f };   // harmonic axis of imageFrames_
 
     // Granular layer (P7): grain-cloud rendering of the loaded sample.
