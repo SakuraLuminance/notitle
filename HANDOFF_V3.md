@@ -12,8 +12,8 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`，测试 `AnaPlugTests` |
-| 最新已验证提交 | `deb270c`（颗粒 JITTER）；其后只有文档提交 |
-| 最近全绿 CI | Run `#35357783612`（`deb270c`）：Build **0 条 error**、**624 用例 / 0 失败 / 343042 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
+| 最新已验证提交 | `deb270c`（颗粒 JITTER）；文档提交 `109b0ac` 同样已全绿（Run `#35360160224`，624 用例） |
+| 最近全绿 CI | Run `#35357783612`（`deb270c`，代码）与 `#35360160224`（`109b0ac`，HEAD）：Build **0 条 error**、**624 用例 / 0 失败 / 343042 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
 | 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 · `bcde027` 文档/工具 #35321642036 = 617 · `05e881d` 粒子云 #35352187933 = 618 · `cecf136` GRAIN 页 MIDI Learn #35352359490 = 618 · `bd188b3` 采样包络条 #35354233013 = 619 · `c070428` SPREAD/REVERSE #35354598393 = 621 · `b974d10` 粒子方向 #35355098143 = 622 · `444099b` 云按 pan 着色 #35355911104 = 623 · `deb270c` 颗粒 JITTER #35357783612 = **624** |
 | 更早的全绿 | `a6e5f3b` #35315329172 = 611（谐波分箱 + 颗粒层 + MIDI Learn）、`578253a` #35311445334（颗粒层首批）、`6d82383` #35310048933（P6b/主题） |
 | 用例计数 | 源码内 **630 个 `TEST_CASE` 名**、**624 个实际执行**（数字全部来自 runner 注解，见 §1） |
