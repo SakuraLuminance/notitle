@@ -175,6 +175,10 @@ void AdditiveVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
         fMix = juce::jlimit(0.0f, 1.0f, framePos - static_cast<float>(f0));
     }
 
+    // Blend shape (P6 leftover): linear by default, smoothstep eases in/out,
+    // step holds frame A and jumps.  Applied per render call - two multiplies.
+    fMix = AdditiveSynth::shapeFrameMix(fMix, imageCurve);
+
     const AdditiveFrame& A = bank->frames[f0];
     const AdditiveFrame& B = bank->frames[f1];
     const int nA = juce::jmin(A.count, AdditiveFrame::kMaxPartials);
@@ -469,7 +473,8 @@ void AdditiveSynth::renderNextSubBlock(juce::AudioBuffer<float>& outputAudio,
         framesPerBlock = imageRate_.load(std::memory_order_relaxed)
                        * static_cast<float>(static_cast<double>(numSamples) / sr);
 
-    const bool loop = imageLoop_.load(std::memory_order_relaxed);
+    const bool loop  = imageLoop_.load(std::memory_order_relaxed);
+    const int  curve = imageCurve_.load(std::memory_order_relaxed);
 
     for (int i = 0; i < getNumVoices(); ++i)
         if (auto* v = static_cast<AdditiveVoice*>(getVoice(i)))
@@ -477,6 +482,7 @@ void AdditiveSynth::renderNextSubBlock(juce::AudioBuffer<float>& outputAudio,
             v->bank = &active_;
             v->framesPerBlock = framesPerBlock;
             v->imageLoop = loop;
+            v->imageCurve = curve;
         }
 
     for (int ch = 0; ch < outputAudio.getNumChannels(); ++ch)

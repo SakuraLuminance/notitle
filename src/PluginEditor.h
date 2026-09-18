@@ -116,6 +116,7 @@ private:
     juce::TextButton imageEnableButton_{ "IMAGE" };
     juce::Slider     imageRateSlider_;
     juce::TextButton imageLoopButton_{ "LOOP" };
+    juce::ComboBox   imageCurveCombo_;   // frame blend shape: linear/smooth/step
     juce::Slider     imageFrameSlider_;
     juce::Label      imageRateReadout_;
     juce::Label      imageFrameReadout_;

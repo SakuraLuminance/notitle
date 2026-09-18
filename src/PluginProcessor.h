@@ -225,6 +225,10 @@ public:
     void  setImageLoop(bool shouldLoop);
     bool  isImageLoop() const { return imageLoop_.load(); }
 
+    /** Frame blend shape: 0 = linear, 1 = smooth, 2 = step. */
+    void  setImageCurve(int curve);
+    int   getImageCurve() const { return imageCurve_.load(); }
+
     /** Number of frames currently published to the additive synth. */
     int   getImageFrameCount() const { return additiveSynth_.getActiveFrameCount(); }
 
@@ -665,6 +669,7 @@ private:
     std::atomic<bool>  imageEnabled_{ false };
     std::atomic<float> imageRate_{ 2.0f };
     std::atomic<bool>  imageLoop_{ true };
+    std::atomic<int>   imageCurve_{ 0 };
     std::atomic<int>   imageEditFrame_{ 0 };
     std::atomic<int>   editedPartialsVersion_{ 0 };
     std::atomic<float> imageFundamental_{ 0.0f };   // harmonic axis of imageFrames_

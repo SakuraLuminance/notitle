@@ -219,6 +219,19 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     };
     addAndMakeVisible(imageLoopButton_);
 
+    // Frame blend shape (P6 leftover): how two image frames are cross-faded.
+    imageCurveCombo_.addItem("CURVE LIN", 1);
+    imageCurveCombo_.addItem("CURVE SMOOTH", 2);
+    imageCurveCombo_.addItem("CURVE STEP", 3);
+    imageCurveCombo_.setSelectedId(audioProcessor.getImageCurve() + 1,
+                                   juce::dontSendNotification);
+    imageCurveCombo_.setTooltip("Frame blend: LINEAR cross-fades, SMOOTH eases in/out, STEP holds each frame");
+    imageCurveCombo_.onChange = [this]
+    {
+        audioProcessor.setImageCurve(imageCurveCombo_.getSelectedId() - 1);
+    };
+    addAndMakeVisible(imageCurveCombo_);
+
     imageFrameSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     imageFrameSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     imageFrameSlider_.setRange(0.0, 1.0, 1.0);   // widened once a sample is loaded
@@ -862,6 +875,7 @@ void AnaPlugAudioProcessorEditor::resized()
             imageRateSlider_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kSliderWidth).reduced(4, 0));
             imageRateReadout_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kReadoutWidth));
             imageLoopButton_.setBounds(imageStrip.removeFromLeft(46).reduced(2, 0));
+            imageCurveCombo_.setBounds(imageStrip.removeFromLeft(108).reduced(2, 0));
             imageFrameSlider_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kSliderWidth).reduced(4, 0));
             imageFrameReadout_.setBounds(imageStrip.removeFromLeft(ana::CyberpunkTheme::kReadoutWidth));
             imageStatusLabel_.setBounds(imageStrip);
@@ -1034,6 +1048,7 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     imageEnableButton_.setVisible(page == 0);
     imageRateSlider_.setVisible(page == 0);
     imageLoopButton_.setVisible(page == 0);
+    imageCurveCombo_.setVisible(page == 0);
     imageFrameSlider_.setVisible(page == 0);
     imageRateReadout_.setVisible(page == 0);
     imageFrameReadout_.setVisible(page == 0);
@@ -1281,6 +1296,9 @@ void AnaPlugAudioProcessorEditor::timerCallback()
                                       juce::dontSendNotification);
         if (imageLoopButton_.getToggleState() != audioProcessor.isImageLoop())
             imageLoopButton_.setToggleState(audioProcessor.isImageLoop(), juce::dontSendNotification);
+        if (imageCurveCombo_.getSelectedId() != audioProcessor.getImageCurve() + 1)
+            imageCurveCombo_.setSelectedId(audioProcessor.getImageCurve() + 1,
+                                           juce::dontSendNotification);
         {
             const int frameCount = audioProcessor.getImageFrameCount();
             const double maxFrame = juce::jmax(1.0, static_cast<double>(frameCount - 1));

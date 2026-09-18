@@ -70,6 +70,7 @@ public:
     const AdditiveBank* bank = nullptr;
     float framesPerBlock = 0.0f;   // image advance per render call (0 = static)
     bool  imageLoop      = true;
+    int   imageCurve     = 0;      // 0 = linear, 1 = smooth, 2 = step (see shapeFrameMix)
 
 private:
     enum class State : std::uint8_t { free = 0, attack, decay, sustain, release, idle };
@@ -132,6 +133,25 @@ public:
     void  setImageLoop(bool shouldLoop) noexcept { imageLoop_.store(shouldLoop, std::memory_order_relaxed); }
     bool  isImageLoop() const noexcept    { return imageLoop_.load(std::memory_order_relaxed); }
 
+    /** Blend shape between two image frames: 0 = linear, 1 = smooth (ease in
+        and out), 2 = step (hold frame A, then jump - the image "sequences"
+        instead of morphing). See shapeFrameMix(). */
+    void  setImageCurve(int curve) noexcept { imageCurve_.store(juce::jlimit(0, 2, curve), std::memory_order_relaxed); }
+    int   getImageCurve() const noexcept    { return imageCurve_.load(std::memory_order_relaxed); }
+
+    /** Shapes a linear frame blend: the same warp AdditiveVoice applies before
+        cross-fading two frames.  Exposed for tests and callers that want the
+        identical curve outside the render loop. */
+    static float shapeFrameMix(float linearMix, int curve) noexcept
+    {
+        const float m = juce::jlimit(0.0f, 1.0f, linearMix);
+        if (curve == 1)
+            return m * m * (3.0f - 2.0f * m);          // smoothstep
+        if (curve == 2)
+            return (m < 0.5f) ? 0.0f : 1.0f;           // sample and hold
+        return m;
+    }
+
     int  getActivePartialCount() const { return publishedCount_.load(std::memory_order_relaxed); }
     int  getActiveFrameCount() const   { return publishedFrames_.load(std::memory_order_relaxed); }
     bool hasPartials() const           { return getActivePartialCount() > 0; }
@@ -159,6 +179,7 @@ private:
     std::atomic<bool>  imageEnabled_{ false };
     std::atomic<float> imageRate_{ 2.0f };
     std::atomic<bool>  imageLoop_{ true };
+    std::atomic<int>   imageCurve_{ 0 };
 
     static float rootHzFrom(int midiNote, float cents);
 

@@ -425,3 +425,83 @@ TEST_CASE("AdditiveSynth image configuration is clamped and truncated", "[additi
         }
     }
 }
+//==============================================================================
+// P6 leftover: the frame-blend curve
+
+TEST_CASE("AdditiveSynth shapes the frame blend curve", "[additive][image]")
+{
+    // Linear is the identity, and the input is clamped.
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.25f, 0) == Catch::Approx(0.25f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(-1.0f, 0) == Catch::Approx(0.0f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(2.0f, 0)  == Catch::Approx(1.0f));
+
+    // Smoothstep is symmetric and eases both ends.
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.5f, 1)  == Catch::Approx(0.5f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.25f, 1) == Catch::Approx(0.15625f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.75f, 1) == Catch::Approx(0.84375f));
+
+    // Step holds frame A until the midpoint, then jumps to frame B.
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.0f, 2)  == Catch::Approx(0.0f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.49f, 2) == Catch::Approx(0.0f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.5f, 2)  == Catch::Approx(1.0f));
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(1.0f, 2)  == Catch::Approx(1.0f));
+
+    // An unknown mode falls back to linear instead of misbehaving.
+    REQUIRE(ana::AdditiveSynth::shapeFrameMix(0.30f, 7) == Catch::Approx(0.30f));
+
+    // The synth clamps the mode it publishes to the voices.
+    ana::AdditiveSynth synth;
+    synth.setImageCurve(9);
+    REQUIRE(synth.getImageCurve() == 2);
+    synth.setImageCurve(-3);
+    REQUIRE(synth.getImageCurve() == 0);
+}
+
+TEST_CASE("AdditiveSynth STEP holds frame A where LINEAR has already blended", "[additive][image]")
+{
+    constexpr double sr = 48000.0;
+    constexpr int block = 512;
+
+    ana::PartialDataSIMD f0, f1;
+    f0.sampleRate = f1.sampleRate = sr;
+    f0.frequency[0] = 440.0f;  f0.amplitude[0] = 1.0f;
+    f1.frequency[0] = 2000.0f; f1.amplitude[0] = 1.0f;
+    f0.updateActiveMask();
+    f1.updateActiveMask();
+
+    // Ratio of frame B's partial to frame A's over the SECOND block: the image
+    // is ~21-43 % of the way from frame A to frame B there, so a linear blend
+    // already leaks B while a step still holds A completely.
+    auto secondFrameRatio = [&](int curve)
+    {
+        ana::AdditiveSynth synth;
+        synth.prepare(sr);
+        synth.setRootNote(60);
+        synth.setFrames({ f0, f1 });
+        REQUIRE(synth.getActiveFrameCount() == 2);
+        synth.setImageEnabled(true);
+        synth.setImageLoop(false);
+        synth.setImageRate(20.0f);
+        synth.setImageCurve(curve);
+
+        juce::AudioBuffer<float> buf(1, block);
+        juce::MidiBuffer noteOn;
+        noteOn.addEvent(juce::MidiMessage::noteOn(1, 60, static_cast<juce::uint8>(100)), 0);
+        const juce::MidiBuffer empty;
+
+        for (int b = 0; b < 2; ++b)
+        {
+            buf.clear();
+            synth.renderNextBlock(buf, b == 0 ? noteOn : empty, 0, block);
+        }
+
+        return goertzelMag(buf, 2000.0f, sr) / juce::jmax(1.0e-6f, goertzelMag(buf, 440.0f, sr));
+    };
+
+    const float linearRatio = secondFrameRatio(0);
+    const float stepRatio   = secondFrameRatio(2);
+
+    REQUIRE(linearRatio > 0.2f);                 // linear already leaks frame B
+    REQUIRE(stepRatio < linearRatio * 0.2f);     // step still holds frame A
+}
+

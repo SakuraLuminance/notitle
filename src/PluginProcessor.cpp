@@ -438,6 +438,7 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     additiveSynth_.setImageEnabled(imageEnabled_.load());
     additiveSynth_.setImageRate(imageRate_.load());
     additiveSynth_.setImageLoop(imageLoop_.load());
+    additiveSynth_.setImageCurve(imageCurve_.load());
         partialMod_.prepare(sampleRate);
         subHarmonicGen_.setSampleRate(sampleRate);
 
@@ -1073,6 +1074,7 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("imageEnabled", imageEnabled_.load(), nullptr);
     state.setProperty("imageRate", imageRate_.load(), nullptr);
     state.setProperty("imageLoop", imageLoop_.load(), nullptr);
+    state.setProperty("imageCurve", imageCurve_.load(), nullptr);
     state.setProperty("themeIndex", themeIndex_.load(), nullptr);
 
     // Granular layer (P7)
@@ -1141,6 +1143,7 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("freezeEnabled")) setSpectralFreezeEnabled((bool)state.getProperty("freezeEnabled", false));
     if (state.hasProperty("imageRate"))     setImageRate((float)state.getProperty("imageRate", 2.0f));
     if (state.hasProperty("imageLoop"))     setImageLoop((bool)state.getProperty("imageLoop", true));
+    if (state.hasProperty("imageCurve"))    setImageCurve((int)state.getProperty("imageCurve", 0));
     if (state.hasProperty("imageEnabled"))  setImageEnabled((bool)state.getProperty("imageEnabled", false));
     if (state.hasProperty("themeIndex"))    setThemeIndex((int)state.getProperty("themeIndex", 0));
     if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
@@ -1845,6 +1848,13 @@ void AnaPlugAudioProcessor::setImageLoop(bool shouldLoop)
 {
     imageLoop_.store(shouldLoop);
     additiveSynth_.setImageLoop(shouldLoop);
+}
+
+void AnaPlugAudioProcessor::setImageCurve(int curve)
+{
+    const int mode = juce::jlimit(0, 2, curve);
+    imageCurve_.store(mode);
+    additiveSynth_.setImageCurve(mode);
 }
 
 void AnaPlugAudioProcessor::setImageEditFrame(int frame)
