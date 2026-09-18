@@ -481,36 +481,44 @@ TEST_CASE("GranularSynthesizer empties its grain pool between spawns", "[granula
     ana::GranularSynthesizer synth;
     const std::vector<float> source(48000, 0.5f);
     synth.setSourceBuffer(source, 48000.0);
-    synth.setGrainSize(5.0f);      // 5 ms grains
-    synth.setDensity(1.0f);        // the minimum: one spawn per second
     synth.setAmplitude(0.5f);
     synth.setPosition(0.5f);
 
     juce::AudioBuffer<float> buf(2, 512);
-    int minActive = 1 << 30;
-    int silentBlocks = 0;
-    bool sawAudio = false;
 
-    for (int b = 0; b < 300; ++b)   // ~3.2 s at 48 kHz
+    auto render = [&](int blocks)
     {
-        buf.clear();
-        synth.process(buf);
+        for (int b = 0; b < blocks; ++b)
+        {
+            buf.clear();
+            synth.process(buf);
+        }
+    };
 
+    // 1. Push the pool wide: 200 grains/s of 100 ms overlap ~20 grains, i.e.
+    //    the scanned prefix really has to grow well past slot 0.
+    synth.setGrainSize(100.0f);
+    synth.setDensity(200.0f);
+    render(94);                        // ~1 s at 48 kHz
+
+    const int crowded = synth.getActiveGrainCount();
+    REQUIRE(crowded >= 10);
+    REQUIRE(buf.getMagnitude(0, buf.getNumSamples()) > 0.0f);
+
+    // 2. Short grains + the minimum density: one 5 ms grain per second, so the
+    //    pool must drain completely between spawns.  A scan prefix that stopped
+    //    early would leave the grains from step 1 active forever, and
+    //    getActiveGrainCount() scans the whole pool on purpose to catch that.
+    synth.setGrainSize(5.0f);
+    synth.setDensity(1.0f);
+
+    int minActive = 1 << 30;
+    for (int b = 0; b < 190; ++b)      // ~2 s
+    {
+        render(1);
         minActive = std::min(minActive, synth.getActiveGrainCount());
-
-        if (buf.getMagnitude(0, buf.getNumSamples()) > 1.0e-4f)
-            sawAudio = true;
-        else
-            ++silentBlocks;
     }
 
-    // Grains really did play ...
-    REQUIRE(sawAudio);
-
-    // ... and between two spawns every grain finished, which is only true if
-    // the render loop reaches every active slot (a scan prefix that stopped
-    // early would leave grains active forever) and then shrinks again.
     REQUIRE(minActive == 0);
-    REQUIRE(silentBlocks > 200);
 }
 
