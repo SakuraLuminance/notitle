@@ -60,3 +60,15 @@ FX 页 rack 的每个效果都把参数画成旋钮（`EffectParamPanel`）。�
 1. 解析：顺序、乱序、连续锚点（`isChoice()==false` 但标签可解析）、`nullptr`、畸形串。
 2. 注册表不变式：遍历 14 种效果，每个 `isChoice()` 参数必须 ① 标签 ≥2 项 ② 项数 == `max+1` ③ 每一项 `setParamValue(c)` → `getParamValue()` 都能原值回读 ④ 无空标签/重复标签。
 3. 面板：`RingModulator` → 菜单数 = 枚举参数数、旋钮数 = 其余参数数、菜单项文本 `SINE/TRI/SQUARE`、`setSelectedId(3)` 写回参数值 2、`getPreferredHeight()` 留出菜单行高度。
+
+## 验证
+
+| 项 | 值 |
+|---|---|
+| Run | `#35318939971`（`db20abf`） |
+| Build | 0 条 error |
+| 用例 | **616 执行 / 0 失败**（runner 注解，见 HANDOFF_V3 §1） |
+| pluginval | `Strictness level: 5` SUCCESS |
+| forensics | 0 CRASH-OR-FAIL，7 SKIP-UNMATCHED |
+| 备注 | 较上一轮 613 增加 3 例（本 spec 的 3 个用例） |
+

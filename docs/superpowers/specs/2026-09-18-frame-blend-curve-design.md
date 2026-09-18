@@ -47,3 +47,15 @@ STEP 下 `fMix` 只取 0 或 1，因此：
 
 - 不引入"逐 partial 曲线"或曲线编辑器（收益低、UI 成本高）；
 - 不改 `AdditiveBank` 的帧结构（曲线是播放期参数，不是数据属性）。
+
+## 验证
+
+| 项 | 值 |
+|---|---|
+| Run | `#35316399784`（`c335326`） |
+| Build | 0 条 error |
+| 用例 | **613 执行 / 0 失败**（runner 注解，见 HANDOFF_V3 §1） |
+| pluginval | `Strictness level: 5` SUCCESS |
+| forensics | 0 CRASH-OR-FAIL，7 SKIP-UNMATCHED |
+| 备注 | 较上一轮 611 增加 2 例（本 spec 的 2 个用例） |
+

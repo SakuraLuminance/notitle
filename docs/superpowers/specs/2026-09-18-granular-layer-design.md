@@ -56,3 +56,15 @@
 |---|---|
 | `reserveWindowCache` 扩容 | 预留后容量 ≥ 请求值；多次不同粒度渲染后不缩小；`reserveWindowCache(0)` 被忽略 |
 | 预留不改变输出 | 预留实例与普通实例输出能量一致（窗表内容不受容量影响） |
+
+## 验证
+
+| 项 | 值 |
+|---|---|
+| Run | `#35311445334`（`578253a`） |
+| Build | 0 条 error |
+| 用例 | **611 执行 / 0 失败**（runner 注解，见 HANDOFF_V3 §1） |
+| pluginval | `Strictness level: 5` SUCCESS |
+| forensics | 0 CRASH-OR-FAIL，7 SKIP-UNMATCHED |
+| 备注 | 本批次随 578253a 全绿；用例数在 #35315329172 读到（611），#35316399784 = 613、#35318939971 = 616、#35319079605 = 617 |
+

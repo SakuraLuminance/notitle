@@ -12,12 +12,13 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`，测试 `AnaPlugTests` |
-| 最新已验证提交 | `c335326`（帧混合曲线）；其后只跟文档提交 |
-| 最近全绿 CI | Run `#35316399784`（`c335326`）：Build **0 条 error**、**613 用例 / 0 失败 / 341909 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
-| 上一轮全绿 | Run `#35315329172`（`a6e5f3b`）：611 用例 / 0 失败 / 341892 断言 / strictness 5（谐波分箱批次） |
-| 用例计数 | 源码内 **619 个 `TEST_CASE` 名**、**611→613 个实际执行**（数字全部来自 runner 注解，见 §1） |
-| 未推送批次 | **无**；下一批候选见 §6.3（枚举真菜单**必须先问用户**、成品安装需 UAC） |
-| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、**rack 内 MIDI Learn ✓**、**颗粒层 + GRAIN 页 ✓**、**DNA fittest → 音色 ✓**、**图像谐波分箱 ✓**、**帧混合曲线（LINEAR/SMOOTH/STEP）✓**；剩余：枚举真菜单（待确认）、成品安装（待 UAC） |
+| 最新已验证提交 | `81e4138`（颗粒池扫描前缀优化）；其后只跟文档/工具提交 |
+| 最近全绿 CI | Run `#35319079605`（`81e4138`）：Build **0 条 error**、**617 用例 / 0 失败 / 342016 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
+| 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 |
+| 更早的全绿 | `a6e5f3b` #35315329172 = 611（谐波分箱 + 颗粒层 + MIDI Learn）、`578253a` #35311445334（颗粒层首批）、`6d82383` #35310048933（P6b/主题） |
+| 用例计数 | 源码内 **623 个 `TEST_CASE` 名**、**617 个实际执行**（数字全部来自 runner 注解，见 §1） |
+| 未推送批次 | **无**；唯一剩余候选 = 成品安装（需 UAC + 浏览器下载，脚本 `tools/install-vst3.ps1` 已就绪） |
+| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、rack 内 MIDI Learn ✓、颗粒层 + GRAIN 页 ✓、DNA fittest → 音色 ✓、图像谐波分箱 ✓、帧混合曲线 ✓、**枚举真菜单 ✓**（用户已确认：仅 UI 菜单）、颗粒池性能 ✓；**路线图全部完成**，只剩成品安装 |
 | 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |
 
 ---
@@ -165,12 +166,13 @@ processBlock 顺序（简化）：
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 枚举参数真菜单 | **待用户确认范围** | 两条路线：①把 filter type / effect type 等枚举做成宿主可自动化的 choice 参数（`AudioProcessorParameter` 离散取值，DAW 里可自动化/可显示名字）；②只把 FX 页的枚举滑条换成真 `ComboBox` 菜单（纯 UI，不碰宿主参数）。范围没确认前不动 |
+| 枚举参数真菜单 | ✓ `db20abf` | 用户确认走**仅 UI 菜单**：`EffectParamSpec::isChoice()` = 有 choices 且整数步进 → `ComboBox`；`getChoiceLabels()` 按索引排序解析；WIDTH 这类“连续量锚点”仍是旋钮；spec `2026-09-18-enum-choice-menus-design.md` |
 | 颗粒 UI | ✓ `578253a` | 见 `docs/superpowers/specs/2026-09-18-granular-layer-design.md` |
 | DNA fittest → 当前音色 | ✓ `578253a` | EVO 页 `-> TIMBRE`，写入当前编辑帧并把 SYNTH 打开 |
 | P6 遗留（跨帧索引） | ✓ `69169ca` | `HarmonicBinning`：共享 f0 中位数轴；spec `2026-09-18-harmonic-binning-design.md` |
 | P6 遗留（帧插值曲线） | ✓ `c335326` | `AdditiveSynth::shapeFrameMix`：LINEAR/SMOOTH/STEP，TIMBRE 页 `CURVE` 下拉，spec `2026-09-18-frame-blend-curve-design.md` |
-| 成品安装 | **待 UAC** | `tools/install-vst3.ps1`（自提权）已就位；本机**无法下载 artifact**，需用户在浏览器里从绿色 run 下载 `AnaPlug-windows-latest` 再运行脚本 |
+| 颗粒池性能 | ✓ `81e4138` | 渲染循环只扫 `[0, scanCount_)` 活跃前缀（spawn 永远取最低空位），输出**逐位不变**；默认密度下每采样迭代数从 256 降到个位 |
+| 成品安装 | **待 UAC**（唯一剩余项） | 本机**无法下载 artifact**（DNS 198.18.x.x）。用户在浏览器里从绿色 run 下载 `AnaPlug-windows-latest` → 运行 `powershell -ExecutionPolicy Bypass -File tools/install-vst3.ps1 -ClearReaperCache`：脚本自动找 Downloads 里最新的 `AnaPlug*.zip`、解压、自提权安装到 `C:/Program Files/Common Files/VST3` 并校验 |
 
 ---
 

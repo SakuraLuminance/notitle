@@ -61,3 +61,15 @@
 | 冲突与越界 | 同 bin 保留强者；低于 0.5·f0 丢弃；超出轴顶并入末箱 |
 | 退化路径 | f0 = 0 → 逐索引拷贝，activeCount 不变 |
 | 跨帧一致性（回归） | 两帧 peak 数量不同，同一谐波仍落同一索引 |
+
+## 验证
+
+| 项 | 值 |
+|---|---|
+| Run | `#35315329172`（`a6e5f3b`） |
+| Build | 0 条 error |
+| 用例 | **611 执行 / 0 失败**（runner 注解，见 HANDOFF_V3 §1） |
+| pluginval | `Strictness level: 5` SUCCESS |
+| forensics | 0 CRASH-OR-FAIL，7 SKIP-UNMATCHED |
+| 备注 | 该 run 的树已包含本批次；首次验证 #35313451841（69169ca）亦全绿（当时注解尚未拆分用例计数） |
+
