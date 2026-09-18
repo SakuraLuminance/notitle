@@ -21,10 +21,11 @@ Windows x64 合成器插件（VST3 + CLAP）：把采样分析成**谐波图像*
 | `MOD` + `DEPTH` + `RATE` | 读头位置调制：OFF / LFO / ENV / RND；DEPTH 是采样长度的比例，RATE 是速度 |
 | `SPREAD` | 每颗粒子的随机声像散布（0% 全在中间，100% 铺满左右） |
 | `REVERSE` | 该比例的粒子倒放（跨度与时长不变，只是反向读） |
+| `JITTER` | 间距随机化：平均速率不变，只让粒子不再是钟表式等距（越大越像云雾） |
 
 **粒子云**（页面下半）：顶部窄条是采样包络，下面是正在发声的粒子——横轴 = 读头位置，纵轴 = 粒子年龄（新粒子在顶部、逐渐下沉），条宽 = 粒子时长，颜色 = 声像（青=左、品红=右），条端竖线 = 粒子方向，黄色竖线 = `SPACE` 基准位置。
 
-每个旋钮都支持**右键 → MIDI Learn**（参数 id：`grain_mix` / `grain_size` / `grain_density` / `grain_position` / `grain_pitch` / `grain_mod_depth` / `grain_mod_rate` / `grain_spread` / `grain_reverse`）；所有参数随工程状态保存与恢复。
+每个旋钮都支持**右键 → MIDI Learn**（参数 id：`grain_mix` / `grain_size` / `grain_density` / `grain_position` / `grain_pitch` / `grain_mod_depth` / `grain_mod_rate` / `grain_spread` / `grain_reverse` / `grain_jitter`）；所有参数随工程状态保存与恢复。
 ## 构建（需要 VS2022 + CMake）
 
 ```powershell

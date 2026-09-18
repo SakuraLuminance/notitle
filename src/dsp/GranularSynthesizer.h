@@ -106,6 +106,11 @@ public:
         the same material and lasts exactly as long. */
     void setReverseProbability(float probability);
 
+    /** Randomises the spacing between grains (0 = clockwork, 1 = each interval
+        lands within half an interval of its nominal length).  The average rate
+        set by setDensity() is preserved; only the spacing breathes. */
+    void setGrainJitter(float jitter);
+
     /** Configures position modulation.
         @param mod    Modulation mode
         @param depth  Modulation depth (fraction of buffer, 0-1)
@@ -185,6 +190,7 @@ private:
     // count also sees a filled array.
     float stereoSpread_       = 0.0f;   // random pan offset per grain
     float reverseProbability_ = 0.0f;   // share of grains playing backwards
+    float grainJitter_        = 0.0f;   // random spacing between grains
     float sourcePeaks_[kSourcePeakBuckets] = {};
     std::atomic<int> sourcePeakCount_{ 0 };
 
@@ -204,6 +210,10 @@ private:
 
     //==============================================================================
     bool spawnGrain();
+
+    /** How much of the density interval the next grain costs, jitter included.
+        The mean is 1.0, so the average grain rate stays equal to setDensity(). */
+    double nextSpawnCost();
 
     /** Drop inactive slots from the top of the scanned grain prefix. */
     void shrinkScannedGrains() noexcept;

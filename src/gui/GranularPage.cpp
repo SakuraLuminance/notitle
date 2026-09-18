@@ -211,6 +211,25 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     reverseLabel_.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.7f));
     addAndMakeVisible(reverseLabel_);
 
+    // -- Jitter -------------------------------------------------------------
+    jitterSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    jitterSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    jitterSlider_.setRange(0.0, 100.0, 1.0);
+    jitterSlider_.setTooltip("Randomises the spacing between grains without changing the average rate\nRight-click: MIDI Learn");
+    jitterSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
+    jitterSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
+    jitterSlider_.onValueChange = [this]
+    {
+        processor_.setGrainJitter(static_cast<float>(jitterSlider_.getValue() / 100.0));
+    };
+    addAndMakeVisible(jitterSlider_);
+    addReadout(jitterReadout_, "Random spread of the spacing between grains");
+
+    jitterLabel_.setText("JITTER", juce::dontSendNotification);
+    jitterLabel_.setFont(CyberpunkTheme::getCyberFont(9.0f, true));
+    jitterLabel_.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.7f));
+    addAndMakeVisible(jitterLabel_);
+
     // -- Status -------------------------------------------------------------
     statusLabel_.setJustificationType(juce::Justification::centredLeft);
     statusLabel_.setFont(CyberpunkTheme::getCyberFont(10.0f, true));
@@ -247,6 +266,11 @@ void GranularPage::resized()
     auto area = getLocalBounds().reduced(10);
     const int halfW = juce::jmax(1, area.getWidth() / 2);
 
+    // The status line is taken off the bottom first, so a short window squeezes
+    // the cloud (which has a graceful empty state) instead of hiding the status.
+    statusLabel_.setBounds(area.removeFromBottom(16));
+    area.removeFromBottom(4);
+
     // Row 1: [GRAIN] [MIX ▬▬▬ readout]
     {
         auto row = area.removeFromTop(kRowH);
@@ -257,6 +281,11 @@ void GranularPage::resized()
         mixSlider_.setBounds(right.removeFromLeft(juce::jmax(60, right.getWidth()
                                                              - CyberpunkTheme::kReadoutWidth)));
         mixReadout_.setBounds(right);
+
+        // JITTER shares this row: it belongs with the rate controls, and the
+        // right half of row 1 was empty.
+        row.removeFromLeft(12);
+        layoutSliderRow(row, jitterLabel_, jitterSlider_, jitterReadout_);
         area.removeFromTop(4);
     }
 
@@ -324,11 +353,9 @@ void GranularPage::resized()
         area.removeFromTop(6);
     }
 
-    // Grain cloud: whatever is left between the controls and the status line.
-    cloudBounds_ = area.removeFromTop(juce::jmax(0, area.getHeight() - 18)).reduced(1);
-
-    // Status line
-    statusLabel_.setBounds(area.removeFromTop(16));
+    // Grain cloud: everything the controls did not claim, with a hard minimum so
+    // the panel never collapses into a sliver before the rows are laid out.
+    cloudBounds_ = area.reduced(1);
 }
 
 //==============================================================================
@@ -459,6 +486,7 @@ void GranularPage::syncFromProcessor()
     syncSlider(modRateSlider_,  processor_.getGrainModRate());
     syncSlider(spreadSlider_,   processor_.getGrainSpread() * 100.0);
     syncSlider(reverseSlider_,  processor_.getGrainReverse() * 100.0);
+    syncSlider(jitterSlider_,   processor_.getGrainJitter() * 100.0);
 
     if (windowCombo_.getSelectedId() != processor_.getGrainWindow() + 1)
         windowCombo_.setSelectedId(processor_.getGrainWindow() + 1, juce::dontSendNotification);
@@ -484,6 +512,8 @@ void GranularPage::syncFromProcessor()
                            juce::dontSendNotification);
     reverseReadout_.setText(CyberpunkTheme::formatPercent(static_cast<float>(reverseSlider_.getValue())),
                             juce::dontSendNotification);
+    jitterReadout_.setText(CyberpunkTheme::formatPercent(static_cast<float>(jitterSlider_.getValue())),
+                           juce::dontSendNotification);
 
     // Grain cloud: the processor publishes a guarded copy once per audio block,
     // so this is a plain copy plus a repaint of the canvas only.

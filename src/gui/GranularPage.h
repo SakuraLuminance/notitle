@@ -17,7 +17,7 @@ namespace ana
     block, so every control here is audible.
 
     Layout (top to bottom, kControlHeight rows):
-      [GRAIN] [MIX ▬▬▬ 60%]
+      [GRAIN] [MIX ▬▬▬ 60%]  [JITTER ▬▬▬ 0%]
       SIZE  ▬▬▬  60 ms     DENSITY ▬▬▬  20 /s
       SPACE ▬▬▬  25%       PITCH   ▬▬▬   0 st
       WINDOW [HANN ▾]      MOD [OFF ▾]  DEPTH ▬▬▬  RATE ▬▬▬
@@ -52,6 +52,7 @@ public:
     juce::Slider& getModRateSlider()   noexcept { return modRateSlider_; }
     juce::Slider& getSpreadSlider()    noexcept { return spreadSlider_; }
     juce::Slider& getReverseSlider()   noexcept { return reverseSlider_; }
+    juce::Slider& getJitterSlider()    noexcept { return jitterSlider_; }
 
 private:
     void addReadout(juce::Label& readout, const juce::String& tooltip);
@@ -73,9 +74,9 @@ private:
     juce::Slider modDepthSlider_, modRateSlider_;
     juce::Label  modDepthReadout_, modRateReadout_;
 
-    juce::Label  spreadLabel_, reverseLabel_;
-    juce::Slider spreadSlider_, reverseSlider_;
-    juce::Label  spreadReadout_, reverseReadout_;
+    juce::Label  spreadLabel_, reverseLabel_, jitterLabel_;
+    juce::Slider spreadSlider_, reverseSlider_, jitterSlider_;
+    juce::Label  spreadReadout_, reverseReadout_, jitterReadout_;
 
     juce::Label statusLabel_;
 

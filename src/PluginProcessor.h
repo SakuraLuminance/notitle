@@ -322,6 +322,11 @@ public:
     void  setGrainReverse(float probability);
     float getGrainReverse() const { return granularReverse_.load(); }
 
+    /** Random spread of the spacing between grains (0..1); the average grain
+        rate set by setGrainDensity() is preserved. */
+    void  setGrainJitter(float jitter);
+    float getGrainJitter() const { return granularJitter_.load(); }
+
     /** Grains currently sounding — published by the audio thread. */
     int   getActiveGrainCount() const { return activeGrainCount_.load(); }
 
@@ -717,6 +722,7 @@ private:
     std::atomic<float> granularModRate_{ 1.0f };
     std::atomic<float> granularSpread_{ 0.0f };
     std::atomic<float> granularReverse_{ 0.0f };
+    std::atomic<float> granularJitter_{ 0.0f };
     std::atomic<int>   granularWindow_{ 0 };
     std::atomic<int>   granularModMode_{ 0 };
     std::atomic<int>   activeGrainCount_{ 0 };

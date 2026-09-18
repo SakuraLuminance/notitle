@@ -816,6 +816,42 @@ TEST_CASE("GranularSynthesizer reports each grain's pan to the display", "[granu
     REQUIRE(panSpread(1.0f) > 0.05f);     // spread: the clicks land apart
 }
 
+//==============================================================================
+// JITTER randomises the spacing while leaving the rate alone.
+
+TEST_CASE("GranularSynthesizer jitters grain spacing without changing the rate", "[granular]")
+{
+    const std::vector<float> source(48000, 0.5f);
+
+    auto grainsInTwoSeconds = [&source](float jitter)
+    {
+        ana::GranularSynthesizer synth;
+        synth.setSourceBuffer(source, 48000.0);
+        synth.setGrainSize(20.0f);
+        synth.setDensity(100.0f);
+        synth.setPosition(0.5f);
+        synth.setAmplitude(0.5f);
+        synth.setGrainJitter(jitter);
+
+        juce::AudioBuffer<float> buf(2, 512);
+        for (int b = 0; b < 187; ++b)      // ~2 s
+        {
+            buf.clear();
+            synth.process(buf);
+        }
+
+        return synth.getTotalGrainsSpawned();
+    };
+
+    const int clockwork = grainsInTwoSeconds(0.0f);
+    const int breathing = grainsInTwoSeconds(1.0f);
+
+    REQUIRE(clockwork > 150);                        // 100 /s over 2 s
+    REQUIRE(breathing > clockwork * 3 / 4);          // the mean interval holds
+    REQUIRE(breathing < clockwork * 5 / 4);
+}
+
+
 
 
 

@@ -510,6 +510,7 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
                 granularModDepth_.load(), granularModRate_.load());
             granularSynth_.setStereoSpread(granularSpread_.load());
             granularSynth_.setReverseProbability(granularReverse_.load());
+            granularSynth_.setGrainJitter(granularJitter_.load());
         }
 
         // Prepare the vocal character processor
@@ -1092,6 +1093,7 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("grainModRate", granularModRate_.load(), nullptr);
     state.setProperty("grainSpread", granularSpread_.load(), nullptr);
     state.setProperty("grainReverse", granularReverse_.load(), nullptr);
+    state.setProperty("grainJitter", granularJitter_.load(), nullptr);
 
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
@@ -1164,6 +1166,7 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("grainModRate"))   setGrainModRate((float)state.getProperty("grainModRate", 1.0f));
     if (state.hasProperty("grainSpread"))    setGrainSpread((float)state.getProperty("grainSpread", 0.0f));
     if (state.hasProperty("grainReverse"))   setGrainReverse((float)state.getProperty("grainReverse", 0.0f));
+    if (state.hasProperty("grainJitter"))    setGrainJitter((float)state.getProperty("grainJitter", 0.0f));
     if (state.hasProperty("grainEnabled"))   setGranularEnabled((bool)state.getProperty("grainEnabled", false));
 
     auto presetState = state.getChildWithName("Parameters");
@@ -1802,6 +1805,11 @@ void AnaPlugAudioProcessor::setGrainReverse(float probability)
     granularReverse_.store(juce::jlimit(0.0f, 1.0f, probability));
 }
 
+void AnaPlugAudioProcessor::setGrainJitter(float jitter)
+{
+    granularJitter_.store(juce::jlimit(0.0f, 1.0f, jitter));
+}
+
 void AnaPlugAudioProcessor::setGrainModRate(float hz)
 {
     granularModRate_.store(juce::jlimit(0.05f, 10.0f, hz));
@@ -1839,6 +1847,7 @@ void AnaPlugAudioProcessor::renderGranularLayer(juce::AudioBuffer<float>& buffer
         granularModDepth_.load(), granularModRate_.load());
     granularSynth_.setStereoSpread(granularSpread_.load());
     granularSynth_.setReverseProbability(granularReverse_.load());
+    granularSynth_.setGrainJitter(granularJitter_.load());
 
     // View onto the preallocated scratch (no allocation; process() clears it).
     juce::AudioBuffer<float> view(granularScratch_.getArrayOfWritePointers(),

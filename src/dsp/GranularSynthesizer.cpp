@@ -105,6 +105,22 @@ void GranularSynthesizer::setReverseProbability(float probability)
     reverseProbability_ = std::clamp(probability, 0.0f, 1.0f);
 }
 
+void GranularSynthesizer::setGrainJitter(float jitter)
+{
+    grainJitter_ = std::clamp(jitter, 0.0f, 1.0f);
+}
+
+double GranularSynthesizer::nextSpawnCost()
+{
+    if (grainJitter_ <= 0.0f)
+        return 1.0;
+
+    // Symmetric around 1.0: the mean interval (and therefore the grain rate set
+    // by DENSITY) is unchanged, only the spacing breathes.
+    std::uniform_real_distribution<double> offset(-0.5, 0.5);
+    return 1.0 + static_cast<double>(grainJitter_) * offset(rng_);
+}
+
 void GranularSynthesizer::setPositionModulation(PositionModulation mod, float depth, float rate)
 {
     posMod_       = mod;
@@ -145,7 +161,7 @@ void GranularSynthesizer::process(juce::AudioBuffer<float>& output)
         grainAccumulator_ += grainsPerSample;
         while (grainAccumulator_ >= 1.0)
         {
-            grainAccumulator_ -= 1.0;
+            grainAccumulator_ -= nextSpawnCost();
             if (! spawnGrain())
                 break; // pool full — the scheduled grain is dropped, not deferred
         }
