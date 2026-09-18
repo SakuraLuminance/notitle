@@ -5,6 +5,26 @@ Windows x64 合成器插件（VST3 + CLAP）：把采样分析成**谐波图像*
 - 技术栈：JUCE 8.0.13（FetchContent）、clap-juce-extensions、Catch2 v3.5.2、C++17、MSVC `/MT`
 - 目标：`AnaPlug`（插件）、`AnaPlugTests`（单测 + 基准）
 
+## GRAIN 页（颗粒层）使用说明
+
+切到 **GRAIN** 页签（第 9 页），先 `LOAD SAMPLE` 载入采样，然后：
+
+| 控件 | 作用 |
+|---|---|
+| `GRAIN` | 颗粒层总开关（关掉后仍保留设置） |
+| `MIX` | 颗粒层混入主输出的比例 |
+| `SIZE` | 单颗粒子时长 1–100 ms（决定音粒的粗细） |
+| `DENSITY` | 每秒生成粒子数 1–1000（越高越接近持续音） |
+| `SPACE` | 读头在采样中的位置（0% 起点，100% 终点） |
+| `PITCH` | 粒子移调 ±24 半音（读头速度） |
+| `WINDOW` | 粒子窗形状：HANN / TRI / GAUSS / SINC（越靠后越硬） |
+| `MOD` + `DEPTH` + `RATE` | 读头位置调制：OFF / LFO / ENV / RND；DEPTH 是采样长度的比例，RATE 是速度 |
+| `SPREAD` | 每颗粒子的随机声像散布（0% 全在中间，100% 铺满左右） |
+| `REVERSE` | 该比例的粒子倒放（跨度与时长不变，只是反向读） |
+
+**粒子云**（页面下半）：顶部窄条是采样包络，下面是正在发声的粒子——横轴 = 读头位置，纵轴 = 粒子年龄（新粒子在顶部、逐渐下沉），条宽 = 粒子时长，颜色 = 声像（青=左、品红=右），条端竖线 = 粒子方向，黄色竖线 = `SPACE` 基准位置。
+
+每个旋钮都支持**右键 → MIDI Learn**（参数 id：`grain_mix` / `grain_size` / `grain_density` / `grain_position` / `grain_pitch` / `grain_mod_depth` / `grain_mod_rate` / `grain_spread` / `grain_reverse`）；所有参数随工程状态保存与恢复。
 ## 构建（需要 VS2022 + CMake）
 
 ```powershell
