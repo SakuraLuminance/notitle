@@ -105,7 +105,7 @@ void GranularSynthesizer::process(juce::AudioBuffer<float>& output)
         float left  = 0.0f;
         float right = 0.0f;
 
-        for (int g = 0; g < maxGrains_; ++g)
+        for (int g = 0; g < scanCount_; ++g)
         {
             auto& grain = grains_[g];
             if (!grain.active)
@@ -117,7 +117,10 @@ void GranularSynthesizer::process(juce::AudioBuffer<float>& output)
                 grain.sourcePosition += grain.pitchRatio;
                 grain.currentSample++;
                 if (grain.currentSample >= grain.durationSamples)
+                {
                     grain.active = false;
+                    shrinkScannedGrains();
+                }
                 continue;
             }
 
@@ -140,7 +143,10 @@ void GranularSynthesizer::process(juce::AudioBuffer<float>& output)
 
             // Deactivate finished grains
             if (grain.currentSample >= grain.durationSamples)
+            {
                 grain.active = false;
+                shrinkScannedGrains();
+            }
         }
 
         // Write interleaved output
@@ -164,6 +170,7 @@ void GranularSynthesizer::reset()
     for (auto& grain : grains_)
         grain.active = false;
 
+    scanCount_          = 0;
     grainAccumulator_   = 0.0;
     lfoPhase_           = 0.0;
     totalGrainsSpawned_ = 0;
@@ -209,6 +216,14 @@ int GranularSynthesizer::getWindowCacheCapacity() const noexcept
 //==============================================================================
 // Private
 //==============================================================================
+
+void GranularSynthesizer::shrinkScannedGrains() noexcept
+{
+    // Grains only leave the pool in the render loop, and spawnGrain() always
+    // refills the lowest free slot, so the prefix just loses its inactive tail.
+    while (scanCount_ > 0 && !grains_[scanCount_ - 1].active)
+        --scanCount_;
+}
 
 bool GranularSynthesizer::spawnGrain()
 {
@@ -296,6 +311,11 @@ bool GranularSynthesizer::spawnGrain()
     g.panR            = panR;
     g.windowType      = windowType_;
     g.active          = true;
+
+    // Keep the scanned prefix covering the new grain (it is the lowest free
+    // slot, so this only grows the prefix when the pool really widens).
+    if (slot + 1 > scanCount_)
+        scanCount_ = slot + 1;
 
     ++totalGrainsSpawned_;
     return true;

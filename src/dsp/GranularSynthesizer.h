@@ -151,6 +151,9 @@ private:
 
     //==============================================================================
     bool spawnGrain();
+
+    /** Drop inactive slots from the top of the scanned grain prefix. */
+    void shrinkScannedGrains() noexcept;
     float getWindowValue(int sampleIndex, int duration, GrainWindowType type) const;
     float getCachedWindowValue(int sampleIndex, int duration, GrainWindowType type) const;
     float interpolateSource(double position) const;
@@ -181,6 +184,13 @@ private:
     // Fixed-size grain pool (no heap allocation during process)
     static constexpr int maxGrains_ = 256;
     InternalGrain grains_[maxGrains_];
+
+    // Grains live at the LOW end of the pool: spawnGrain() always takes the
+    // lowest free slot, so scanning [0, scanCount_) visits every grain that can
+    // be active.  The audio loop used to walk all 256 slots per sample, i.e.
+    // >12 M mostly-skipping iterations per second at 48 kHz, while a default
+    // patch (10 grains/s x 50 ms) holds well under one active grain.
+    int scanCount_ = 0;
 
     // Window table cache (avoids exp/sin/cos per sample per grain)
     mutable std::vector<float> windowCache_;

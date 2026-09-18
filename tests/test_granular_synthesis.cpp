@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <algorithm>
 #include <cmath>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -470,5 +471,46 @@ TEST_CASE("GranularSynthesizer - reserving the window cache does not change outp
     REQUIRE(bufferEnergy(outReserved, 0) > 0.0f);
     REQUIRE(bufferEnergy(outReserved, 0) == Catch::Approx(bufferEnergy(outPlain, 0)).margin(1.0e-6f));
     REQUIRE(bufferEnergy(outReserved, 1) == Catch::Approx(bufferEnergy(outPlain, 1)).margin(1.0e-6f));
+}
+
+//==============================================================================
+// The grain pool scans only the slots that can hold grains.
+
+TEST_CASE("GranularSynthesizer empties its grain pool between spawns", "[granular]")
+{
+    ana::GranularSynthesizer synth;
+    const std::vector<float> source(48000, 0.5f);
+    synth.setSourceBuffer(source, 48000.0);
+    synth.setGrainSize(5.0f);      // 5 ms grains
+    synth.setDensity(1.0f);        // the minimum: one spawn per second
+    synth.setAmplitude(0.5f);
+    synth.setPosition(0.5f);
+
+    juce::AudioBuffer<float> buf(2, 512);
+    int minActive = 1 << 30;
+    int silentBlocks = 0;
+    bool sawAudio = false;
+
+    for (int b = 0; b < 300; ++b)   // ~3.2 s at 48 kHz
+    {
+        buf.clear();
+        synth.process(buf);
+
+        minActive = std::min(minActive, synth.getActiveGrainCount());
+
+        if (buf.getMagnitude(0, buf.getNumSamples()) > 1.0e-4f)
+            sawAudio = true;
+        else
+            ++silentBlocks;
+    }
+
+    // Grains really did play ...
+    REQUIRE(sawAudio);
+
+    // ... and between two spawns every grain finished, which is only true if
+    // the render loop reaches every active slot (a scan prefix that stopped
+    // early would leave grains active forever) and then shrinks again.
+    REQUIRE(minActive == 0);
+    REQUIRE(silentBlocks > 200);
 }
 
