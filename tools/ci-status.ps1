@@ -77,8 +77,33 @@ $checks = (Invoke-RestMethod -Headers $headers -Uri "$api/commits/$full/check-ru
 $diag = $checks | Where-Object { $_.name -eq 'ci-diagnostics' } | Select-Object -First 1
 Write-Host ""
 if ($diag) {
-    Write-Host "=== ci-diagnostics ==="
+    Write-Host "=== ci-diagnostics check run ==="
     Write-Host $diag.output.summary
 } else {
-    Write-Warning 'no ci-diagnostics check run yet (workflow still running, or the run predates that step)'
+    Write-Host '=== ci-diagnostics check run: none (that permission path is refused) ==='
+}
+
+# Annotations are written by the runner itself ('::error title=..::message'),
+# so they survive a token that may not create check runs.
+$jobCheck = $checks | Where-Object { $_.name -like 'build (*' } | Select-Object -First 1
+if ($jobCheck) {
+    $annotations = @()
+    try {
+        $annotations = (Invoke-RestMethod -Headers $headers -Uri "$api/check-runs/$($jobCheck.id)/annotations").annotations
+    } catch {
+        Write-Warning ("could not read annotations: " + $_.Exception.Message)
+    }
+
+    if ($annotations.Count -gt 0) {
+        Write-Host ""
+        Write-Host "=== annotations ($($annotations.Count)) ==="
+        foreach ($a in $annotations) {
+            if ($a.title -notlike 'ci-diagnostics*') { continue }
+            $text = $a.message -replace '%0D', '' -replace '%0A', "`n" -replace '%25', '%'
+            Write-Host "--- $($a.title) ---"
+            Write-Host $text
+        }
+    } else {
+        Write-Host "no ci-diagnostics annotations on the job check run"
+    }
 }

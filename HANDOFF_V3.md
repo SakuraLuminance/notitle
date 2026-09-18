@@ -12,11 +12,11 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`，测试 `AnaPlugTests` |
-| 本地 HEAD | `ba80393`（**15 个提交未推送**），`origin/main` = `26d18ae` |
-| 最近已推送 CI | Run `#35234761589`（`26d18ae`）：Build / Test / pluginval 步骤均 success；**用例计数当时没读到**（GitHub 下载通道故障） |
-| 最近读到计数的全绿 | Run `#35216572487`：**583 用例全过 + pluginval strictness 5** |
-| 未推送批次预期 | **595+ 用例**全过、strictness 5 |
-| 路线图 | **P1–P6 全部完成**，额外完成 **P6b（时变谐波图像）** 与 **多主题视觉系统** |
+| 本地 HEAD | `69169ca` = `origin/main`，工作区干净（仅 `juce-test-clone` 行尾噪音） |
+| 最近全绿 CI | Run `#35313451841`（`69169ca`）：Build **0 条 error**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
+| 用例计数 | 源码内 **617 个 `TEST_CASE` 名**；本轮已把精确的"named tests / executed cases / failed cases"写进 ci-diagnostics 注解（见 §1） |
+| 未推送批次 | **无**；下一批候选见 §6.3（枚举真菜单需先与用户确认范围） |
+| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、**rack 内 MIDI Learn ✓**、**颗粒层 + GRAIN 页 ✓**、**DNA fittest → 音色 ✓**、**图像谐波分箱 ✓**；剩余：枚举真菜单（待确认）、成品安装（待 UAC） |
 | 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |
 
 ---
@@ -27,11 +27,11 @@
 |---|---|
 | 唯一验证手段 | `git push origin main` → GitHub Actions（约 12–20 分钟/轮）。**禁止**声称"本地编译/测试通过" |
 | 推送 | `git push origin main`（Windows 凭据管理器已缓存 PAT，无需手输） |
-| 取 CI 状态 | `GET /repos/SakuraLuminance/notitle/actions/runs?branch=main&per_page=1` |
-| 取 CI 日志 | `GET /actions/runs/{id}/jobs` 拿 job id → `GET /actions/jobs/{job_id}/logs`（需 `Authorization: token <PAT>`） |
+| 取 CI 状态 | `& tools/ci-status.ps1`（列最近 run + 步骤结果 + 诊断注解）；或 `GET /repos/SakuraLuminance/notitle/actions/runs?branch=main&per_page=N` |
+| 取 CI 诊断 | **runner 注解**：`GET /commits/{sha}/check-runs` 取 job 的 check run id → `GET /check-runs/{id}/annotations`（`tools/ci-status.ps1 -Sha <sha>` 已封装） |
 | 取 PAT（不落盘） | `$cred = "protocol=https`nhost=github.com`n" \| git credential fill`，取 `password=` 字段，仅用于请求头 |
 | **最大陷阱** | `.github/workflows/cmake.yml` 的 `Test` 步骤带 **`continue-on-error: true`** —— **测试失败 run 仍然是绿的**。每轮必须从日志里读：① `All tests passed (… in N test cases)` ② `Strictness level: N` ③ 没有 `CRASH-OR-FAIL ::` 条目 |
-| 日志下载故障 | 若 `/logs` 或 artifact `zip` 下载失败（本机出现过整段时间的下载通道故障），可等网络恢复后重试，或改读 `test-forensics-*` artifact 里的 `forensics.txt` |
+| **日志/产物下载已彻底不可用** | 本机 DNS 把 `*.blob.core.windows.net`、`pipelines.azure.com` 应答成 **198.18.x.x**（保留段）→ `/logs` 与 artifact `zip` 全部失败，curl/node/Invoke-WebRequest 都一样。**唯一可读通道 = workflow 步骤写出的 runner 注解**（`Publish CI diagnostics`：构建错误 / named tests / executed cases / failed cases / strictness / CRASH 条目，切成 ≤10 条 `::error title=ci-diagnostics i/n::`）。API 通道（check run / commit comment / commit status）在本仓库一律被拒（无权限），别指望 |
 | 批次纪律 | **改一批 → 推一轮 → 取证 → 再改**。失败先拉日志定位，禁止凭空大改 |
 | 成品安装 | 需要 UAC，用 V2 里的 EncodedCommand + RunAs 脚本；artifact 名 `AnaPlug-windows-latest` |
 
@@ -132,23 +132,23 @@ processBlock 顺序（简化）：
 | 预设 | `PresetManager`（含断点/loop/sync/主题/图像参数持久化） | 顶栏 `PRESET` | ✓ |
 | `HPSSEngine` | 离线谐波/打击分离 | — | **有意不接线**（离线分配、无实时价值、按"不接线不进 UI"原则） |
 | `QuantumSpectralProcessor` | 评估后保持零引用 | — | 未接线 |
-| **rack 内 MIDI Learn** | `MidiLearn` 目前只支持 `std::atomic<float>*` 目标 | — | **未做**（设计见 §6.2） |
-| **枚举参数真菜单** | 范围未确认 | — | 未做 |
+| **rack 内 MIDI Learn** | `MidiMapping` 新增 setter/getter 回调（原子优先），rack 旋钮经编辑器 timer 轮询注册 | FX 页 rack 旋钮右键 | ✓（`90fc120` + 编译修复 `578253a`） |
+| **颗粒层 + GRAIN 页** | `GranularSynthesizer`（256 粒子/4 窗型/4 调制）+ 处理器原子 + 第 9 页签 | 页签 `GRAIN` | ✓（`578253a`，spec `2026-09-18-granular-layer-design.md`） |
+| **DNA fittest → 音色** | `applyFittestDNAToTimbre()`（写入当前编辑帧 + 强制 SYNTH） | EVO 页 `-> TIMBRE` | ✓（`578253a`） |
+| **图像谐波分箱** | `HarmonicBinning.h`：全体帧共用一根 f0 中位数轴，行 p = 第 p+1 次谐波 | IMAGE 画布 Y 轴 `H1..Hn` | ✓（`69169ca`） |
+| **枚举参数真菜单** | 范围未确认（宿主可自动化 choice 参数 vs 仅 UI 菜单） | — | 未做（**必须先问用户**） |
 
 ---
 
 ## 6. 下一步路线
 
-### 6.1 第一件事：推送并取证（必须）
+### 6.1 推送与取证 —— ✓ 已完成
 
 ```powershell
-git push origin main
-# 等 12–20 分钟，然后读日志确认：
-#   ① All tests passed (… in N test cases)   ← 预期 595+
-#   ② Strictness level: 5
-#   ③ 无 CRASH-OR-FAIL :: 条目
+& tools/ci-status.ps1 -Sha <sha>   # 列 run/步骤 + 读 runner 注解里的诊断
 ```
-未推送批次含：P6b 时变图像、逐帧编辑、IMAGE 画布、EVO 页、一轮性能优化与 5 个 bug 修复、多主题系统、约 12 个新测试与 1 个基准。若编译/测试红了，日志会直接指到文件行。
+**已完成批次**（全部已推送并全绿）：P6b 时变图像 / 逐帧编辑 / IMAGE 画布 / EVO 页 / 性能优化 + 5 个 bug 修复 / 多主题系统（`6d82383` green）、rack MIDI Learn（`90fc120` → 编译修复 `578253a` green）、颗粒层 + GRAIN 页 + DNA fittest 按钮（`578253a` green）、图像谐波分箱（`69169ca` green）。
+全绿判据（Run `#35313451841`）：Build 0 error + pluginval `Strictness level: 5` SUCCESS + forensics 0 `CRASH-OR-FAIL`。
 
 ### 6.2 rack 内 MIDI Learn（设计已定，可直接实现）
 
@@ -162,13 +162,14 @@ git push origin main
 
 ### 6.3 其他候选（按价值）
 
-| 项 | 说明 |
-|---|---|
-| 枚举参数真菜单 | 需先与用户确认范围（把 filter type / effect type 等枚举做成宿主可自动化的 choice 参数或 UI 菜单） |
-| 颗粒 UI | `GranularSynthesizer` 已修好采样精确调度，但零 UI；可做 grain 密度/长度面板 |
-| DNA fittest → 当前音色 | `loadSampleAsParent()` 已在 Processor 里，缺一个"用 fittest 当 timbre"的按钮（$6.2 之后） |
-| P6 遗留 | 图像跨帧索引目前是"频率升序近似对应"，可升级为谐波分箱；帧插值可加曲线 |
-| 成品安装 | UAC 脚本见 V2；artifact 名 `AnaPlug-windows-latest` |
+| 项 | 状态 | 说明 |
+|---|---|---|
+| 枚举参数真菜单 | **待用户确认范围** | 两条路线：①把 filter type / effect type 等枚举做成宿主可自动化的 choice 参数（`AudioProcessorParameter` 离散取值，DAW 里可自动化/可显示名字）；②只把 FX 页的枚举滑条换成真 `ComboBox` 菜单（纯 UI，不碰宿主参数）。范围没确认前不动 |
+| 颗粒 UI | ✓ `578253a` | 见 `docs/superpowers/specs/2026-09-18-granular-layer-design.md` |
+| DNA fittest → 当前音色 | ✓ `578253a` | EVO 页 `-> TIMBRE`，写入当前编辑帧并把 SYNTH 打开 |
+| P6 遗留（跨帧索引） | ✓ `69169ca` | `HarmonicBinning`：共享 f0 中位数轴；spec `2026-09-18-harmonic-binning-design.md` |
+| P6 遗留（帧插值曲线） | 未做（可选） | `AdditiveBank` 目前 floor/ceil 线性插值；可加 smoothstep/曲线选项 + UI |
+| 成品安装 | **待 UAC** | `tools/install-vst3.ps1`（自提权）已就位；本机**无法下载 artifact**，需用户在浏览器里从绿色 run 下载 `AnaPlug-windows-latest` 再运行脚本 |
 
 ---
 
