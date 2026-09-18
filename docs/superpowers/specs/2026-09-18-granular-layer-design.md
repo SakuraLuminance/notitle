@@ -84,7 +84,7 @@
 |---|---|
 | 数据源 | `GranularSynthesizer::getActiveGrainSnapshots(out, maxCount)`：把活跃粒子归一化成 `{position, duration, progress, amplitude, pan}`，**无分配、无锁**，沿用活跃前缀扫描 |
 | 跨线程 | 音频线程每块发布一次到 `grainVisual_[64]`：**seqlock**（generation 先 +1 变奇数 → 写缓冲 → 写计数 → 再 +1 变偶数）。UI 端 `getGrainVisualisation()` 读到奇数或前后 generation 不等就重试，4 次都不一致就**这一帧不画**（宁可空一帧，不画撕裂数据） |
-| 绘制 | x = 源内读取位置，y = 年龄（新粒子在顶部、随进度下沉），条宽 = 粒子长度（占源比例），颜色 cyan→magenta 按进度插值，透明度 = 粒子振幅；另画 25/50/75% 参考线与黄色的基准读取位置线 |
+| 绘制 | 顶部 18 px = **采样包络条**（镜像，256 桶峰值）；下方 = 粒子云：x = 源内读取位置，y = 年龄（新粒子在顶部、随进度下沉），条宽 = 粒子长度（占源比例），**颜色 cyan→magenta 按 pan**（左→右，SPREAD 一动就散开），透明度 = 粒子振幅，条的前进端有一道短竖线标**粒子方向**（REVERSE）；另画 25/50/75% 参考线与黄色的基准读取位置线 |
 | 主题 | 全部走 token（`kCanvasBgDarken` / `kCanvasBorderAlpha` / `kCanvasGridAlpha` / cyan_ / magenta_ / yellow_），无硬编码颜色 |
 | 刷新 | 只在 GRAIN 页可见时（编辑器只同步当前页）`repaint(cloudBounds_)`，不做整页重绘 |
 | 顺手修的 bug | `renderGranularLayer()` 提前返回（层关掉或没载入采样）时原来会把 `activeGrainCount_` 留成旧值，UI 会一直显示“N GRAINS ACTIVE”；现在归零并清空云 |
