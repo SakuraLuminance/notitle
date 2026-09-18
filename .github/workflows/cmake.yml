@@ -2,6 +2,13 @@ name: Build
 
 on: [push, pull_request]
 
+# The publish step creates a check run carrying the build errors, the Catch2
+# counts and pluginval's strictness level, so the result stays readable even
+# when the log/artifact download channel is unavailable.
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   build:
     strategy:
@@ -34,7 +41,10 @@ jobs:
       shell: bash
 
     - name: Build
-      run: cmake --build build --config Release
+      shell: pwsh
+      run: |
+        cmake --build build --config Release 2>&1 | Tee-Object -FilePath build-log.txt
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     # Crash forensics: WER writes a minidump for ANY process that dies with
     # an unhandled exception (AnaPlugTests.exe, pluginval.exe) into C:\dumps.
@@ -49,7 +59,10 @@ jobs:
 
     - name: Test
       continue-on-error: true
-      run: ctest --test-dir build -C Release --output-on-failure --timeout 300
+      shell: pwsh
+      run: |
+        ctest --test-dir build -C Release --output-on-failure --timeout 300 2>&1 | Tee-Object -FilePath test-log.txt
+        exit 0
 
     # Crash forensics (Phase 0): the test exe segfaults at startup in CI.
     # 1) One full run with an XML reporter 閳?the results file lists every
@@ -225,3 +238,89 @@ jobs:
       with:
         name: pluginval-log-${{ matrix.os }}
         path: pluginval.log
+
+    # Publish a machine-readable CI summary as a check run.  GitHub's log and
+    # artifact downloads are periodically unreachable from the dev machine; the
+    # checks API keeps working and carries the compile errors, the Catch2 test
+    # counts, pluginval's strictness level and every CRASH-OR-FAIL entry.
+    - name: Publish CI diagnostics
+      if: always()
+      continue-on-error: true
+      shell: pwsh
+      run: |
+        $out = New-Object System.Collections.Generic.List[string]
+        $out.Add("run " + $env:GITHUB_RUN_ID + "  sha " + $env:GITHUB_SHA)
+
+        # ---- compile errors -------------------------------------------------
+        if (Test-Path build-log.txt) {
+          $errs = @(Select-String -Path build-log.txt -Pattern 'error [A-Z]{2,4}[0-9]{3,5}|fatal error|error MSB[0-9]+|ninja: build stopped' -ErrorAction SilentlyContinue)
+          $out.Add("")
+          $out.Add("### BUILD (" + $errs.Count + " matching lines)")
+          if ($errs.Count -eq 0) { $out.Add("no error pattern matched") }
+          foreach ($e in ($errs | Select-Object -First 40)) {
+            $t = ($e.Line -replace '\s+', ' ').Trim()
+            if ($t.Length -gt 500) { $t = $t.Substring(0, 500) }
+            $out.Add("- " + $t)
+          }
+        } else {
+          $out.Add("### BUILD: build-log.txt missing")
+        }
+
+        # ---- Catch2 counts (XML reporter written by the forensics step) -----
+        $out.Add("")
+        $out.Add("### TESTS")
+        if (Test-Path test-results.xml) {
+          try {
+            [xml]$xml = Get-Content test-results.xml -Raw
+            $overall = $xml.SelectSingleNode("//OverallResults")
+            if ($overall) {
+              $out.Add("OverallResults successes=" + $overall.successes + " failures=" + $overall.failures + " testCases=" + $overall.testCases)
+            }
+          } catch { $out.Add("test-results.xml parse error: " + $_.Exception.Message) }
+        } else {
+          $out.Add("test-results.xml missing (build or test exe unavailable)")
+        }
+        foreach ($f in @('test-stdout.log', 'test-log.txt')) {
+          if (Test-Path $f) {
+            $hits = @(Select-String -Path $f -Pattern 'All tests passed \([^)]*\)|assertions: |test cases: |Strictness level: [0-9]+' -ErrorAction SilentlyContinue)
+            foreach ($h in ($hits | Select-Object -Last 6)) { $out.Add($f + ": " + $h.Line.Trim()) }
+          }
+        }
+        if (Test-Path forensics.txt) {
+          $crash = @(Select-String -Path forensics.txt -Pattern 'CRASH-OR-FAIL ::' -ErrorAction SilentlyContinue)
+          $skip  = @(Select-String -Path forensics.txt -Pattern 'SKIP-UNMATCHED ::' -ErrorAction SilentlyContinue)
+          $out.Add("forensics: " + $crash.Count + " CRASH-OR-FAIL, " + $skip.Count + " SKIP-UNMATCHED")
+          foreach ($c in ($crash | Select-Object -First 20)) { $out.Add("  " + $c.Line.Trim()) }
+        }
+
+        # ---- pluginval ------------------------------------------------------
+        $out.Add("")
+        $out.Add("### PLUGINVAL")
+        if (Test-Path pluginval.log) {
+          $strict = @(Select-String -Path pluginval.log -Pattern 'Strictness level|SUCCESS|FAILED|All tests passed' -ErrorAction SilentlyContinue)
+          foreach ($s in ($strict | Select-Object -Last 8)) { $out.Add($s.Line.Trim()) }
+        } else {
+          $out.Add("pluginval.log missing")
+        }
+
+        $summary = ($out -join "`n")
+        if ($summary.Length -gt 60000) { $summary = $summary.Substring(0, 60000) }
+        Write-Host $summary
+
+        $body = @{
+          name       = 'ci-diagnostics'
+          head_sha   = $env:GITHUB_SHA
+          status     = 'completed'
+          conclusion = 'neutral'
+          output     = @{ title = 'CI diagnostics'; summary = $summary }
+        } | ConvertTo-Json -Depth 8
+
+        try {
+          Invoke-RestMethod -Method Post -Uri ("https://api.github.com/repos/{0}/check-runs" -f $env:GITHUB_REPOSITORY) `
+            -Headers @{ Authorization = "token $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'anaplug-ci' } `
+            -Body $body -ContentType 'application/json' | Out-Null
+          Write-Host "published ci-diagnostics check run"
+        } catch {
+          Write-Host ("failed to publish ci-diagnostics: " + $_.Exception.Message)
+        }
+
