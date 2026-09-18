@@ -4,6 +4,42 @@
 #include "dsp/Crumb.h"
 #include <cmath>
 
+namespace
+{
+// Converts the processor's binned harmonic image (plus the engine's frame
+// timestamps) into the time x row grid the IMAGE canvas draws.  Rows are kept
+// positionally, so row p stays harmonic p+1 of the shared axis.
+ana::PartialData buildImageGrid(AnaPlugAudioProcessor& proc, bool& harmonic, float& f0)
+{
+    const auto& frames = proc.getImageFrames();
+    const auto& raw    = proc.getEngine().getPartialData();
+
+    ana::PartialData pd;
+    pd.sampleRate  = raw.sampleRate;
+    pd.hopSize     = raw.hopSize;
+    pd.maxPartials = ana::PartialDataSIMD::kMaxPartials;
+    pd.frames.reserve(frames.size());
+
+    for (std::size_t i = 0; i < frames.size(); ++i)
+    {
+        ana::PartialFrame frame;
+        frame.timestamp = (i < raw.frames.size())
+                              ? raw.frames[i].timestamp
+                              : static_cast<double>(i) * raw.hopSize / raw.sampleRate;
+
+        frame.partials.resize(static_cast<std::size_t>(ana::PartialDataSIMD::kMaxPartials));
+        for (int p = 0; p < ana::PartialDataSIMD::kMaxPartials; ++p)
+            frame.partials[static_cast<std::size_t>(p)] =
+                { frames[i].frequency[p], frames[i].amplitude[p], frames[i].phase[p] };
+
+        pd.frames.push_back(std::move(frame));
+    }
+
+    f0       = proc.getImageFundamental();
+    harmonic = f0 > 0.0f;
+    return pd;
+}
+} // namespace
 
 //==============================================================================
 AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& p)
@@ -279,7 +315,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     partialEditorCanvas_.setVisible(false);
     partialEditorCanvas_.onEdited = [this]
     {
-        audioProcessor.applyImageFromPartialData(partialEditorCanvas_.getModifiedPartialData());
+        // The grid is drawn on the harmonic axis, so hand that axis back: the
+        // engine then re-bins every row onto itself instead of guessing a new
+        // fundamental from the lowest painted row.
+        audioProcessor.applyImageFromPartialData(partialEditorCanvas_.getModifiedPartialData(),
+                                                 partialEditorCanvas_.getHarmonicAxisFundamental());
     };
 
     for (auto* b : { &imgUndoButton_, &imgRedoButton_, &imgClearButton_,
@@ -1094,9 +1134,14 @@ void AnaPlugAudioProcessorEditor::timerCallback()
     // count changes); existing edits are never reloaded over.
     if (partialEditorCanvas_.isVisible() && audioProcessor.isEngineLoaded())
     {
-        const auto& imagePd = audioProcessor.getEngine().getPartialData();
-        if (partialEditorCanvas_.getNumFrames() != static_cast<int>(imagePd.frames.size()))
-            partialEditorCanvas_.setPartialData(imagePd);
+        const int frameCount = static_cast<int>(audioProcessor.getImageFrames().size());
+        if (partialEditorCanvas_.getNumFrames() != frameCount)
+        {
+            bool  harmonic = false;
+            float f0       = 0.0f;
+            partialEditorCanvas_.setPartialData(buildImageGrid(audioProcessor, harmonic, f0));
+            partialEditorCanvas_.setHarmonicAxis(harmonic, f0);
+        }
     }
 
     // Authoritative edited-set changes (sample load, image frame switch) must
@@ -1345,9 +1390,14 @@ void AnaPlugAudioProcessorEditor::onViewModeChanged()
 
             if (audioProcessor.isEngineLoaded())
             {
-                const auto& pd = audioProcessor.getEngine().getPartialData();
-                if (partialEditorCanvas_.getNumFrames() != static_cast<int>(pd.frames.size()))
-                    partialEditorCanvas_.setPartialData(pd);
+                const int frameCount = static_cast<int>(audioProcessor.getImageFrames().size());
+                if (partialEditorCanvas_.getNumFrames() != frameCount)
+                {
+                    bool  harmonic = false;
+                    float f0       = 0.0f;
+                    partialEditorCanvas_.setPartialData(buildImageGrid(audioProcessor, harmonic, f0));
+                    partialEditorCanvas_.setHarmonicAxis(harmonic, f0);
+                }
             }
             break;
 

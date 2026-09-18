@@ -33,6 +33,14 @@ public:
     void setPartialData(const PartialData& data);
     PartialData getModifiedPartialData() const;
 
+    /** Selects the Y axis: harmonic bins (row p = harmonic p+1 of @a f0) or
+        the legacy evenly spaced Hz axis.  Edits are written back as
+        (p + 1) * f0 so they land on the same harmonic when the engine re-bins
+        them (see ana::HarmonicBinning). */
+    void setHarmonicAxis(bool harmonic, float f0);
+    bool  isHarmonicAxis() const noexcept { return harmonicAxis_; }
+    float getHarmonicAxisFundamental() const noexcept { return axisFundamental_; }
+
     /** Number of analysis frames currently held (0 = nothing loaded). */
     int  getNumFrames() const noexcept { return numFrames; }
     bool isEmpty() const noexcept { return numFrames == 0 || numPartials == 0; }
@@ -107,6 +115,9 @@ private:
     std::vector<PreviousState> undoStack;
     std::vector<PreviousState> redoStack;
     static constexpr int maxUndoLevels = 20;
+
+    bool  harmonicAxis_    = false;   // Y axis = harmonic bins instead of Hz
+    float axisFundamental_ = 0.0f;    // Hz of harmonic 1 (0 = unknown)
 
     void pushUndoState();
     void notifyEdited();

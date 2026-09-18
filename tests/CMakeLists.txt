@@ -14,6 +14,7 @@ add_executable(AnaPlugTests
     test_frequency_shaper.cpp
     test_generative_timbre.cpp
     test_granular_synthesis.cpp
+    test_harmonic_binning.cpp
     test_harmonizer.cpp
     test_image_synthesizer.cpp
     test_lfo_system.cpp

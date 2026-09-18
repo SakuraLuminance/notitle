@@ -21,6 +21,7 @@
 #include "dsp/ProcessorStore.h"
 #include "dsp/EffectAdapters.h"
 #include "dsp/PeakDetector.h"
+#include "dsp/HarmonicBinning.h"
 
 // SSE intrinsics for FTZ/DAZ denormal handling
 #if JUCE_INTEL
@@ -1457,12 +1458,26 @@ void AnaPlugAudioProcessor::setSynthMode(bool enabled)
         applyTimbreProcessing();
 }
 
-void AnaPlugAudioProcessor::buildImageFramesFromPartialData(const ana::PartialData& pd)
+void AnaPlugAudioProcessor::buildImageFramesFromPartialData(const ana::PartialData& pd,
+                                                             float harmonicAxisF0)
 {
     imageFrames_.clear();
 
     if (pd.frames.empty())
+    {
+        imageFundamental_.store(0.0f);
         return;
+    }
+
+    // Harmonic axis (P6 leftover): the peak tracker sorts each frame by
+    // frequency, so "row i" used to mean a different harmonic in every frame
+    // and AdditiveBank's frame interpolation cross-faded unrelated peaks.
+    // Binning every frame against ONE shared f0 makes row i mean harmonic i+1
+    // everywhere; 0 falls back to the old copy-by-index behaviour.
+    const float f0 = (harmonicAxisF0 > 0.0f)
+                         ? harmonicAxisF0
+                         : ana::HarmonicBinning::estimateSharedFundamental(pd.frames);
+    imageFundamental_.store(f0);
 
     const int total = static_cast<int>(pd.frames.size());
     const int count = juce::jmin(ana::AdditiveSynth::kMaxFrames, total);
@@ -1477,26 +1492,18 @@ void AnaPlugAudioProcessor::buildImageFramesFromPartialData(const ana::PartialDa
             static_cast<std::size_t>(juce::jlimit(0, total - 1, srcIndex))];
 
         ana::PartialDataSIMD f;
-        f.maxPartials = pd.maxPartials;
         f.sampleRate  = pd.sampleRate;
         f.hopSize     = pd.hopSize;
-
-        const int cnt = juce::jmin(static_cast<int>(frame.partials.size()),
-                                   ana::PartialDataSIMD::kMaxPartials);
-        for (int p = 0; p < cnt; ++p)
-        {
-            f.frequency[p] = frame.partials[static_cast<std::size_t>(p)].frequency;
-            f.amplitude[p] = frame.partials[static_cast<std::size_t>(p)].amplitude;
-            f.phase[p]     = frame.partials[static_cast<std::size_t>(p)].phase;
-        }
-        f.updateActiveMask();
+        ana::HarmonicBinning::binInto(frame.partials, f0,
+                                      ana::PartialDataSIMD::kMaxPartials, f);
         imageFrames_.push_back(f);
     }
 }
 
-void AnaPlugAudioProcessor::applyImageFromPartialData(const ana::PartialData& data)
+void AnaPlugAudioProcessor::applyImageFromPartialData(const ana::PartialData& data,
+                                                     float harmonicAxisF0)
 {
-    buildImageFramesFromPartialData(data);
+    buildImageFramesFromPartialData(data, harmonicAxisF0);
 
     imageEditFrame_.store(0);
     editedPartials_ = imageFrames_.empty() ? ana::PartialDataSIMD{} : imageFrames_[0];

@@ -165,6 +165,19 @@ void PartialEditorCanvas::setPartialData(const PartialData& data)
     repaint();
 }
 
+void PartialEditorCanvas::setHarmonicAxis(bool harmonic, float f0)
+{
+    const bool  newHarmonic = harmonic && f0 > 0.0f;
+    const float newF0       = newHarmonic ? f0 : 0.0f;
+
+    if (newHarmonic == harmonicAxis_ && newF0 == axisFundamental_)
+        return;
+
+    harmonicAxis_    = newHarmonic;
+    axisFundamental_ = newF0;
+    repaint();
+}
+
 PartialData PartialEditorCanvas::getModifiedPartialData() const
 {
     PartialData data;
@@ -181,9 +194,14 @@ PartialData PartialEditorCanvas::getModifiedPartialData() const
 
         for (int p = 0; p < numPartials; ++p)
         {
-            float freq = (static_cast<float>(p) + 0.5f)
-                         / static_cast<float>(numPartials)
-                         * (static_cast<float>(data.sampleRate) * 0.5f);
+            // Harmonic axis: row p IS harmonic p+1, so write back its exact
+            // frequency and the engine re-bins it onto the same row.  Otherwise
+            // keep the legacy evenly spaced Hz axis.
+            const float freq = harmonicAxis_
+                ? axisFundamental_ * static_cast<float>(p + 1)
+                : (static_cast<float>(p) + 0.5f)
+                      / static_cast<float>(numPartials)
+                      * (static_cast<float>(data.sampleRate) * 0.5f);
             float amp = (f < static_cast<int>(gridAmplitudes.size())
                          && p < static_cast<int>(gridAmplitudes[static_cast<size_t>(f)].size()))
                             ? gridAmplitudes[static_cast<size_t>(f)][static_cast<size_t>(p)]
@@ -674,9 +692,12 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     {
         const float amp = gridAmplitudes[static_cast<size_t>(hoverCell.x)]
                                         [static_cast<size_t>(hoverCell.y)];
-        const juce::String txt = "F " + juce::String(hoverCell.x)
-                               + "   P " + juce::String(hoverCell.y)
-                               + "   AMP " + juce::String(amp, 2);
+        juce::String txt = "F " + juce::String(hoverCell.x)
+                         + (harmonicAxis_ ? "   H " : "   P ") + juce::String(hoverCell.y + (harmonicAxis_ ? 1 : 0))
+                         + "   AMP " + juce::String(amp, 2);
+
+        if (harmonicAxis_)
+            txt += "   " + juce::String(axisFundamental_ * static_cast<float>(hoverCell.y + 1), 1) + " Hz";
         g.setFont(CyberpunkTheme::getCyberFont(CyberpunkTheme::kReadoutFontH));
         g.setColour(CyberpunkTheme::cyan_);
         g.drawText(txt, getCanvasBounds().reduced(4), juce::Justification::topRight);
@@ -690,13 +711,21 @@ void PartialEditorCanvas::paint(juce::Graphics& g)
     for (int p = vpStart; p < vpEnd; p += partialStep)
     {
         auto pos = gridToPixel(0, p);
-        float freq = (static_cast<float>(p) / static_cast<float>(numPartials)) * 22050.0f;
         juce::String label;
 
-        if (freq >= 1000.0f)
-            label = juce::String(freq / 1000.0f, 1) + "k";
+        if (harmonicAxis_)
+        {
+            label = "H" + juce::String(p + 1);
+        }
         else
-            label = juce::String(static_cast<int>(freq));
+        {
+            const float freq = (static_cast<float>(p) / static_cast<float>(numPartials)) * 22050.0f;
+
+            if (freq >= 1000.0f)
+                label = juce::String(freq / 1000.0f, 1) + "k";
+            else
+                label = juce::String(static_cast<int>(freq));
+        }
 
         if (pos.y >= area.getY() && pos.y <= area.getBottom())
         {

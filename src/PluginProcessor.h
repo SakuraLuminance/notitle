@@ -237,8 +237,19 @@ public:
     int   getEditedPartialsVersion() const { return editedPartialsVersion_.load(); }
 
     /** Replaces the whole harmonic image from an edited time x partial grid
-        (the PartialEditorCanvas "draw the image" view). */
-    void  applyImageFromPartialData(const ana::PartialData& data);
+        (the PartialEditorCanvas "draw the image" view).
+        @a harmonicAxisF0 is the axis the grid rows were drawn on (see
+        HarmonicBinning): pass 0 (the default) to re-derive it from the data. */
+    void  applyImageFromPartialData(const ana::PartialData& data,
+                                    float harmonicAxisF0 = 0.0f);
+
+    /** Fundamental of the harmonic image axis in Hz (0 = the image is not
+        harmonic: rows are raw frequency-sorted peaks, see HarmonicBinning). */
+    float getImageFundamental() const { return imageFundamental_.load(); }
+
+    /** The binned harmonic image frames actually published to the synth.
+        Message thread only: the audio thread never mutates this vector. */
+    const std::vector<ana::PartialDataSIMD>& getImageFrames() const { return imageFrames_; }
 
     /** Spectral freeze stage (post-effects, pre-master).  Audio thread only. */
     void processSpectralFreeze(juce::AudioBuffer<float>& buffer);
@@ -247,8 +258,12 @@ public:
     void setThemeIndex(int index) { themeIndex_.store(juce::jlimit(0, 7, index)); }
     int  getThemeIndex() const    { return themeIndex_.load(); }
 
-    /** Rebuilds imageFrames_ (<= kMaxFrames, evenly subsampled) from analysis data. */
-    void buildImageFramesFromPartialData(const ana::PartialData& pd);
+    /** Rebuilds imageFrames_ (<= kMaxFrames, evenly subsampled) from analysis
+        data, binning every frame onto one shared harmonic axis so that row i
+        means harmonic i+1 in every frame.  @a harmonicAxisF0 forces that axis
+        (used when the grid comes back from the image editor); 0 re-derives it. */
+    void buildImageFramesFromPartialData(const ana::PartialData& pd,
+                                         float harmonicAxisF0 = 0.0f);
 
     //==============================================================================
     // --- Granular layer (P7) ---
@@ -652,6 +667,7 @@ private:
     std::atomic<bool>  imageLoop_{ true };
     std::atomic<int>   imageEditFrame_{ 0 };
     std::atomic<int>   editedPartialsVersion_{ 0 };
+    std::atomic<float> imageFundamental_{ 0.0f };   // harmonic axis of imageFrames_
 
     // Granular layer (P7): grain-cloud rendering of the loaded sample.
     ana::GranularSynthesizer granularSynth_;
