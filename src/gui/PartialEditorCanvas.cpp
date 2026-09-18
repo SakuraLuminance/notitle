@@ -428,10 +428,15 @@ void PartialEditorCanvas::fillRectangle(juce::Point<int> from,
                                         juce::Point<int> to,
                                         float value)
 {
-    int minF = std::clamp(std::min(from.x, to.x), 0, numFrames - 1);
-    int maxF = std::clamp(std::max(from.x, to.x), 0, numFrames - 1);
-    int minP = std::clamp(std::min(from.y, to.y), 0, numPartials - 1);
-    int maxP = std::clamp(std::max(from.y, to.y), 0, numPartials - 1);
+    // An empty grid has no valid cell: clamping to [0, -1] is undefined and the
+    // loop below would then index gridAmplitudes[(size_t) -1].
+    if (numFrames <= 0 || numPartials <= 0 || gridAmplitudes.empty())
+        return;
+
+    const int minF = std::clamp(std::min(from.x, to.x), 0, numFrames - 1);
+    const int maxF = std::clamp(std::max(from.x, to.x), 0, numFrames - 1);
+    const int minP = std::clamp(std::min(from.y, to.y), 0, numPartials - 1);
+    const int maxP = std::clamp(std::max(from.y, to.y), 0, numPartials - 1);
 
     for (int f = minF; f <= maxF; ++f)
         for (int p = minP; p <= maxP; ++p)
@@ -585,12 +590,12 @@ void PartialEditorCanvas::mouseWheelMove(const juce::MouseEvent& e,
     if (numFrames == 0 || numPartials == 0)
         return;
 
-    float zoomFactor = 1.0f + (wheel.deltaY > 0.0f ? 0.15f : -0.15f);
     if (wheel.deltaY == 0.0f)
         return;
 
-    // Pinch-zoom delta for trackpads
-    zoomFactor = 1.0f + wheel.deltaY * 0.5f;
+    // Trackpad-friendly: the wheel delta is the zoom step directly, and the
+    // clamp below keeps a runaway delta from collapsing the view.
+    const float zoomFactor = 1.0f + wheel.deltaY * 0.5f;
 
     float newZoomX = std::clamp(zoomX * zoomFactor, 0.1f, 20.0f);
     float newZoomY = std::clamp(zoomY * zoomFactor, 0.1f, 20.0f);

@@ -15,6 +15,7 @@ StepCell::StepCell(int index, AnaPlugAudioProcessor& p)
         if (onGateChanged)
             onGateChanged(index_, gateButton_.getToggleState());
     };
+    gateButton_.setTooltip("Step " + juce::String(index_ + 1) + " gate: fired steps advance the sequence");
     addAndMakeVisible(gateButton_);
 
     // Value slider
@@ -30,6 +31,7 @@ StepCell::StepCell(int index, AnaPlugAudioProcessor& p)
         if (onValueChanged)
             onValueChanged(index_, static_cast<float>(valueSlider_.getValue()));
     };
+    valueSlider_.setTooltip("Step " + juce::String(index_ + 1) + " value: pitch offset / level sent to the sequencer targets");
     addAndMakeVisible(valueSlider_);
 }
 

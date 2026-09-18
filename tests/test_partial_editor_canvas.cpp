@@ -313,3 +313,57 @@ TEST_CASE("PartialEditorCanvas undo stack depth is limited",
     REQUIRE(data.maxPartials == 3);
     REQUIRE(data.frames.size() == 3);
 }
+
+// ============================================================================
+// Degenerate input: an editor with nothing loaded must not touch the grid.
+// ============================================================================
+TEST_CASE("PartialEditorCanvas tolerates a grid with no frames",
+          "[gui][editor]")
+{
+    ana::PartialEditorCanvas canvas;
+    canvas.setBounds(0, 0, 400, 200);
+
+    // Fresh canvas: every entry point is a no-op, none of them indexes the
+    // empty grid (a rectangle fill used to clamp against numFrames - 1).
+    REQUIRE(canvas.isEmpty());
+    canvas.clear();
+    canvas.normalize();
+    canvas.smooth();
+    canvas.undo();
+    canvas.redo();
+    REQUIRE(canvas.getNumFrames() == 0);
+
+    SECTION("an explicitly empty data set behaves the same")
+    {
+        ana::PartialData empty;
+        canvas.setPartialData(empty);
+
+        REQUIRE(canvas.isEmpty());
+        REQUIRE(canvas.getNumFrames() == 0);
+
+        canvas.clear();
+        canvas.normalize();
+        canvas.smooth();
+        canvas.undo();
+        canvas.redo();
+
+        REQUIRE(canvas.getModifiedPartialData().frames.empty());
+    }
+
+    SECTION("frames without partials stay empty too")
+    {
+        ana::PartialData flat;
+        flat.maxPartials = 0;
+        flat.frames.resize(4);
+
+        canvas.setPartialData(flat);
+        REQUIRE(canvas.getNumFrames() == 4);
+
+        canvas.clear();
+        canvas.normalize();
+        canvas.smooth();
+
+        REQUIRE(canvas.getModifiedPartialData().frames.size() == 4);
+    }
+}
+

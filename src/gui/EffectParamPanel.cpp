@@ -129,11 +129,42 @@ void EffectParamPanel::resized()
 
     auto area = getLocalBounds();
 
+    const int perRow = juce::jmax(1, area.getWidth() / knobW);
+    const int n      = knobs_.size();
+    const int rows   = (n + perRow - 1) / perRow;
+
+    // Menus and knob rows share whatever height we were given.  When a caller
+    // hands out less than getPreferredHeight() asked for, both blocks are
+    // squeezed proportionally rather than letting the tail fall outside the
+    // panel: a clipped control is invisible and therefore unreachable.
+    const int menuBlock = menus_.size() * menuRowH;
+    const int knobBlock = rows * rowH;
+    const int needed    = menuBlock + knobBlock;
+    const int available = area.getHeight();
+
+    int menuRowHeight = menuRowH;
+    int knobRowHeight = rowH;
+
+    if (needed > available && needed > 0)
+    {
+        // Scale each *unit* height by the same fraction, so the blocks keep
+        // their proportions and the total lands on the space available.
+        const auto share = [available, needed](int natural, int floor)
+        {
+            const auto scaled = static_cast<int>((static_cast<juce::int64>(natural)
+                                                  * available) / needed);
+            return juce::jmax(floor, scaled);
+        };
+
+        menuRowHeight = share(menuRowH, 10);
+        knobRowHeight = share(rowH, 18);
+    }
+
     // Enumeration menus first, one per row: they need the full width to show
     // their labels, which a 46 px knob column cannot do.
     for (int i = 0; i < menus_.size(); ++i)
     {
-        auto row = area.removeFromTop(menuRowH).reduced(2, 1);
+        auto row = area.removeFromTop(menuRowHeight).reduced(2, 1);
         menuLabels_.getUnchecked(i)->setBounds(row.removeFromLeft(menuLabelW));
         menus_.getUnchecked(i)->setBounds(row);
     }
@@ -141,17 +172,15 @@ void EffectParamPanel::resized()
     if (knobs_.isEmpty())
         return;
 
-    const int perRow = juce::jmax(1, area.getWidth() / knobW);
-    const int n = knobs_.size();
-
     for (int i = 0; i < n; ++i)
     {
         const int row = i / perRow;
         const int col = i % perRow;
         auto cell = juce::Rectangle<int>(area.getX() + col * knobW,
-                                         area.getY() + row * rowH,
-                                         knobW, rowH);
-        knobs_.getUnchecked(i)->setBounds(cell.removeFromTop(rowH - 14));
+                                         area.getY() + row * knobRowHeight,
+                                         knobW, knobRowHeight);
+        knobs_.getUnchecked(i)->setBounds(cell.removeFromTop(
+            juce::jmax(6, knobRowHeight - 14)));
         labels_.getUnchecked(i)->setBounds(cell);
     }
 }

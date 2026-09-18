@@ -134,25 +134,12 @@ ModulationAssignPanel::ModulationAssignPanel(AnaPlugAudioProcessor& processor)
     {
         row->sourceCombo.onChange = [this, &row = *row]()
         {
-            const int id = row.sourceCombo.getSelectedId();
-            auto src = static_cast<ModSource>(id - 1);
-            processor_.setModSource(row.slotIndex, src);
-
-            if (id <= 1) // OFF → disabled
-            {
-                row.depthSlider.setEnabled(false);
-            }
-            else
-            {
-                row.depthSlider.setEnabled(true);
-                if (id <= 5) // LFO 1-4 → bipolar
-                    row.depthSlider.setRange(-1.0, 1.0, 0.001);
-                else // ENV 1-3 → unipolar
-                    row.depthSlider.setRange(0.0, 1.0, 0.001);
-            }
+            processor_.setModSource(row.slotIndex,
+                static_cast<ModSource>(row.sourceCombo.getSelectedId() - 1));
+            applyDepthState(row);
         };
         // Apply initial state (OFF by default → disabled)
-        row->depthSlider.setEnabled(false);
+        applyDepthState(*row);
     };
 
     for (auto& r : filterSection_.rows)  wireDepthSync(r);
@@ -286,6 +273,25 @@ int ModulationAssignPanel::calcContentHeight() const
 }
 
 //==============================================================================
+void ModulationAssignPanel::applyDepthState(ModRow& row)
+{
+    const int id = row.sourceCombo.getSelectedId();
+
+    if (id <= 1)   // OFF
+    {
+        row.depthSlider.setEnabled(false);
+        return;
+    }
+
+    row.depthSlider.setEnabled(true);
+
+    if (id <= 5)   // LFO 1-4 are bipolar
+        row.depthSlider.setRange(-1.0, 1.0, 0.001);
+    else           // ENV 1-3 are unipolar
+        row.depthSlider.setRange(0.0, 1.0, 0.001);
+}
+
+//==============================================================================
 void ModulationAssignPanel::syncFromProcessor()
 {
     auto syncRow = [this](const std::unique_ptr<ModRow>& row)
@@ -295,6 +301,10 @@ void ModulationAssignPanel::syncFromProcessor()
         const int expectedId = static_cast<int>(slot.mod.source) + 1;
         if (row->sourceCombo.getSelectedId() != expectedId)
             row->sourceCombo.setSelectedId(expectedId, juce::dontSendNotification);
+
+        // dontSendNotification above means onChange never ran: bring the depth
+        // slider's enabled state and range in line with the loaded source.
+        applyDepthState(*row);
 
         const double depth = static_cast<double>(slot.mod.depth);
         if (std::abs(row->depthSlider.getValue() - depth) > 0.001)

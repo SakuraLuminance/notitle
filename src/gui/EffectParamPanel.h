@@ -16,6 +16,9 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
+    /** Height this panel needs when it is laid out at exactly @a width.
+        EffectSlotWidget reserves this much and then hands the panel that same
+        width, so the two must stay in step. */
     int getPreferredHeight(int width) const;
 
     /** The effect this panel edits (never null for a live panel). */

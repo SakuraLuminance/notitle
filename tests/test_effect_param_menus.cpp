@@ -164,3 +164,66 @@ TEST_CASE("EffectParamPanel shows a menu for a choice parameter", "[effects][ui]
     // The menu rows need real space above the knob grid.
     REQUIRE(panel.getPreferredHeight(300) > choiceCount * 20);
 }
+// ---------------------------------------------------------------------------
+// The rack reserves getParamPanelPreferredHeight(width) for an expanded slot and
+// then lays the panel out at that same width.  If the two disagree by even one
+// knob column the last row lands outside the reserved area and silently
+// disappears, so the height formula and the layout are checked against each
+// other here at every width the rack can hand out.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("EffectParamPanel reserves the height its layout needs", "[effects][ui]")
+{
+    int checkedEffects = 0;
+
+    for (const auto& typeName : ana::EffectParamRegistry::getTypeNames())
+    {
+        auto effect = ana::EffectParamRegistry::create(typeName);
+        REQUIRE(effect != nullptr);
+
+        ana::EffectParamPanel panel(effect.get());
+        ++checkedEffects;
+
+        // Widths that straddle knob-column boundaries, including the exact
+        // multiples of 46 that used to shift a knob onto an extra row.
+        for (int width : { 46, 47, 91, 92, 93, 137, 138, 184, 230, 231, 232,
+                           275, 276, 277, 322, 414, 460, 690, 1080 })
+        {
+            const int height = panel.getPreferredHeight(width);
+            REQUIRE(height > 0);
+
+            panel.setBounds(0, 0, width, height);
+            panel.resized();
+
+            const auto bounds = panel.getLocalBounds();
+
+            panel.visitKnobs([&](int, juce::Slider& knob)
+            {
+                INFO(typeName << " knob at width " << width);
+                REQUIRE(bounds.contains(knob.getBounds()));
+            });
+
+            panel.visitMenus([&](int, juce::ComboBox& menu)
+            {
+                INFO(typeName << " menu at width " << width);
+                REQUIRE(bounds.contains(menu.getBounds()));
+            });
+
+            // Half the reserved height must not push a knob out of the panel
+            // either: the rows squeeze, they never fall off the bottom.
+            panel.setBounds(0, 0, width, juce::jmax(20, height / 2));
+            panel.resized();
+
+            const auto squeezed = panel.getLocalBounds();
+
+            panel.visitKnobs([&](int, juce::Slider& knob)
+            {
+                INFO(typeName << " squeezed knob at width " << width);
+                REQUIRE(squeezed.contains(knob.getBounds()));
+            });
+        }
+    }
+
+    REQUIRE(checkedEffects >= 10);
+}
+

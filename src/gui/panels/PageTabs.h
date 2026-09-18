@@ -13,9 +13,22 @@ public:
     PageTabs()
     {
         static const char* names[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV", "EVO", "GRAIN" };
+        static const char* tips[] =
+        {
+            "Timbre A/B, BLEND, XY pad and the image / generative layers",
+            "Filter cutoff, resonance and the live frequency response",
+            "Macros, the modulation matrix and both LFOs",
+            "Step sequencer: 16 gates and values, tempo synced",
+            "Effect rack, effect presets, spectral freeze and the character buttons",
+            "Voicing, portamento, arpeggiator, master volume and pan",
+            "Envelope slots VOL/ENV1-3 on the editable canvas",
+            "Evolve spectral DNA, then promote the fittest genome to a timbre",
+            "Granular layer: cloud, source envelope and the ten grain controls"
+        };
         for (int i = 0; i < kNumTabs; ++i)
         {
             auto b = std::make_unique<juce::TextButton>(names[i]);
+            b->setTooltip(tips[i]);
             b->setClickingTogglesState(true);
             b->setRadioGroupId(2401);
             b->setColour(juce::TextButton::buttonColourId,

@@ -70,6 +70,12 @@ private:
     //==============================================================================
     void toggleSection(SectionData& section);
 
+    /** The depth slider follows the selected source: OFF disables it, LFOs are
+        bipolar, envelopes unipolar.  Called both when the user picks a source
+        and when a preset moves the combo behind the UI's back - otherwise a
+        loaded assignment would show a greyed-out depth the user cannot drag. */
+    static void applyDepthState(ModRow& row);
+
     //==============================================================================
     // MouseListener
     void mouseUp(const juce::MouseEvent& event) override;

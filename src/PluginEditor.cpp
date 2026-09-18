@@ -802,6 +802,11 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 
     // Effect rack 鈥?MIDI Learn for the rack controls is handled internally
 
+    // Every control in the plugin carries a tooltip, but JUCE renders them
+    // from a TooltipWindow - without one they never appear.  Parented to the
+    // editor so it dies with the window and follows the LookAndFeel.
+    tooltipWindow_ = std::make_unique<juce::TooltipWindow>(this, 700);
+
     updateStatus();
     ANA_CRUMB("ed:exit");
     startTimerHz(30);
@@ -810,6 +815,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 AnaPlugAudioProcessorEditor::~AnaPlugAudioProcessorEditor()
 {
     stopTimer();
+    tooltipWindow_.reset();   // before the LookAndFeel goes away
     setLookAndFeel(nullptr);
 }
 

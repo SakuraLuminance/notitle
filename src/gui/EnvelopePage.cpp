@@ -64,6 +64,11 @@ EnvelopePage::EnvelopePage(AnaPlugAudioProcessor& processor)
         addAndMakeVisible(*b);
     }
 
+    volSlot_.setTooltip("Edit the always-on VOLUME envelope (the amp contour every note uses)");
+    env1Slot_.setTooltip("Edit ENV1 - assign it in the MOD matrix to modulate any parameter");
+    env2Slot_.setTooltip("Edit ENV2 - a second assignable envelope");
+    env3Slot_.setTooltip("Edit ENV3 - a third assignable envelope");
+
     volSlot_.onClick  = [this] { selectSlot(0); };
     env1Slot_.onClick = [this] { selectSlot(1); };
     env2Slot_.onClick = [this] { selectSlot(2); };

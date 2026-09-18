@@ -216,6 +216,12 @@ private:
     // Master
     ana::MasterSection masterSection_;
 
+    // Tooltips: JUCE only shows them when a TooltipWindow exists in the
+    // hierarchy, so without this member every setTooltip() call in the UI is
+    // inert.  Created by the editor, destroyed before the LookAndFeel is
+    // detached (it resolves colours through its parent).
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
+
     // Status
     juce::Label statusLabel_;
     juce::TextButton dnaButton_{"DNA EVOLVE"};

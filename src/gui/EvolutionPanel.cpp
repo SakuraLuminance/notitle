@@ -17,6 +17,7 @@ EvolutionPanel::EvolutionPanel(AnaPlugAudioProcessor& p)
     popSizeCombo_.addItem("128", 128);
     popSizeCombo_.setSelectedId(16, juce::dontSendNotification);
     popSizeCombo_.onChange = [this] { onPopSizeChanged(); };
+    popSizeCombo_.setTooltip("Genomes kept alive per generation. More genomes explore wider but evolve slower.");
     addAndMakeVisible(popSizeCombo_);
 
     //==============================================================================
@@ -29,6 +30,12 @@ EvolutionPanel::EvolutionPanel(AnaPlugAudioProcessor& p)
     loadDNABtn_.onClick     = [this] { onLoadDNA(); };
     useFittestBtn_.onClick  = [this] { onUseFittest(); };
     useFittestBtn_.setTooltip("Promote the fittest genome to the current timbre (switches SYNTH on)");
+    evolve1Btn_.setTooltip("Run one generation: score every genome, then breed the fittest ones");
+    evolve10Btn_.setTooltip("Run ten generations back to back");
+    randomizeBtn_.setTooltip("Seed a fresh random population (discards the current one)");
+    loadSampleBtn_.setTooltip("Use the loaded sample as the fitness target: genomes score higher the closer they get");
+    saveDNABtn_.setTooltip("Write the selected genome to a .dna file on disk");
+    loadDNABtn_.setTooltip("Load a .dna file back into the selected cell");
 
     addAndMakeVisible(evolve1Btn_);
     addAndMakeVisible(evolve10Btn_);

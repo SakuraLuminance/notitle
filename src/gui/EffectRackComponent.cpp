@@ -206,18 +206,22 @@ void EffectSlotWidget::layoutHeader(juce::Rectangle<int> area)
 //==============================================================================
 void EffectSlotWidget::resized()
 {
-    auto area = getLocalBounds().reduced(1, 0);
+    const auto full = getLocalBounds();
 
     if (expanded_)
     {
-        auto header = area.removeFromTop(slotHeight);
-        layoutHeader(header);
+        layoutHeader(full.withHeight(slotHeight).reduced(1, 0));
+
+        // The panel gets the slot's full width because that is the width the
+        // rack used to reserve its height (getParamPanelPreferredHeight).
+        // Laying it out two pixels narrower could drop a knob to the next row,
+        // and the extra row would then fall outside the reserved height.
         if (paramPanel_ != nullptr)
-            paramPanel_->setBounds(area);
+            paramPanel_->setBounds(full.withTrimmedTop(slotHeight));
     }
     else
     {
-        layoutHeader(area);
+        layoutHeader(full.reduced(1, 0));
     }
 }
 
@@ -462,6 +466,7 @@ EffectRackComponent::EffectRackComponent(AnaPlugAudioProcessor& processor)
     addButton_.setButtonText("+ ADD EFFECT");
     addButton_.setColour(juce::TextButton::buttonColourId, CyberpunkTheme::cyan_.withAlpha(0.15f));
     addButton_.setColour(juce::TextButton::textColourOffId, CyberpunkTheme::cyan_);
+    addButton_.setTooltip("Add an effect to the end of the chain");
     addButton_.onClick = [this] { showAddEffectMenu(); };
     addAndMakeVisible(addButton_);
 
