@@ -394,3 +394,81 @@ TEST_CASE("GranularSynthesizer - empty source produces silence", "[granular]")
     float energy = bufferEnergy(output, 0) + bufferEnergy(output, 1);
     REQUIRE(energy == 0.0f);
 }
+
+
+//==============================================================================
+// Window-table cache reservation (P7): the processor reserves the cache in
+// prepareToPlay so a grain-size change can no longer allocate on the audio
+// thread.  Reserving must not alter the rendered result.
+//==============================================================================
+
+TEST_CASE("GranularSynthesizer - reserveWindowCache grows the cache capacity", "[granular]")
+{
+    ana::GranularSynthesizer synth;
+    const int reserved = 4800;   // 100 ms at 48 kHz
+
+    REQUIRE(synth.getWindowCacheCapacity() < reserved);
+    synth.reserveWindowCache(reserved);
+    REQUIRE(synth.getWindowCacheCapacity() >= reserved);
+
+    // A subsequent render (which resize()s the cache to the grain duration)
+    // must not shrink the reserved capacity.
+    std::vector<float> source(48000, 0.0f);
+    for (size_t i = 0; i < source.size(); ++i)
+        source[i] = 0.25f * std::sin(2.0 * M_PI * 220.0 * static_cast<double>(i) / 48000.0);
+
+    synth.setSourceBuffer(source, 48000.0);
+    synth.setDensity(80.0f);
+
+    juce::AudioBuffer<float> output(2, 512);
+    for (const float ms : { 5.0f, 100.0f, 2.0f, 60.0f })
+    {
+        synth.setGrainSize(ms);
+        synth.process(output);
+        REQUIRE(synth.getWindowCacheCapacity() >= reserved);
+    }
+
+    // reserveWindowCache() with a nonsense size is ignored
+    synth.reserveWindowCache(0);
+    REQUIRE(synth.getWindowCacheCapacity() >= reserved);
+}
+
+TEST_CASE("GranularSynthesizer - reserving the window cache does not change output", "[granular]")
+{
+    const double sampleRate = 44100.0;
+    std::vector<float> source(44100);
+    for (size_t i = 0; i < source.size(); ++i)
+        source[i] = 0.4f * std::sin(2.0 * M_PI * 330.0 * static_cast<double>(i) / sampleRate);
+
+    ana::GranularSynthesizer reserved;
+    reserved.reserveWindowCache(static_cast<int>(sampleRate * 0.1) + 2);
+
+    ana::GranularSynthesizer plain;
+
+    for (auto* synth : { &reserved, &plain })
+    {
+        synth->setSourceBuffer(source, sampleRate);
+        synth->setDensity(40.0f);
+        synth->setGrainSize(35.0f);
+        synth->setPosition(0.25f);
+        synth->setPitch(0.0f);
+        synth->setAmplitude(0.5f);
+        synth->setPan(0.0f);
+        synth->setWindowType(ana::GrainWindowType::Hann);
+        synth->setPositionModulation(ana::PositionModulation::Off);
+    }
+
+    juce::AudioBuffer<float> outReserved(2, 1024);
+    juce::AudioBuffer<float> outPlain(2, 1024);
+
+    // Two identical calls per instance (the first warms the window table).
+    reserved.process(outReserved);
+    plain.process(outPlain);
+    reserved.process(outReserved);
+    plain.process(outPlain);
+
+    REQUIRE(bufferEnergy(outReserved, 0) > 0.0f);
+    REQUIRE(bufferEnergy(outReserved, 0) == Catch::Approx(bufferEnergy(outPlain, 0)).margin(1.0e-6f));
+    REQUIRE(bufferEnergy(outReserved, 1) == Catch::Approx(bufferEnergy(outPlain, 1)).margin(1.0e-6f));
+}
+

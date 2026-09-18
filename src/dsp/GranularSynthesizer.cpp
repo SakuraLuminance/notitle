@@ -169,6 +169,16 @@ void GranularSynthesizer::reset()
     totalGrainsSpawned_ = 0;
 }
 
+void GranularSynthesizer::reserveWindowCache(int maxSamples)
+{
+    if (maxSamples <= 0)
+        return;
+
+    // getCachedWindowValue() resize()s the cache to the grain duration, so a
+    // capacity of maxSamples makes every subsequent fill allocation-free.
+    windowCache_.reserve(static_cast<size_t>(maxSamples));
+}
+
 //==============================================================================
 int GranularSynthesizer::getActiveGrainCount() const
 {
@@ -189,6 +199,11 @@ int GranularSynthesizer::getTotalGrainsSpawned() const
 double GranularSynthesizer::getSampleRate() const
 {
     return sampleRate_;
+}
+
+int GranularSynthesizer::getWindowCacheCapacity() const noexcept
+{
+    return static_cast<int>(windowCache_.capacity());
 }
 
 //==============================================================================

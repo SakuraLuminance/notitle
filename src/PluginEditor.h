@@ -18,6 +18,7 @@
 #include "gui/EnvelopePage.h"
 #include "gui/ParticleDisplay.h"
 #include "gui/PartialEditorCanvas.h"
+#include "gui/GranularPage.h"
 #include "gui/EffectRackComponent.h"
 #include "gui/panels/TimbrePanel.h"
 #include "gui/panels/FilterPanel.h"
@@ -176,6 +177,7 @@ private:
 
     // ENV page (P4): editable envelope canvas + slot list + parameter row
     ana::EnvelopePage envPage_;
+    ana::GranularPage granularPage_;
 
     //==============================================================================
     // Bottom area

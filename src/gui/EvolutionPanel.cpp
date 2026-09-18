@@ -27,6 +27,8 @@ EvolutionPanel::EvolutionPanel(AnaPlugAudioProcessor& p)
     loadSampleBtn_.onClick  = [this] { onLoadSample(); };
     saveDNABtn_.onClick     = [this] { onSaveDNA(); };
     loadDNABtn_.onClick     = [this] { onLoadDNA(); };
+    useFittestBtn_.onClick  = [this] { onUseFittest(); };
+    useFittestBtn_.setTooltip("Promote the fittest genome to the current timbre (switches SYNTH on)");
 
     addAndMakeVisible(evolve1Btn_);
     addAndMakeVisible(evolve10Btn_);
@@ -34,6 +36,7 @@ EvolutionPanel::EvolutionPanel(AnaPlugAudioProcessor& p)
     addAndMakeVisible(loadSampleBtn_);
     addAndMakeVisible(saveDNABtn_);
     addAndMakeVisible(loadDNABtn_);
+    addAndMakeVisible(useFittestBtn_);
 
     //==============================================================================
     // Labels
@@ -77,7 +80,7 @@ void EvolutionPanel::resized()
     // -- Button row --
     auto btnRow = area.removeFromTop(rowH);
     const int btnGap = 4;
-    const int btnW   = (btnRow.getWidth() - btnGap * 5) / 6;
+    const int btnW   = (btnRow.getWidth() - btnGap * 6) / 7;
 
     auto nextBtn = [&](juce::TextButton& btn) {
         btn.setBounds(btnRow.removeFromLeft(btnW).reduced(1));
@@ -89,6 +92,7 @@ void EvolutionPanel::resized()
     nextBtn(loadSampleBtn_);
     nextBtn(saveDNABtn_);
     nextBtn(loadDNABtn_);
+    nextBtn(useFittestBtn_);
 
     area.removeFromTop(6);
 
@@ -281,6 +285,31 @@ void EvolutionPanel::onLoadSample()
 
     // Keep chooser alive by transferring to a heap owner
     fileChooser.release();
+}
+
+void EvolutionPanel::onUseFittest()
+{
+    auto& evolver = processor.getDNAEvolver();
+    if (evolver.getPopulationSize() == 0)
+    {
+        statusLabel_.setText("No population — click [Randomize] first",
+                             juce::dontSendNotification);
+        return;
+    }
+
+    if (! processor.applyFittestDNAToTimbre())
+    {
+        statusLabel_.setText("Fittest genome has no active partials",
+                             juce::dontSendNotification);
+        return;
+    }
+
+    const auto& fittest = evolver.getFittest();
+    statusLabel_.setText("Fittest (fit " + juce::String(fittest.fitness, 3)
+                             + ", gen " + juce::String(fittest.generation)
+                             + ") is now the SYNTH timbre",
+                         juce::dontSendNotification);
+    updateDisplay();
 }
 
 void EvolutionPanel::onSaveDNA()

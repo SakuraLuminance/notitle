@@ -1,4 +1,4 @@
-﻿#include "PluginEditor.h"
+#include "PluginEditor.h"
 #include "gui/panels/PanelWidgets.h"
 #include "dsp/PitchCorrector.h"
 #include "dsp/Crumb.h"
@@ -11,7 +11,7 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
       timbreAPanel_(p, true), timbreBPanel_(p, false),
       filterPanel_(p), macroPanel_(p), effectRack_(p),
       transportBar_(p), masterSection_(p), sequencerPanel_(p),
-      meteringPanel_(p), modPanel_(p), envPage_(p)
+      meteringPanel_(p), modPanel_(p), envPage_(p), granularPage_(p)
 {
     setLookAndFeel(&ana::CyberpunkTheme::getInstance());
     ANA_CRUMB("ed:laf");
@@ -447,6 +447,9 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
 
     addAndMakeVisible(envPage_);
     envPage_.onEnvelopeEdited = [this] { modPanel_.syncFromProcessor(); };
+
+    // Granular layer page (P7)
+    addAndMakeVisible(granularPage_);
     modViewport_.setScrollBarsShown(true, false);
     modViewport_.getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId,
         ana::CyberpunkTheme::cyan_.withAlpha(0.5f));
@@ -731,7 +734,7 @@ void AnaPlugAudioProcessorEditor::computeRegions(juce::Rectangle<int> bounds, Re
 }
 
 //==============================================================================
-static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV", "EVO" };
+static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV", "EVO", "GRAIN" };
 
 void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
 {
@@ -746,7 +749,7 @@ void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
     // Region borders
     ana::CyberpunkTheme::drawPanelBorder(g, r.spectrum, "SPECTRUM", ana::CyberpunkTheme::cyan_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.content,
-        kPageNames[juce::jlimit(0, 7, activePage_)], ana::CyberpunkTheme::magenta_);
+        kPageNames[juce::jlimit(0, 8, activePage_)], ana::CyberpunkTheme::magenta_);
     ana::CyberpunkTheme::drawPanelBorder(g, r.statusBar, "", ana::CyberpunkTheme::fg_.withAlpha(0.15f));
 
     // Title bar
@@ -945,6 +948,10 @@ void AnaPlugAudioProcessorEditor::resized()
             if (evolutionPanel != nullptr)
                 evolutionPanel->setBounds(ca.reduced(4));
             break;
+
+        case 8: // GRAIN
+            granularPage_.setBounds(ca);
+            break;
     }
 
     // -- Status bar (compact 35px) --
@@ -974,7 +981,7 @@ void AnaPlugAudioProcessorEditor::updateImageReadouts()
 
 void AnaPlugAudioProcessorEditor::setActivePage(int page)
 {
-    if (page < 0 || page > 7)
+    if (page < 0 || page > 8)
         return;
     activePage_ = page;
 
@@ -1045,6 +1052,8 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
     arpGateLabel_.setVisible(page == 5);
 
     envPage_.setVisible(page == 6);
+
+    granularPage_.setVisible(page == 8);
 
     // DNA evolution panel is created on first use (DNA EVOLVE button / EVO tab).
     if (evolutionPanel != nullptr)
@@ -1168,6 +1177,8 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         modPanel_.syncFromProcessor();
     else if (activePage_ == 6)
         envPage_.syncFromProcessor();
+    else if (activePage_ == 8)
+        granularPage_.syncFromProcessor();
 
     // Spectral particle view (P5): physics tick while the view is active
     if (viewModeCombo_.getSelectedId() == 7)
@@ -1489,12 +1500,14 @@ void AnaPlugAudioProcessorEditor::setupMidiLearnForEffectKnob(juce::Slider& knob
     MidiLearnSliderInfo info;
     info.paramId = paramId;
     info.target  = nullptr;
-    info.targetSetter = [resolve](float v)
+    // paramIndex must be captured explicitly: the inner lambdas read it in
+    // their own bodies, and resolve() only closes over its own copy.
+    info.targetSetter = [resolve, paramIndex](float v)
     {
         if (auto* effect = resolve())
             effect->setParamValue(paramIndex, v);
     };
-    info.targetGetter = [resolve]() -> float
+    info.targetGetter = [resolve, paramIndex]() -> float
     {
         if (auto* effect = resolve())
             return effect->getParamValue(paramIndex);

@@ -489,6 +489,25 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
         freezeEngine_.processAudio(warmIn, freezeScratch_);
     }
 
+        // Granular layer (P7): preallocate the render scratch and the window
+        // table so process() never allocates, then push the current UI state
+        // into the freshly prepared engine.
+        {
+            granularScratch_.setSize(2, juce::jmax(1, samplesPerBlock), false, true, true);
+            granularSynth_.reserveWindowCache(
+                static_cast<int>(sampleRate * 0.1) + 2);   // 100 ms = longest grain
+
+            granularSynth_.setGrainSize(granularGrainMs_.load());
+            granularSynth_.setDensity(granularDensity_.load());
+            granularSynth_.setPosition(granularPosition_.load());
+            granularSynth_.setPitch(granularPitch_.load());
+            granularSynth_.setWindowType(static_cast<ana::GrainWindowType>(
+                juce::jlimit(0, 3, granularWindow_.load())));
+            granularSynth_.setPositionModulation(
+                static_cast<ana::PositionModulation>(juce::jlimit(0, 3, granularModMode_.load())),
+                granularModDepth_.load(), granularModRate_.load());
+        }
+
         // Prepare the vocal character processor
         vocalProcessor_.prepare(spec);
 
@@ -934,6 +953,9 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
                 for (int ch = 0; ch < numChannels; ++ch)
                     buffer.addFrom(ch, 0, voiceBuffer, ch, 0, numSamples, 0.5f);
 
+                // Granular layer (P7), mixed before the freeze/master stages
+                renderGranularLayer(buffer, numSamples);
+
                 // Spectral freeze (P5), post-effects / pre-master
                 processSpectralFreeze(buffer);
 
@@ -972,6 +994,9 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // No resynthesis: just copy VoiceManager output to main buffer
     for (int ch = 0; ch < numChannels; ++ch)
         buffer.copyFrom(ch, 0, voiceBuffer, ch, 0, numSamples);
+
+    // Granular layer (P7), mixed before the freeze/master stages
+    renderGranularLayer(buffer, numSamples);
 
     // Spectral freeze (P5), post-effects / pre-master
     processSpectralFreeze(buffer);
@@ -1049,6 +1074,18 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("imageLoop", imageLoop_.load(), nullptr);
     state.setProperty("themeIndex", themeIndex_.load(), nullptr);
 
+    // Granular layer (P7)
+    state.setProperty("grainEnabled", granularEnabled_.load(), nullptr);
+    state.setProperty("grainSizeMs", granularGrainMs_.load(), nullptr);
+    state.setProperty("grainDensity", granularDensity_.load(), nullptr);
+    state.setProperty("grainPosition", granularPosition_.load(), nullptr);
+    state.setProperty("grainPitch", granularPitch_.load(), nullptr);
+    state.setProperty("grainMix", granularMix_.load(), nullptr);
+    state.setProperty("grainWindow", granularWindow_.load(), nullptr);
+    state.setProperty("grainModMode", granularModMode_.load(), nullptr);
+    state.setProperty("grainModDepth", granularModDepth_.load(), nullptr);
+    state.setProperty("grainModRate", granularModRate_.load(), nullptr);
+
     auto presetState = presetManager.serialiseState();
     state.addChild(presetState, -1, nullptr);
 
@@ -1107,6 +1144,18 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (state.hasProperty("themeIndex"))    setThemeIndex((int)state.getProperty("themeIndex", 0));
     if (state.hasProperty("synthMode"))     setSynthMode((bool)state.getProperty("synthMode", false));
 
+    // Granular layer (P7)
+    if (state.hasProperty("grainSizeMs"))    setGrainSizeMs((float)state.getProperty("grainSizeMs", 60.0f));
+    if (state.hasProperty("grainDensity"))   setGrainDensity((float)state.getProperty("grainDensity", 20.0f));
+    if (state.hasProperty("grainPosition"))  setGrainPosition((float)state.getProperty("grainPosition", 0.25f));
+    if (state.hasProperty("grainPitch"))     setGrainPitch((float)state.getProperty("grainPitch", 0.0f));
+    if (state.hasProperty("grainMix"))       setGrainMix((float)state.getProperty("grainMix", 0.6f));
+    if (state.hasProperty("grainWindow"))    setGrainWindow((int)state.getProperty("grainWindow", 0));
+    if (state.hasProperty("grainModMode"))   setGrainModMode((int)state.getProperty("grainModMode", 0));
+    if (state.hasProperty("grainModDepth"))  setGrainModDepth((float)state.getProperty("grainModDepth", 0.15f));
+    if (state.hasProperty("grainModRate"))   setGrainModRate((float)state.getProperty("grainModRate", 1.0f));
+    if (state.hasProperty("grainEnabled"))   setGranularEnabled((bool)state.getProperty("grainEnabled", false));
+
     auto presetState = state.getChildWithName("Parameters");
     if (presetState.isValid())
         presetManager.deserialiseState(presetState);
@@ -1138,6 +1187,23 @@ bool AnaPlugAudioProcessor::loadFile(const juce::File& file)
         enginePartials_ = ana::PartialDataSIMD::fromPartialData(engine.getPartialData());
         // P6: seed the additive synth's harmonic set from the analysed partials
         refreshPartialsFromEngine();
+        // Granular layer (P7): the grain engine keeps its own copy of the
+        // sample, so a later image edit or resynthesis cannot invalidate it.
+        {
+            const auto& audioData = engine.getAudioData();
+            if (! audioData.samples.empty())
+            {
+                granularSynth_.setSourceBuffer(audioData.samples, audioData.sampleRate);
+                granularSynth_.reserveWindowCache(
+                    static_cast<int>(audioData.sampleRate * 0.1) + 2);
+                granularSynth_.setGrainSize(granularGrainMs_.load());
+                granularSynth_.setDensity(granularDensity_.load());
+                granularSynth_.setPosition(granularPosition_.load());
+                granularSynth_.setPitch(granularPitch_.load());
+                granularSourceReady_.store(true);
+            }
+        }
+
         // Auto-resynthesize
         auto result = engine.resynthesize();
         {
@@ -1655,6 +1721,106 @@ void AnaPlugAudioProcessor::processSpectralFreeze(juce::AudioBuffer<float>& buff
     }
 }
 
+//==============================================================================
+// Granular layer (P7)
+//
+// The grain engine is a pure audio-thread object: the UI only ever writes the
+// atomics above, and renderGranularLayer() pushes them into the engine right
+// before rendering (plain member assignments, no allocation, no locks).
+//==============================================================================
+
+void AnaPlugAudioProcessor::setGranularEnabled(bool enabled)
+{
+    const bool wasEnabled = granularEnabled_.exchange(enabled);
+    if (wasEnabled && ! enabled)
+        activeGrainCount_.store(0);
+}
+
+void AnaPlugAudioProcessor::setGrainSizeMs(float ms)
+{
+    granularGrainMs_.store(juce::jlimit(1.0f, 100.0f, ms));
+}
+
+void AnaPlugAudioProcessor::setGrainDensity(float grainsPerSecond)
+{
+    granularDensity_.store(juce::jlimit(1.0f, 1000.0f, grainsPerSecond));
+}
+
+void AnaPlugAudioProcessor::setGrainPosition(float normalised)
+{
+    granularPosition_.store(juce::jlimit(0.0f, 1.0f, normalised));
+}
+
+void AnaPlugAudioProcessor::setGrainPitch(float semitones)
+{
+    granularPitch_.store(juce::jlimit(-24.0f, 24.0f, semitones));
+}
+
+void AnaPlugAudioProcessor::setGrainMix(float mix)
+{
+    granularMix_.store(juce::jlimit(0.0f, 1.0f, mix));
+}
+
+void AnaPlugAudioProcessor::setGrainWindow(int window)
+{
+    granularWindow_.store(juce::jlimit(0, 3, window));
+}
+
+void AnaPlugAudioProcessor::setGrainModMode(int mode)
+{
+    granularModMode_.store(juce::jlimit(0, 3, mode));
+}
+
+void AnaPlugAudioProcessor::setGrainModDepth(float depth)
+{
+    granularModDepth_.store(juce::jlimit(0.0f, 1.0f, depth));
+}
+
+void AnaPlugAudioProcessor::setGrainModRate(float hz)
+{
+    granularModRate_.store(juce::jlimit(0.05f, 10.0f, hz));
+}
+
+void AnaPlugAudioProcessor::renderGranularLayer(juce::AudioBuffer<float>& buffer, int numSamples)
+{
+    if (! granularEnabled_.load() || ! granularSourceReady_.load())
+        return;
+
+    const int scratchChannels = granularScratch_.getNumChannels();
+    if (numSamples <= 0 || scratchChannels < 2
+        || numSamples > granularScratch_.getNumSamples()
+        || buffer.getNumChannels() < 1)
+        return;
+
+    // Push the UI-side atomics into the engine.  These are plain assignments on
+    // an object only this thread touches.
+    granularSynth_.setGrainSize(granularGrainMs_.load());
+    granularSynth_.setDensity(granularDensity_.load());
+    granularSynth_.setPosition(granularPosition_.load());
+    granularSynth_.setPitch(granularPitch_.load());
+    granularSynth_.setWindowType(static_cast<ana::GrainWindowType>(
+        juce::jlimit(0, 3, granularWindow_.load())));
+    granularSynth_.setPositionModulation(
+        static_cast<ana::PositionModulation>(juce::jlimit(0, 3, granularModMode_.load())),
+        granularModDepth_.load(), granularModRate_.load());
+
+    // View onto the preallocated scratch (no allocation; process() clears it).
+    juce::AudioBuffer<float> view(granularScratch_.getArrayOfWritePointers(),
+                                  2, numSamples);
+    granularSynth_.process(view);
+
+    const float mix = granularMix_.load();
+    if (mix > 0.0f)
+    {
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+            buffer.addFrom(ch, 0, view, juce::jmin(ch, 1), 0, numSamples, mix);
+    }
+
+    activeGrainCount_.store(granularSynth_.getActiveGrainCount(),
+                            std::memory_order_relaxed);
+}
+
+//==============================================================================
 void AnaPlugAudioProcessor::setImageEnabled(bool enabled)
 {
     imageEnabled_.store(enabled);
@@ -1694,6 +1860,38 @@ void AnaPlugAudioProcessor::setImageEditFrame(int frame)
     editedPartialsVersion_.fetch_add(1, std::memory_order_release);
 
     applyTimbreProcessing();
+}
+
+bool AnaPlugAudioProcessor::applyFittestDNAToTimbre()
+{
+    if (dnaEvolver_.getPopulationSize() == 0)
+        return false;
+
+    const auto& best = dnaEvolver_.getFittest();
+    if (! best.isValid())
+        return false;
+
+    ana::PartialDataSIMD partials = best.toPartials();
+    if (partials.activeCount <= 0)
+        return false;
+
+    // Keep the analysis time base so the additive voices keep their existing
+    // frequency/phase scaling; only the harmonic set is replaced.
+    partials.maxPartials = ana::PartialDataSIMD::kMaxPartials;
+    partials.sampleRate  = editedPartials_.sampleRate > 0.0
+                             ? editedPartials_.sampleRate
+                             : engine.getAudioData().sampleRate;
+    partials.hopSize     = editedPartials_.hopSize > 0 ? editedPartials_.hopSize : 512;
+    partials.updateActiveMask();
+
+    // Writes the genome into the frame currently being edited and re-shapes it.
+    setEditedPartials(partials);
+
+    // A genome is only audible through the additive synth.
+    if (! synthMode_.load())
+        setSynthMode(true);
+
+    return true;
 }
 
 void AnaPlugAudioProcessor::setTimbreBright(bool isA, float value)

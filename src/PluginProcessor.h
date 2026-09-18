@@ -83,6 +83,7 @@ public:
 #include "dsp/GenerativeTimbreDesigner.h"
 #include "dsp/SpectralParticleSystem.h"
 #include "dsp/SpectralFreezeEngine.h"
+#include "dsp/GranularSynthesizer.h"
 #include "dsp/PrismEffect.h"
 #include "dsp/Harmonizer.h"
 #include "dsp/Randomizer.h"
@@ -249,6 +250,59 @@ public:
     /** Rebuilds imageFrames_ (<= kMaxFrames, evenly subsampled) from analysis data. */
     void buildImageFramesFromPartialData(const ana::PartialData& pd);
 
+    //==============================================================================
+    // --- Granular layer (P7) ---
+    // GranularSynthesizer was fully implemented and compiled but never wired to
+    // anything.  It now renders the loaded sample as a grain cloud on top of
+    // the sample playback / additive rendering (pre-freeze, pre-master).
+    void  setGranularEnabled(bool enabled);
+    bool  isGranularEnabled() const { return granularEnabled_.load(); }
+
+    /** Grain duration in milliseconds (1..100). */
+    void  setGrainSizeMs(float ms);
+    float getGrainSizeMs() const { return granularGrainMs_.load(); }
+
+    /** Average grains spawned per second (1..1000). */
+    void  setGrainDensity(float grainsPerSecond);
+    float getGrainDensity() const { return granularDensity_.load(); }
+
+    /** Read position in the source, normalised 0..1. */
+    void  setGrainPosition(float normalised);
+    float getGrainPosition() const { return granularPosition_.load(); }
+
+    /** Grain pitch shift in semitones (-24..+24). */
+    void  setGrainPitch(float semitones);
+    float getGrainPitch() const { return granularPitch_.load(); }
+
+    /** Wet level of the grain layer mixed into the output (0..1). */
+    void  setGrainMix(float mix);
+    float getGrainMix() const { return granularMix_.load(); }
+
+    /** 0 = Hann, 1 = Triangle, 2 = Gaussian, 3 = Sinc. */
+    void  setGrainWindow(int window);
+    int   getGrainWindow() const { return granularWindow_.load(); }
+
+    /** 0 = Off, 1 = LFO, 2 = Envelope, 3 = Random. */
+    void  setGrainModMode(int mode);
+    int   getGrainModMode() const { return granularModMode_.load(); }
+
+    /** Position modulation depth (fraction of the source, 0..1). */
+    void  setGrainModDepth(float depth);
+    float getGrainModDepth() const { return granularModDepth_.load(); }
+
+    /** Position modulation rate in Hz (0.05..10). */
+    void  setGrainModRate(float hz);
+    float getGrainModRate() const { return granularModRate_.load(); }
+
+    /** Grains currently sounding — published by the audio thread. */
+    int   getActiveGrainCount() const { return activeGrainCount_.load(); }
+
+    /** True once a sample has been handed to the granular engine. */
+    bool  isGrainSourceReady() const { return granularSourceReady_.load(); }
+
+    /** Renders + mixes the grain layer (audio thread). */
+    void renderGranularLayer(juce::AudioBuffer<float>& buffer, int numSamples);
+
     // Resynthesized buffer access
     const std::vector<float>& getResynthesizedBuffer() const;
     void setResynthesizedBuffer(std::vector<float> buffer);
@@ -394,6 +448,12 @@ public:
 
     // --- Spectral DNA evolver ---
     ana::SpectralDNAEvolver& getDNAEvolver() { return dnaEvolver_; }
+
+    /** Promotes the fittest DNA individual to the current timbre: its harmonic
+        set becomes the edited image frame, and SYNTH mode is switched on so the
+        evolved genome is actually audible.  Returns false when the population
+        is empty or the genome has no active partials. */
+    bool applyFittestDNAToTimbre();
     bool loadSampleAsParent(const juce::File& audioFile);
     bool isDNAEnabled() const { return dnaEnabled_.load(); }
     void setDNAEnabled(bool enabled) { dnaEnabled_.store(enabled); }
@@ -592,6 +652,22 @@ private:
     std::atomic<bool>  imageLoop_{ true };
     std::atomic<int>   imageEditFrame_{ 0 };
     std::atomic<int>   editedPartialsVersion_{ 0 };
+
+    // Granular layer (P7): grain-cloud rendering of the loaded sample.
+    ana::GranularSynthesizer granularSynth_;
+    juce::AudioBuffer<float> granularScratch_;      // preallocated in prepareToPlay
+    std::atomic<bool>  granularEnabled_{ false };
+    std::atomic<bool>  granularSourceReady_{ false };
+    std::atomic<float> granularGrainMs_{ 60.0f };
+    std::atomic<float> granularDensity_{ 20.0f };
+    std::atomic<float> granularPosition_{ 0.25f };
+    std::atomic<float> granularPitch_{ 0.0f };
+    std::atomic<float> granularMix_{ 0.6f };
+    std::atomic<float> granularModDepth_{ 0.15f };
+    std::atomic<float> granularModRate_{ 1.0f };
+    std::atomic<int>   granularWindow_{ 0 };
+    std::atomic<int>   granularModMode_{ 0 };
+    std::atomic<int>   activeGrainCount_{ 0 };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

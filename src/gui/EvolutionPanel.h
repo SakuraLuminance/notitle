@@ -53,6 +53,7 @@ private:
     juce::TextButton loadSampleBtn_{"Load Sample"};
     juce::TextButton saveDNABtn_{"Save DNA"};
     juce::TextButton loadDNABtn_{"Load DNA"};
+    juce::TextButton useFittestBtn_{"-> TIMBRE"};
 
     //==============================================================================
     // Population selector
@@ -82,6 +83,7 @@ private:
     void onLoadSample();
     void onSaveDNA();
     void onLoadDNA();
+    void onUseFittest();
     void onPopSizeChanged();
     void onCellClicked(int index);
     void updateGridDimensions(int popSize);

@@ -113,6 +113,18 @@ public:
     void reset();
 
     //==============================================================================
+    /** Reserves the internal window-table cache for @a maxSamples window values.
+
+        Call this from prepareToPlay()/setSourceBuffer() so process() never
+        allocates: the cache is only ever resize()d to the current grain
+        duration, which stays within the reserved capacity.
+    */
+    void reserveWindowCache(int maxSamples);
+
+    /** Capacity of the window-table cache (diagnostics/tests). */
+    int getWindowCacheCapacity() const noexcept;
+
+    //==============================================================================
     /** Returns the number of currently active grains. */
     int getActiveGrainCount() const;
 

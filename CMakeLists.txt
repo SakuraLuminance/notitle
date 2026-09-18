@@ -131,6 +131,7 @@ target_sources(AnaPlug
         src/gui/ParticleDisplay.cpp
         src/gui/PresetBrowserPanel.cpp
         src/gui/EvolutionPanel.cpp
+        src/gui/GranularPage.cpp
         src/gui/XYPad.cpp
         src/gui/ModulationMatrixPanel.cpp
         src/gui/MeteringPanel.cpp
