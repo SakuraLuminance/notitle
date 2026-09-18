@@ -20,7 +20,8 @@ CI（GitHub Actions，`.github/workflows/cmake.yml`）会构建插件、跑 `Ana
 > 唯一可读通道是 workflow 自己写出的 **runner 注解**：
 >
 > ```powershell
-> & tools/ci-status.ps1 -Sha <sha>   # 构建错误 / named tests / executed cases / failed cases / strictness / CRASH-OR-FAIL
+> & tools/ci-annotations.ps1 -Sha <sha>   # 构建错误 / 用例数 / 断言数 / strictness / CRASH-OR-FAIL
+> & tools/ci-status.ps1 -Sha <sha>        # 上面这些 + 每个步骤的成败（末尾自动调用前一个脚本）
 > ```
 
 ## 上手 / 继续开发
@@ -29,8 +30,9 @@ CI（GitHub Actions，`.github/workflows/cmake.yml`）会构建插件、跑 `Ana
 |---|---|
 | **`HANDOFF_V3.md`** | **当前权威交接**：环境铁律、架构与线程模型、GUI/主题系统、设计方针、陷阱清单、关键文件索引、路线 |
 | `docs/superpowers/prompts/anaplug-next-agent-prompt.md` | 给下一个 AI 的可粘贴接任 prompt |
-| `docs/superpowers/plans/2026-09-07-p2-p6-roadmap.md` | 里程碑总表（P1–P6 已完成；另含 P6b 时变图像、多主题、rack 内 MIDI Learn、颗粒层 + GRAIN 页、图像谐波分箱、帧混合曲线、枚举真菜单、颗粒池性能优化） |
-| `tools/ci-status.ps1` | 读 CI 步骤结果 + runner 注解（本机唯一可用的取证通道） |
+| `docs/superpowers/plans/2026-09-07-p2-p6-roadmap.md` | 里程碑总表（P1–P6 已完成；另含 P6b 时变图像、多主题、rack 内 MIDI Learn、颗粒层 + GRAIN 页（粒子云 + 右键 MIDI Learn）、图像谐波分箱、帧混合曲线、枚举真菜单、颗粒池性能优化） |
+| `tools/ci-status.ps1` | 读 CI 各步骤成败，末尾调用下面这个脚本打印 runner 注解 |
+| `tools/ci-annotations.ps1` | 只打印 runner 注解（构建错误 / 用例数 / 断言数 / strictness / CRASH-OR-FAIL）——**本机唯一可用的取证通道** |
 | `tools/install-vst3.ps1` | 安装成品 VST3 到系统目录（自提权；自动找 Downloads 里最新的 artifact zip，可选清 REAPER 缓存） |
 | `docs/superpowers/specs/*.md` | 每个功能的设计（简洁表格化） |
 | `HANDOFF_V2.md` | 历史故障取证库（58 次 CI 失败分析、cdb/pluginval 取证、安装脚本） |

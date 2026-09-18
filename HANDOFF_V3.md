@@ -12,11 +12,11 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`，测试 `AnaPlugTests` |
-| 最新已验证提交 | `81e4138`（颗粒池扫描前缀优化）；其后只跟文档/工具提交 |
-| 最近全绿 CI | Run `#35319079605`（`81e4138`）：Build **0 条 error**、**617 用例 / 0 失败 / 342016 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
-| 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 |
+| 最新已验证提交 | `05e881d`（GRAIN 页粒子云）；其后 `cecf136`（GRAIN 页 MIDI Learn）在推 |
+| 最近全绿 CI | Run `#35352187933`（`05e881d`）：Build **0 条 error**、**618 用例 / 0 失败 / 342204 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
+| 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 · `bcde027` 文档/工具 #35321642036 = 617 · `05e881d` 粒子云 #35352187933 = **618** |
 | 更早的全绿 | `a6e5f3b` #35315329172 = 611（谐波分箱 + 颗粒层 + MIDI Learn）、`578253a` #35311445334（颗粒层首批）、`6d82383` #35310048933（P6b/主题） |
-| 用例计数 | 源码内 **623 个 `TEST_CASE` 名**、**617 个实际执行**（数字全部来自 runner 注解，见 §1） |
+| 用例计数 | 源码内 **624 个 `TEST_CASE` 名**、**618 个实际执行**（数字全部来自 runner 注解，见 §1） |
 | 未推送批次 | **无**；唯一剩余候选 = 成品安装（需 UAC + 浏览器下载，脚本 `tools/install-vst3.ps1` 已就绪） |
 | 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、rack 内 MIDI Learn ✓、颗粒层 + GRAIN 页 ✓、DNA fittest → 音色 ✓、图像谐波分箱 ✓、帧混合曲线 ✓、**枚举真菜单 ✓**（用户已确认：仅 UI 菜单）、颗粒池性能 ✓；**路线图全部完成**，只剩成品安装 |
 | 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |
@@ -30,8 +30,9 @@
 | 唯一验证手段 | `git push origin main` → GitHub Actions（约 12–20 分钟/轮）。**禁止**声称"本地编译/测试通过" |
 | 推送 | `git push origin main`（Windows 凭据管理器已缓存 PAT，无需手输） |
 | 取 CI 状态 | `& tools/ci-status.ps1`（列最近 run + 步骤结果 + 诊断注解）；或 `GET /repos/SakuraLuminance/notitle/actions/runs?branch=main&per_page=N` |
-| 取 CI 诊断 | **runner 注解**：`GET /commits/{sha}/check-runs` 取 job 的 check run id → `GET /check-runs/{id}/annotations`（`tools/ci-status.ps1 -Sha <sha>` 已封装） |
-| 取 PAT（不落盘） | `$cred = "protocol=https`nhost=github.com`n" \| git credential fill`，取 `password=` 字段，仅用于请求头 |
+| 取 CI 诊断 | **runner 注解**：`GET /commits/{sha}/check-runs` 取 job 的 check run id → `GET /check-runs/{id}/annotations`。用 `tools/ci-annotations.ps1 -Sha <sha>`（推荐，输出可直接读）或 `tools/ci-status.ps1 -Sha <sha>`（末尾会调用前者）。**从本 harness 调用时把输出重定向到文件再读**：`& tools/ci-status.ps1 -Sha X *> tmp.txt`，否则子进程重定向会截断控制台捕获 |
+| 取 PAT（不落盘） | `git credential fill` 的**输入必须走文件**：`Start-Process git -ArgumentList @('credential','fill') -RedirectStandardInput <临时文件> -RedirectStandardOutput <临时文件> -NoNewWindow -Wait`，再正则取 `password=(.+)`。**管道和 `cmd /c "<`"` 在脚本里都会丢 stdin**，git 会报 `refusing to work with credential missing protocol field`（`tools/ci-annotations.ps1` 已实现，直接抄） |
+| 注解必须按**文本**解析 | `ConvertFrom-Json` 反序列化注解会得到 title/message 全空的对象（实测），工具会误报“没有注解”。`tools/ci-annotations.ps1` 用正则读原始 JSON，**以它为准** |
 | **最大陷阱** | `.github/workflows/cmake.yml` 的 `Test` 步骤带 **`continue-on-error: true`** —— **测试失败 run 仍然是绿的**。每轮必须从日志里读：① `All tests passed (… in N test cases)` ② `Strictness level: N` ③ 没有 `CRASH-OR-FAIL ::` 条目 |
 | **日志/产物下载已彻底不可用** | 本机 DNS 把 `*.blob.core.windows.net`、`pipelines.azure.com` 应答成 **198.18.x.x**（保留段）→ `/logs` 与 artifact `zip` 全部失败，curl/node/Invoke-WebRequest 都一样。**唯一可读通道 = workflow 步骤写出的 runner 注解**（`Publish CI diagnostics`：构建错误 / named tests / executed cases / failed cases / strictness / CRASH 条目，切成 ≤10 条 `::error title=ci-diagnostics i/n::`）。API 通道（check run / commit comment / commit status）在本仓库一律被拒（无权限），别指望 |
 | 批次纪律 | **改一批 → 推一轮 → 取证 → 再改**。失败先拉日志定位，禁止凭空大改 |

@@ -31,10 +31,33 @@ param(
 $ErrorActionPreference = 'Stop'
 
 function Get-GitHubToken {
-    $cred = "protocol=https`nhost=github.com`n" | git credential fill
-    $line = $cred | Select-String '^password='
-    if (-not $line) { throw 'git credential fill returned no password (is the PAT stored?)' }
-    return $line.Line.Substring(9)
+    # git reads its request on stdin and answers on stdout.  Piping the request
+    # through PowerShell's own pipeline gets lost on some hosts (git then fails
+    # with 'refusing to work with credential missing protocol field'), so hand
+    # it over through temporary FILES instead: no pipes involved.
+    $inFile  = Join-Path $env:TEMP 'anaplug-cred-in.txt'
+    $outFile = Join-Path $env:TEMP 'anaplug-cred-out.txt'
+    $errFile = Join-Path $env:TEMP 'anaplug-cred-err.txt'
+    $request = 'protocol=https' + [char] 10 + 'host=github.com' + [char] 10
+
+    try
+    {
+        Set-Content -Path $inFile -Value $request -NoNewline -Encoding ascii
+        Start-Process -FilePath 'git' -ArgumentList @('credential', 'fill') -RedirectStandardInput $inFile -RedirectStandardOutput $outFile -RedirectStandardError $errFile -NoNewWindow -Wait | Out-Null
+
+        $answer = Get-Content -Path $outFile -Raw -ErrorAction SilentlyContinue
+        $match  = [regex]::Match([string] $answer, 'password=(\S+)')
+        if (-not $match.Success)
+        {
+            throw 'git credential fill returned no password (is the PAT stored?)'
+        }
+
+        return $match.Groups[1].Value
+    }
+    finally
+    {
+        Remove-Item -Path $inFile, $outFile, $errFile -Force -ErrorAction SilentlyContinue
+    }
 }
 
 $token   = Get-GitHubToken
@@ -84,26 +107,14 @@ if ($diag) {
 }
 
 # Annotations are written by the runner itself ('::error title=..::message'),
-# so they survive a token that may not create check runs.
-$jobCheck = $checks | Where-Object { $_.name -like 'build (*' } | Select-Object -First 1
-if ($jobCheck) {
-    $annotations = @()
-    try {
-        $annotations = (Invoke-RestMethod -Headers $headers -Uri "$api/check-runs/$($jobCheck.id)/annotations").annotations
-    } catch {
-        Write-Warning ("could not read annotations: " + $_.Exception.Message)
-    }
-
-    if ($annotations.Count -gt 0) {
-        Write-Host ""
-        Write-Host "=== annotations ($($annotations.Count)) ==="
-        foreach ($a in $annotations) {
-            if ($a.title -notlike 'ci-diagnostics*') { continue }
-            $text = $a.message -replace '%0D', '' -replace '%0A', "`n" -replace '%25', '%'
-            Write-Host "--- $($a.title) ---"
-            Write-Host $text
-        }
-    } else {
-        Write-Host "no ci-diagnostics annotations on the job check run"
-    }
+# so they survive a token that may not create check runs.  ci-annotations.ps1
+# owns that parsing: it reads the JSON as text, because deserialising it has
+# produced objects with empty title/message and made this report 'no
+# annotations' while annotations existed.
+$annotationsScript = Join-Path $PSScriptRoot 'ci-annotations.ps1'
+if (Test-Path $annotationsScript) {
+    Write-Host ''
+    & $annotationsScript -Sha $Sha -Repo $Repo
+} else {
+    Write-Warning "ci-annotations.ps1 not found next to this script"
 }
