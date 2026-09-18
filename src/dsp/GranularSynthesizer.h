@@ -1,7 +1,10 @@
 #pragma once
 
-#include <vector>
+#include <algorithm>
+#include <atomic>
+#include <cmath>
 #include <random>
+#include <vector>
 #include <juce_audio_basics/juce_audio_basics.h>
 
 namespace ana {
@@ -140,6 +143,16 @@ public:
         float pan       = 0.0f;   // -1 = left, +1 = right
     };
 
+    //==============================================================================
+    /** Buckets in the source envelope the GRAIN page draws. */
+    static constexpr int kSourcePeakBuckets = 256;
+
+    /** Copies the loaded source's peak envelope into @a out (max |x| per
+        bucket, low index = start of the sample) and returns how many values
+        were written.  Allocation-free; count 0 means no source is loaded.
+    */
+    int getSourcePeaks(float* out, int maxCount) const noexcept;
+
     /** Copies up to @a maxCount active grains into @a out (pool order) and
         returns how many were written.  Allocation-free and lock-free, so it is
         safe on the audio thread.
@@ -156,6 +169,12 @@ public:
     double getSampleRate() const;
 
 private:
+    // Source envelope for the display.  The count is published with a release
+    // store after the buckets are filled, so a reader that sees a non-zero
+    // count also sees a filled array.
+    float sourcePeaks_[kSourcePeakBuckets] = {};
+    std::atomic<int> sourcePeakCount_{ 0 };
+
     //==============================================================================
     struct InternalGrain
     {

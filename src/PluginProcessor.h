@@ -319,6 +319,15 @@ public:
     /** How many grains the GRAIN page's cloud can draw at once. */
     static constexpr int kGrainVisualMax = 64;
 
+    /** Buckets in the source envelope the GRAIN page draws. */
+    static constexpr int kGrainSourcePeakBuckets = ana::GranularSynthesizer::kSourcePeakBuckets;
+
+    /** Copies the loaded grain source's peak envelope (max |x| per bucket) into
+        @a out.  The envelope is rebuilt by setSourceBuffer() only, so reading
+        it from the UI touches no audio-thread state.
+    */
+    int getGrainSourcePeaks(float* out, int maxCount) const noexcept;
+
     /** Copies the grains the audio thread is sounding into @a out (normalised,
         pool order) and returns how many were written.  The audio thread
         publishes a guarded copy once per block, so the UI never reads a

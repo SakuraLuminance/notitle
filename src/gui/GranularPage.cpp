@@ -312,21 +312,44 @@ void GranularPage::paint(juce::Graphics& g)
     g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasBorderAlpha));
     g.drawRect(cloud, 1);
 
+    // Top strip: the sample's own envelope, so you can see where the read head
+    // sits and which part of the sample the grains are pulling from.  It is
+    // mirrored around the strip's centre line.
+    auto strip = cloud.withHeight(juce::jmin(18, juce::jmax(6, cloud.getHeight() / 4)));
+    auto grainArea = cloud.withTrimmedTop(strip.getHeight() + 2);
+
+    const int peakCount = processor_.getGrainSourcePeaks(peaks_,
+                                                         AnaPlugAudioProcessor::kGrainSourcePeakBuckets);
+    if (peakCount > 0 && strip.getWidth() > 2)
+    {
+        const float midY = static_cast<float>(strip.getCentreY());
+        const float halfH = static_cast<float>(strip.getHeight()) * 0.5f - 2.0f;
+        const float barW = static_cast<float>(strip.getWidth() - 2) / static_cast<float>(peakCount);
+
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.18f));
+        for (int i = 0; i < peakCount; ++i)
+        {
+            const float h = juce::jmax(1.0f, juce::jlimit(0.0f, 1.0f, peaks_[i]) * halfH);
+            g.fillRect(static_cast<float>(strip.getX() + 1) + static_cast<float>(i) * barW,
+                       midY - h, juce::jmax(1.0f, barW), 2.0f * h);
+        }
+    }
+
     // Position guides at 25 / 50 / 75 % of the source.
     g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasGridAlpha));
     for (int i = 1; i < 4; ++i)
-        g.drawVerticalLine(cloud.getX() + cloud.getWidth() * i / 4,
-                           static_cast<float>(cloud.getY() + 1),
-                           static_cast<float>(cloud.getBottom() - 1));
+        g.drawVerticalLine(grainArea.getX() + grainArea.getWidth() * i / 4,
+                           static_cast<float>(grainArea.getY()),
+                           static_cast<float>(grainArea.getBottom() - 1));
 
     // The base read position the grains are centred on.
-    const float baseX = static_cast<float>(cloud.getX())
+    const float baseX = static_cast<float>(grainArea.getX())
                       + juce::jlimit(0.0f, 1.0f, processor_.getGrainPosition())
-                            * static_cast<float>(cloud.getWidth() - 1);
+                            * static_cast<float>(grainArea.getWidth() - 1);
     g.setColour(CyberpunkTheme::yellow_.withAlpha(0.30f));
     g.drawVerticalLine(static_cast<int>(baseX),
-                       static_cast<float>(cloud.getY() + 1),
-                       static_cast<float>(cloud.getBottom() - 1));
+                       static_cast<float>(strip.getY() + 1),
+                       static_cast<float>(grainArea.getBottom() - 1));
 
     // One bar per grain: x = read position, y = age (fresh at the top),
     // width = grain length in source units, colour = cyan -> magenta as it ages.
@@ -334,7 +357,7 @@ void GranularPage::paint(juce::Graphics& g)
     {
         g.setColour(CyberpunkTheme::fg_.withAlpha(0.30f));
         g.setFont(CyberpunkTheme::getCyberFont(9.0f, true));
-        g.drawText("NO ACTIVE GRAINS", cloud, juce::Justification::centred);
+        g.drawText("NO ACTIVE GRAINS", grainArea, juce::Justification::centred);
         return;
     }
 
@@ -342,12 +365,12 @@ void GranularPage::paint(juce::Graphics& g)
     {
         const auto& s = cloud_[i];
         const float progress = juce::jlimit(0.0f, 1.0f, s.progress);
-        const float x = static_cast<float>(cloud.getX())
+        const float x = static_cast<float>(grainArea.getX())
                       + juce::jlimit(0.0f, 1.0f, s.position)
-                            * static_cast<float>(cloud.getWidth() - 1);
-        const float y = static_cast<float>(cloud.getY())
-                      + progress * static_cast<float>(cloud.getHeight() - 1);
-        const float w = juce::jmax(2.0f, s.duration * static_cast<float>(cloud.getWidth()));
+                            * static_cast<float>(grainArea.getWidth() - 1);
+        const float y = static_cast<float>(grainArea.getY())
+                      + progress * static_cast<float>(grainArea.getHeight() - 1);
+        const float w = juce::jmax(2.0f, s.duration * static_cast<float>(grainArea.getWidth()));
 
         g.setColour(CyberpunkTheme::cyan_
                         .interpolatedWith(CyberpunkTheme::magenta_, progress)

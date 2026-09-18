@@ -74,6 +74,7 @@ private:
     // Grain cloud (written by the audio thread, copied under a seqlock).
     ana::GranularSynthesizer::GrainSnapshot cloud_[AnaPlugAudioProcessor::kGrainVisualMax];
     int cloudCount_ = 0;
+    float peaks_[AnaPlugAudioProcessor::kGrainSourcePeakBuckets] = {};
     juce::Rectangle<int> cloudBounds_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GranularPage)

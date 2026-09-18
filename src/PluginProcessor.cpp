@@ -1848,6 +1848,11 @@ void AnaPlugAudioProcessor::renderGranularLayer(juce::AudioBuffer<float>& buffer
     grainVisualGeneration_.fetch_add(1, std::memory_order_acq_rel);
 }
 
+int AnaPlugAudioProcessor::getGrainSourcePeaks(float* out, int maxCount) const noexcept
+{
+    return granularSynth_.getSourcePeaks(out, maxCount);
+}
+
 int AnaPlugAudioProcessor::getGrainVisualisation(
     ana::GranularSynthesizer::GrainSnapshot* out, int maxCount) const noexcept
 {

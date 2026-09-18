@@ -576,4 +576,59 @@ TEST_CASE("GranularSynthesizer hands the UI a normalised grain cloud", "[granula
     REQUIRE(synth.getActiveGrainSnapshots(cloud, 64) == 0);
 }
 
+//==============================================================================
+// The GRAIN page draws this strip above the cloud.
+
+TEST_CASE("GranularSynthesizer publishes a source envelope for the display", "[granular]")
+{
+    ana::GranularSynthesizer synth;
+    float peaks[512];
+
+    REQUIRE(synth.getSourcePeaks(peaks, 512) == 0);
+    REQUIRE(synth.getSourcePeaks(nullptr, 512) == 0);
+    REQUIRE(synth.getSourcePeaks(peaks, 0) == 0);
+
+    // A ramp: the last bucket is the loudest, every bucket is a fraction.
+    std::vector<float> ramp(4096);
+    for (size_t i = 0; i < ramp.size(); ++i)
+        ramp[i] = static_cast<float>(i) / static_cast<float>(ramp.size() - 1);
+
+    synth.setSourceBuffer(ramp, 48000.0);
+    const int buckets = synth.getSourcePeaks(peaks, 512);
+    REQUIRE(buckets == ana::GranularSynthesizer::kSourcePeakBuckets);
+    REQUIRE(peaks[0] < peaks[buckets - 1]);
+
+    for (int i = 0; i < buckets; ++i)
+    {
+        REQUIRE(peaks[i] >= 0.0f);
+        REQUIRE(peaks[i] <= 1.0f);
+    }
+
+    // An impulse lands in the bucket that covers it and nowhere else: the
+    // magnitude is used, not the sign.
+    std::vector<float> impulse(4096, 0.0f);
+    impulse[2048] = -0.9f;
+    synth.setSourceBuffer(impulse, 48000.0);
+    REQUIRE(synth.getSourcePeaks(peaks, 512) == buckets);
+
+    int loudest = 0;
+    for (int i = 1; i < buckets; ++i)
+        if (peaks[i] > peaks[loudest])
+            loudest = i;
+
+    REQUIRE(loudest == 128);                        // 2048 / 4096 of the way in
+    REQUIRE(peaks[loudest] == Catch::Approx(0.9f));
+
+    // Silence: every bucket collapses, which proves the scan really runs.
+    const std::vector<float> quiet(4096, 0.0f);
+    synth.setSourceBuffer(quiet, 48000.0);
+    REQUIRE(synth.getSourcePeaks(peaks, 512) == buckets);
+    for (int i = 0; i < buckets; ++i)
+        REQUIRE(peaks[i] == Catch::Approx(0.0f));
+
+    // A smaller buffer truncates instead of overflowing.
+    REQUIRE(synth.getSourcePeaks(peaks, 4) == 4);
+}
+
+
 

@@ -19,7 +19,45 @@ void GranularSynthesizer::setSourceBuffer(const std::vector<float>& buffer, doub
 {
     sourceBuffer = buffer;
     sampleRate_ = sampleRate > 0.0 ? sampleRate : 44100.0;
+
+    // Envelope for the GRAIN page: max |x| per bucket.  Filled before the count
+    // is published, so the display never draws a half-built envelope.
+    sourcePeakCount_.store(0, std::memory_order_relaxed);
+
+    const auto numSamples = static_cast<long long>(sourceBuffer.size());
+    if (numSamples > 0)
+    {
+        for (int b = 0; b < kSourcePeakBuckets; ++b)
+        {
+            const auto from = static_cast<size_t>(numSamples * b / kSourcePeakBuckets);
+            const auto to   = static_cast<size_t>(numSamples * (b + 1) / kSourcePeakBuckets);
+            float peak = 0.0f;
+
+            for (auto i = from; i < to; ++i)
+                peak = std::max(peak, std::abs(sourceBuffer[i]));
+
+            sourcePeaks_[b] = std::min(1.0f, peak);
+        }
+
+        sourcePeakCount_.store(kSourcePeakBuckets, std::memory_order_release);
+    }
+
     reset();
+}
+
+int GranularSynthesizer::getSourcePeaks(float* out, int maxCount) const noexcept
+{
+    if (out == nullptr || maxCount <= 0)
+        return 0;
+
+    const int count = std::clamp(sourcePeakCount_.load(std::memory_order_acquire),
+                                 0, kSourcePeakBuckets);
+    const int n = std::min(count, maxCount);
+
+    for (int i = 0; i < n; ++i)
+        out[i] = sourcePeaks_[i];
+
+    return n;
 }
 
 void GranularSynthesizer::setGrainSize(float ms)
