@@ -6,8 +6,9 @@ on: [push, pull_request]
 # counts and pluginval's strictness level, so the result stays readable even
 # when the log/artifact download channel is unavailable.
 permissions:
-  contents: read
+  contents: write   # commit-comment fallback when the checks API is refused
   checks: write
+  statuses: write
 
 jobs:
   build:
@@ -307,7 +308,16 @@ jobs:
         if ($summary.Length -gt 60000) { $summary = $summary.Substring(0, 60000) }
         Write-Host $summary
 
-        $body = @{
+        # Three publishing channels, because a single one can be refused by the
+        # token's permission set: the checks API (long summary), a commit
+        # comment (long summary, used when the check run is refused) and a
+        # commit status (short digest, always attempted - it also shows up in
+        # the branch's run list).
+        $headers = @{ Authorization = "token $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'anaplug-ci' }
+        $api     = "https://api.github.com/repos/$env:GITHUB_REPOSITORY"
+        $checkOk = $false
+
+        $checkBody = @{
           name       = 'ci-diagnostics'
           head_sha   = $env:GITHUB_SHA
           status     = 'completed'
@@ -316,11 +326,46 @@ jobs:
         } | ConvertTo-Json -Depth 8
 
         try {
-          Invoke-RestMethod -Method Post -Uri ("https://api.github.com/repos/{0}/check-runs" -f $env:GITHUB_REPOSITORY) `
-            -Headers @{ Authorization = "token $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'anaplug-ci' } `
-            -Body $body -ContentType 'application/json' | Out-Null
+          Invoke-RestMethod -Method Post -Uri "$api/check-runs" -Headers $headers `
+            -Body $checkBody -ContentType 'application/json' | Out-Null
+          $checkOk = $true
           Write-Host "published ci-diagnostics check run"
         } catch {
-          Write-Host ("failed to publish ci-diagnostics: " + $_.Exception.Message)
+          Write-Host ("check run refused: " + $_.Exception.Message)
+          if ($_.ErrorDetails.Message) { Write-Host ("  detail: " + $_.ErrorDetails.Message) }
+        }
+
+        if (-not $checkOk) {
+          try {
+            $commentBody = @{ body = "### CI diagnostics" + [char]10 + [char]10 + $summary } | ConvertTo-Json -Depth 4
+            Invoke-RestMethod -Method Post -Uri "$api/commits/$env:GITHUB_SHA/comments" -Headers $headers `
+              -Body $commentBody -ContentType 'application/json' | Out-Null
+            Write-Host "published ci-diagnostics commit comment"
+          } catch {
+            Write-Host ("commit comment refused: " + $_.Exception.Message)
+            if ($_.ErrorDetails.Message) { Write-Host ("  detail: " + $_.ErrorDetails.Message) }
+          }
+        }
+
+        $digest = ($out | Where-Object { $_ -like '- *' } | Select-Object -First 1)
+        if (-not $digest) { $digest = ($out | Where-Object { $_ -like '*OverallResults*' } | Select-Object -First 1) }
+        if (-not $digest) { $digest = 'no build errors and no test summary' }
+        if ($digest.Length -gt 120) { $digest = $digest.Substring(0, 120) }
+
+        $failed = ($null -ne ($out | Where-Object { $_ -like '- *' -or $_ -like '*CRASH-OR-FAIL ::*' } | Select-Object -First 1))
+
+        $statusBody = @{
+          state       = $(if ($failed) { 'failure' } else { 'success' })
+          context     = 'ci-diagnostics'
+          description = $digest
+        } | ConvertTo-Json -Depth 4
+
+        try {
+          Invoke-RestMethod -Method Post -Uri "$api/statuses/$env:GITHUB_SHA" -Headers $headers `
+            -Body $statusBody -ContentType 'application/json' | Out-Null
+          Write-Host "published ci-diagnostics commit status"
+        } catch {
+          Write-Host ("commit status refused: " + $_.Exception.Message)
+          if ($_.ErrorDetails.Message) { Write-Host ("  detail: " + $_.ErrorDetails.Message) }
         }
 
