@@ -308,11 +308,41 @@ jobs:
         if ($summary.Length -gt 60000) { $summary = $summary.Substring(0, 60000) }
         Write-Host $summary
 
-        # Three publishing channels, because a single one can be refused by the
-        # token's permission set: the checks API (long summary), a commit
-        # comment (long summary, used when the check run is refused) and a
-        # commit status (short digest, always attempted - it also shows up in
-        # the branch's run list).
+        # Annotation channel: workflow commands are turned into annotations by
+        # the runner itself, so this needs NO token permission at all - it is
+        # the fallback that works when the API calls above are refused.  The
+        # job's check run carries them, readable with
+        #   GET /repos/{owner}/{repo}/check-runs/{job_check_run_id}/annotations
+        $maxAnnotationChars = 4000
+        $chunks = New-Object System.Collections.Generic.List[string]
+        $current = ''
+        foreach ($line in $summary -split "`n") {
+          if (($current.Length + $line.Length + 1) -gt $maxAnnotationChars) {
+            if ($current.Length -gt 0) { $chunks.Add($current) }
+            $current = $line
+          } else {
+            $current = if ($current.Length -gt 0) { $current + "`n" + $line } else { $line }
+          }
+        }
+        if ($current.Length -gt 0) { $chunks.Add($current) }
+
+        $index = 0
+        foreach ($chunk in ($chunks | Select-Object -First 10)) {
+          $index++
+          $escaped = $chunk.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+          Write-Host ("::error title=ci-diagnostics " + $index + "/" + $chunks.Count + "::$escaped")
+        }
+
+        if ($env:GITHUB_STEP_SUMMARY) {
+          "## CI diagnostics" + [char]10 + [char]10 + $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+        }
+
+        # Extra publishing channels, because the checks API can be refused by
+        # the token's permission set: the checks API itself (long summary), a
+        # commit comment (long summary, used when the check run is refused) and
+        # a commit status (short digest, always attempted - it also shows up in
+        # the branch's run list).  The annotations written above need none of
+        # them.
         $headers = @{ Authorization = "token $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'anaplug-ci' }
         $api     = "https://api.github.com/repos/$env:GITHUB_REPOSITORY"
         $checkOk = $false
