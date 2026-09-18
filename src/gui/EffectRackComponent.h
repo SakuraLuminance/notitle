@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_data_structures/juce_data_structures.h>
+#include <functional>
 #include "../PluginProcessor.h"
 #include "CyberpunkTheme.h"
 #include "EffectParamPanel.h"
@@ -36,6 +37,9 @@ public:
     {
         return paramPanel_ != nullptr ? paramPanel_->getPreferredHeight(width) : 18;
     }
+
+    /** Expanded parameter editor, or nullptr while the slot is collapsed. */
+    EffectParamPanel* getParamPanel() const noexcept { return paramPanel_.get(); }
 
     /** Sync UI controls from the EffectsChain slot state. */
     void syncFromProcessor();
@@ -101,6 +105,10 @@ public:
 
     /** Sync all slot values from the EffectsChain state (no structural changes). */
     void syncFromProcessor();
+
+    /** Visit every live slot widget (used by the editor to register the
+        dynamically created effect knobs for MIDI Learn). */
+    void visitSlots(const std::function<void(int, EffectSlotWidget&)>& fn) const;
 
 private:
     AnaPlugAudioProcessor& processor_;

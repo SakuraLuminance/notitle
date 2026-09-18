@@ -2,6 +2,7 @@
 
 #include "../dsp/EffectsChain.h"
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <functional>
 #include <vector>
 
 namespace ana
@@ -16,6 +17,16 @@ public:
     void resized() override;
 
     int getPreferredHeight(int width) const;
+
+    /** The effect this panel edits (never null for a live panel). */
+    EffectBase* getEffect() const noexcept { return effect_; }
+
+    /** Number of parameter knobs currently shown. */
+    int getNumKnobs() const noexcept { return knobs_.size(); }
+
+    /** Visit every knob together with its parameter index — used by the editor
+        to register each knob for MIDI Learn. */
+    void visitKnobs(const std::function<void(int, juce::Slider&)>& fn);
 
 private:
     void rebuildKnobs();

@@ -1460,7 +1460,123 @@ void AnaPlugAudioProcessorEditor::setupMidiLearnForSlider(juce::Slider& slider,
 {
     slider.addMouseListener(this, false);
     learnableSliders_[paramId] = &slider;
-    midiLearnSliders_[&slider] = { paramId, target };
+    MidiLearnSliderInfo info;
+    info.paramId = paramId;
+    info.target  = target;
+    midiLearnSliders_[&slider] = std::move(info);
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::setupMidiLearnForEffectKnob(juce::Slider& knob,
+                                                              const juce::String& paramId,
+                                                              int slotIndex, int paramIndex)
+{
+    knob.addMouseListener(this, false);
+
+    auto* processor = &audioProcessor;
+
+    // Slot indices are resolved lazily: the rack rebuilds its widgets (and the
+    // effects behind them move) on every add/remove/reorder, so capturing an
+    // EffectBase* here would dangle.  Out-of-range slots are simply ignored.
+    auto resolve = [processor, slotIndex, paramIndex]() -> ana::EffectBase*
+    {
+        auto& chain = processor->getEffectsChain();
+        if (slotIndex < 0 || slotIndex >= chain.getNumEffects())
+            return nullptr;
+        return chain.getEffect(slotIndex).effect.get();
+    };
+
+    MidiLearnSliderInfo info;
+    info.paramId = paramId;
+    info.target  = nullptr;
+    info.targetSetter = [resolve](float v)
+    {
+        if (auto* effect = resolve())
+            effect->setParamValue(paramIndex, v);
+    };
+    info.targetGetter = [resolve]() -> float
+    {
+        if (auto* effect = resolve())
+            return effect->getParamValue(paramIndex);
+        return 0.0f;
+    };
+
+    midiLearnSliders_[&knob] = std::move(info);
+    effectKnobSliders_[paramId] = &knob;
+
+    // If this parameter was already learned (e.g. after a state load, or the
+    // slot was rebuilt), point the existing mapping at the new knob.
+    auto& stored = midiLearnSliders_[&knob];
+    audioProcessor.getMidiLearn().reconnectTarget(paramId, stored.targetSetter,
+                                                  stored.targetGetter);
+}
+
+//==============================================================================
+void AnaPlugAudioProcessorEditor::refreshEffectKnobMidiLearn()
+{
+    // 1. Collect the knobs that exist right now (expanded slots only).
+    effectKnobScratch_.clear();
+    effectRack_.visitSlots([this](int, ana::EffectSlotWidget& slot)
+    {
+        auto* panel = slot.getParamPanel();
+        if (panel == nullptr)
+            return;
+
+        const int slotIndex = slot.getSlotIndex();
+        panel->visitKnobs([this, slotIndex](int paramIndex, juce::Slider& knob)
+        {
+            effectKnobScratch_.push_back({ &knob, slotIndex, paramIndex });
+        });
+    });
+
+    auto isLive = [this](const juce::Slider* knob)
+    {
+        for (const auto& ref : effectKnobScratch_)
+            if (ref.knob == knob)
+                return true;
+        return false;
+    };
+
+    // 2. Forget registrations whose knob was destroyed.  The pointers are no
+    //    longer dereferenced anywhere after this point (no listener removal on
+    //    a dead component).
+    for (auto it = effectKnobSliders_.begin(); it != effectKnobSliders_.end(); )
+    {
+        if (isLive(it->second))
+        {
+            ++it;
+            continue;
+        }
+
+        midiLearnSliders_.erase(it->second);
+        it = effectKnobSliders_.erase(it);
+    }
+
+    // 3. Register the knobs that are new (or whose slot index changed).
+    for (const auto& ref : effectKnobScratch_)
+    {
+        const juce::String paramId = "fx" + juce::String(ref.slot)
+                                  + "_p" + juce::String(ref.param);
+
+        auto registered = effectKnobSliders_.find(paramId);
+        if (registered != effectKnobSliders_.end() && registered->second == ref.knob)
+            continue;
+
+        // The address may be reused by a different knob after a rebuild: drop
+        // the stale registration for that slider first.
+        auto existing = midiLearnSliders_.find(ref.knob);
+        if (existing != midiLearnSliders_.end())
+        {
+            auto owner = effectKnobSliders_.find(existing->second.paramId);
+            if (owner != effectKnobSliders_.end() && owner->second == ref.knob)
+                effectKnobSliders_.erase(owner);
+
+            ref.knob->removeMouseListener(this);
+            midiLearnSliders_.erase(existing);
+        }
+
+        setupMidiLearnForEffectKnob(*ref.knob, paramId, ref.slot, ref.param);
+    }
 }
 
 //==============================================================================
@@ -1537,9 +1653,15 @@ void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
         menu.addItem("MIDI Learn", [this, slider, infoCopy]()
         {
             auto& ml = audioProcessor.getMidiLearn();
-            ml.startLearn(infoCopy.paramId, infoCopy.target,
-                          static_cast<float>(slider->getMinimum()),
-                          static_cast<float>(slider->getMaximum()));
+            const float lo = static_cast<float>(slider->getMinimum());
+            const float hi = static_cast<float>(slider->getMaximum());
+
+            if (infoCopy.target != nullptr)
+                ml.startLearn(infoCopy.paramId, infoCopy.target, lo, hi);
+            else
+                ml.startLearn(infoCopy.paramId, infoCopy.targetSetter,
+                              infoCopy.targetGetter, lo, hi);
+
             midiLearnStartTime_ = juce::Time::getMillisecondCounter();
         });
 
@@ -1568,6 +1690,10 @@ void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 //==============================================================================
 void AnaPlugAudioProcessorEditor::updateMidiLearnState()
 {
+    // Effect knobs are created/destroyed by the rack (expand, rebuild, remove),
+    // so the registry is re-scanned before anything dereferences it.
+    refreshEffectKnobMidiLearn();
+
     auto& midiLearn = audioProcessor.getMidiLearn();
 
     // --- Timeout: auto-stop learn after 3 seconds ---
@@ -1593,32 +1719,42 @@ void AnaPlugAudioProcessorEditor::updateMidiLearnState()
     auto& macroCtrl = audioProcessor.getMacroController();
     for (const auto& mapping : midiLearn.getMappings())
     {
-        if (mapping.targetParam != nullptr)
-        {
-            auto sit = learnableSliders_.find(mapping.parameterId);
-            if (sit != learnableSliders_.end())
-            {
-                float currentAtomic = mapping.targetParam->load();
-                double currentSlider = sit->second->getValue();
-                // Use a small epsilon to avoid redundant setValue calls
-                if (std::abs(static_cast<double>(currentAtomic) - currentSlider) > 0.001)
-                {
-                    sit->second->setValue(static_cast<double>(currentAtomic),
-                                          juce::sendNotificationSync);
-                }
-            }
+        // Read through whichever target kind is connected (atomic or the
+        // callback used by effect parameters).
+        float currentValue = 0.0f;
+        if (! midiLearn.getMappingValue(mapping.parameterId, currentValue))
+            continue;
 
-            // Also sync macro controller if this paramId is a macro
-            if (mapping.parameterId.startsWith("macro_"))
+        // Find the UI control: static sliders first, then effect knobs.
+        juce::Slider* slider = nullptr;
+        auto sit = learnableSliders_.find(mapping.parameterId);
+        if (sit != learnableSliders_.end())
+            slider = sit->second;
+        else
+        {
+            auto kit = effectKnobSliders_.find(mapping.parameterId);
+            if (kit != effectKnobSliders_.end())
+                slider = kit->second;
+        }
+
+        if (slider != nullptr)
+        {
+            const double currentSlider = slider->getValue();
+            // Use a small epsilon to avoid redundant setValue calls
+            if (std::abs(static_cast<double>(currentValue) - currentSlider) > 0.001)
+                slider->setValue(static_cast<double>(currentValue), juce::sendNotificationSync);
+        }
+
+        // Also sync macro controller if this paramId is a macro
+        if (mapping.targetParam != nullptr && mapping.parameterId.startsWith("macro_"))
+        {
+            const int macroIdx = mapping.parameterId.getTrailingIntValue() - 1;
+            if (macroIdx >= 0 && macroIdx < 4)
             {
-                const int macroIdx = mapping.parameterId.getTrailingIntValue() - 1;
-                if (macroIdx >= 0 && macroIdx < 4)
-                {
-                    const float rawVal = macroCtrl.getMacroValue(macroIdx);
-                    const float atomicVal = mapping.targetParam->load(std::memory_order_relaxed);
-                    if (std::abs(rawVal - atomicVal) > 0.001f)
-                        macroCtrl.setMacroValue(macroIdx, atomicVal);
-                }
+                const float rawVal = macroCtrl.getMacroValue(macroIdx);
+                const float atomicVal = mapping.targetParam->load(std::memory_order_relaxed);
+                if (std::abs(rawVal - atomicVal) > 0.001f)
+                    macroCtrl.setMacroValue(macroIdx, atomicVal);
             }
         }
     }

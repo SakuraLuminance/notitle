@@ -35,9 +35,10 @@ void EffectParamPanel::rebuildKnobs()
         knob->setColour(juce::Slider::rotarySliderFillColourId, CyberpunkTheme::cyan_);
         knob->setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
         knob->setColour(juce::Slider::rotarySliderOutlineColourId, CyberpunkTheme::bg_.brighter(0.2f));
-        knob->setTooltip(spec.values != nullptr
+        knob->setTooltip((spec.values != nullptr
             ? juce::String(spec.label) + "\n" + spec.values
-            : juce::String(spec.label));
+            : juce::String(spec.label))
+            + "\nRight-click: MIDI Learn");
         const int idx = i;
         knob->onValueChange = [this, idx]()
         {
@@ -56,6 +57,16 @@ void EffectParamPanel::rebuildKnobs()
         addAndMakeVisible(label.get());
         labels_.add(std::move(label));
     }
+}
+
+void EffectParamPanel::visitKnobs(const std::function<void(int, juce::Slider&)>& fn)
+{
+    if (! fn)
+        return;
+
+    for (int i = 0; i < knobs_.size(); ++i)
+        if (auto* knob = knobs_[i])
+            fn(i, *knob);
 }
 
 void EffectParamPanel::resized()

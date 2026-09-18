@@ -28,8 +28,10 @@
 #include "gui/panels/PageTabs.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <array>
+#include <functional>
 #include <map>
 #include <unordered_map>
+#include <vector>
 
 //==============================================================================
 /**
@@ -260,12 +262,27 @@ private:
     struct MidiLearnSliderInfo {
         juce::String paramId;
         std::atomic<float>* target = nullptr;
+        // Callback targets: used by effect-parameter knobs, whose values live
+        // behind EffectBase::get/setParamValue rather than an atomic.
+        std::function<void(float)> targetSetter;
+        std::function<float()>     targetGetter;
     };
 
     /** Register a slider so that right-click → "MIDI Learn" works. */
     void setupMidiLearnForSlider(juce::Slider& slider,
                                  const juce::String& paramId,
                                  std::atomic<float>* target = nullptr);
+
+    /** Register one knob of an expanded effect slot.  The callbacks resolve
+        the slot by index at call time, so removing/reordering effects can
+        never leave a dangling EffectBase pointer behind. */
+    void setupMidiLearnForEffectKnob(juce::Slider& knob,
+                                     const juce::String& paramId,
+                                     int slotIndex, int paramIndex);
+
+    /** Re-scan the rack's expanded slots: register new knobs, drop the ones
+        that were destroyed (collapse / rebuild / slot removal). */
+    void refreshEffectKnobMidiLearn();
 
     /** Process MIDI Learn timeout + indicator blink in timer. */
     void updateMidiLearnState();
@@ -282,6 +299,12 @@ private:
     // Maps slider → info for right-click / polling
     std::map<juce::String, juce::Slider*> learnableSliders_;
     std::unordered_map<const juce::Slider*, MidiLearnSliderInfo> midiLearnSliders_;
+
+    // Effect-parameter knobs (dynamically created by the rack): parameter id
+    // → knob, refreshed every timer tick from the live component tree.
+    struct EffectKnobRef { juce::Slider* knob = nullptr; int slot = -1; int param = -1; };
+    std::map<juce::String, juce::Slider*> effectKnobSliders_;
+    std::vector<EffectKnobRef> effectKnobScratch_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnaPlugAudioProcessorEditor)
 };

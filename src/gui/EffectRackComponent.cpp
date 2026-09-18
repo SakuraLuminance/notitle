@@ -599,6 +599,16 @@ void EffectRackComponent::syncFromProcessor()
         slot->syncFromProcessor();
 }
 
+void EffectRackComponent::visitSlots(const std::function<void(int, EffectSlotWidget&)>& fn) const
+{
+    if (! fn)
+        return;
+
+    for (const auto& slot : slots_)
+        if (slot != nullptr)
+            fn(slot->getSlotIndex(), *slot);
+}
+
 //==============================================================================
 void EffectRackComponent::showAddEffectMenu()
 {

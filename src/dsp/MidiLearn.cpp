@@ -4,20 +4,56 @@
 
 namespace ana {
 
+namespace {
+
+/** Writes a scaled value into whichever target kind is connected.
+    The atomic path is tried first so existing mappings keep their exact
+    behaviour; the callback (effect-parameter) path is the fallback. */
+void applyTargetValue(std::atomic<float>* target,
+                      const std::function<void(float)>& setter,
+                      float scaled)
+{
+    if (target != nullptr)
+        target->store(scaled, std::memory_order_relaxed);
+    else if (setter)
+        setter(scaled);
+}
+
+} // namespace
+
 //==============================================================================
-void MidiLearn::addMapping(int cc, const juce::String& paramId,
-                           std::atomic<float>* target, float min, float max)
+void MidiLearn::addMappingInternal(int cc, const juce::String& paramId,
+                                   std::atomic<float>* target,
+                                   std::function<void(float)> setter,
+                                   std::function<float()> getter,
+                                   float min, float max)
 {
     // Remove any existing mapping for this CC number first
     removeMapping(cc);
 
     MidiMapping mapping;
-    mapping.ccNumber    = cc;
-    mapping.parameterId = paramId;
-    mapping.targetParam = target;
-    mapping.minValue    = min;
-    mapping.maxValue    = max;
+    mapping.ccNumber     = cc;
+    mapping.parameterId  = paramId;
+    mapping.targetParam  = target;
+    mapping.targetSetter = std::move(setter);
+    mapping.targetGetter = std::move(getter);
+    mapping.minValue     = min;
+    mapping.maxValue     = max;
     mappings_.push_back(std::move(mapping));
+}
+
+void MidiLearn::addMapping(int cc, const juce::String& paramId,
+                           std::atomic<float>* target, float min, float max)
+{
+    addMappingInternal(cc, paramId, target, {}, {}, min, max);
+}
+
+void MidiLearn::addMapping(int cc, const juce::String& paramId,
+                           std::function<void(float)> setter,
+                           std::function<float()> getter,
+                           float min, float max)
+{
+    addMappingInternal(cc, paramId, nullptr, std::move(setter), std::move(getter), min, max);
 }
 
 void MidiLearn::removeMapping(int cc)
@@ -56,15 +92,13 @@ void MidiLearn::processMidi(const juce::MidiMessage& msg)
     // --- Learn mode: capture the first CC we receive ---
     if (learning_)
     {
-        addMapping(cc, learnParamId_, learnTarget_, learnMin_, learnMax_);
+        addMappingInternal(cc, learnParamId_, learnTarget_,
+                           learnSetter_, learnGetter_, learnMin_, learnMax_);
 
         // Apply the value immediately so the parameter snaps to the
         // current controller position
-        if (learnTarget_ != nullptr)
-        {
-            const float scaled = learnMin_ + value * (learnMax_ - learnMin_);
-            learnTarget_->store(scaled, std::memory_order_relaxed);
-        }
+        applyTargetValue(learnTarget_, learnSetter_,
+                         learnMin_ + value * (learnMax_ - learnMin_));
 
         stopLearn();
         return;
@@ -75,12 +109,8 @@ void MidiLearn::processMidi(const juce::MidiMessage& msg)
     {
         if (mapping.ccNumber == cc)
         {
-            if (mapping.targetParam != nullptr)
-            {
-                const float scaled = mapping.minValue
-                                   + value * (mapping.maxValue - mapping.minValue);
-                mapping.targetParam->store(scaled, std::memory_order_relaxed);
-            }
+            applyTargetValue(mapping.targetParam, mapping.targetSetter,
+                             mapping.minValue + value * (mapping.maxValue - mapping.minValue));
             return; // first match wins (one CC → one mapping)
         }
     }
@@ -93,6 +123,22 @@ void MidiLearn::startLearn(const juce::String& paramId, std::atomic<float>* targ
     learning_       = true;
     learnParamId_   = paramId;
     learnTarget_    = target;
+    learnSetter_    = {};
+    learnGetter_    = {};
+    learnMin_       = min;
+    learnMax_       = max;
+}
+
+void MidiLearn::startLearn(const juce::String& paramId,
+                           std::function<void(float)> setter,
+                           std::function<float()> getter,
+                           float min, float max)
+{
+    learning_       = true;
+    learnParamId_   = paramId;
+    learnTarget_    = nullptr;
+    learnSetter_    = std::move(setter);
+    learnGetter_    = std::move(getter);
     learnMin_       = min;
     learnMax_       = max;
 }
@@ -102,6 +148,8 @@ void MidiLearn::stopLearn()
     learning_     = false;
     learnParamId_ = {};
     learnTarget_  = nullptr;
+    learnSetter_  = {};
+    learnGetter_  = {};
     learnMin_     = 0.0f;
     learnMax_     = 1.0f;
 }
@@ -113,10 +161,54 @@ void MidiLearn::reconnectTarget(const juce::String& paramId, std::atomic<float>*
     {
         if (m.parameterId == paramId)
         {
-            m.targetParam = target;
+            m.targetParam  = target;
+            m.targetSetter = {};
+            m.targetGetter = {};
             return;
         }
     }
+}
+
+void MidiLearn::reconnectTarget(const juce::String& paramId,
+                                std::function<void(float)> setter,
+                                std::function<float()> getter)
+{
+    for (auto& m : mappings_)
+    {
+        if (m.parameterId == paramId)
+        {
+            m.targetParam  = nullptr;
+            m.targetSetter = std::move(setter);
+            m.targetGetter = std::move(getter);
+            return;
+        }
+    }
+}
+
+//==============================================================================
+bool MidiLearn::getMappingValue(const juce::String& paramId, float& outValue) const
+{
+    for (const auto& m : mappings_)
+    {
+        if (m.parameterId != paramId)
+            continue;
+
+        if (m.targetParam != nullptr)
+        {
+            outValue = m.targetParam->load(std::memory_order_relaxed);
+            return true;
+        }
+
+        if (m.targetGetter)
+        {
+            outValue = m.targetGetter();
+            return true;
+        }
+
+        return false;
+    }
+
+    return false;
 }
 
 //==============================================================================

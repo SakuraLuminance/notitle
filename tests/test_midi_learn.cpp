@@ -2,6 +2,7 @@
 #include "dsp/MidiLearn.h"
 #include <juce_core/juce_core.h>
 #include <atomic>
+#include <functional>
 
 using namespace ana;
 
@@ -304,3 +305,194 @@ TEST_CASE("MidiLearn - startLearn/stopLearn toggle", "[midi][edge]")
     ml.stopLearn();
     REQUIRE_FALSE(ml.isLearning());
 }
+
+
+// ===========================================================================
+// Callback targets (rack effect parameters)
+//
+// Effect parameters live behind EffectBase::get/setParamValue rather than an
+// atomic, so a mapping may carry a setter/getter pair instead.  The atomic
+// path stays authoritative whenever both kinds are connected.
+// ===========================================================================
+
+TEST_CASE("MidiLearn - callback target receives scaled values", "[midi][callback]")
+{
+    MidiLearn ml;
+    float received = -1.0f;
+    ml.addMapping(20, "fx0_p1",
+                  [&received](float v) { received = v; },
+                  [&received]() { return received; },
+                  100.0f, 2000.0f);
+
+    REQUIRE(ml.getMappings().size() == 1);
+    REQUIRE(ml.getMappings()[0].targetParam == nullptr);
+    REQUIRE(static_cast<bool>(ml.getMappings()[0].targetSetter));
+
+    SECTION("CC 0 -> minimum of the range")
+    {
+        ml.processMidi(juce::MidiMessage::controllerEvent(1, 20, 0));
+        REQUIRE(received == Catch::Approx(100.0f).margin(0.001f));
+    }
+
+    SECTION("CC 127 -> maximum of the range")
+    {
+        ml.processMidi(juce::MidiMessage::controllerEvent(1, 20, 127));
+        REQUIRE(received == Catch::Approx(2000.0f).margin(0.001f));
+    }
+
+    SECTION("Unmapped CC leaves the callback untouched")
+    {
+        ml.processMidi(juce::MidiMessage::controllerEvent(1, 21, 64));
+        REQUIRE(received == Catch::Approx(-1.0f).margin(0.001f));
+    }
+}
+
+TEST_CASE("MidiLearn - startLearn learns a callback target", "[midi][callback][learn]")
+{
+    MidiLearn ml;
+    float value = 0.0f;
+
+    ml.startLearn("fx2_p0",
+                  [&value](float v) { value = v; },
+                  [&value]() { return value; },
+                  0.0f, 10.0f);
+    REQUIRE(ml.isLearning());
+
+    ml.processMidi(juce::MidiMessage::controllerEvent(1, 11, 127));
+    REQUIRE_FALSE(ml.isLearning());
+
+    REQUIRE(ml.getMappings().size() == 1);
+    REQUIRE(ml.getMappings()[0].ccNumber == 11);
+    REQUIRE(ml.getMappings()[0].parameterId == "fx2_p0");
+    // The learned value is applied immediately...
+    REQUIRE(value == Catch::Approx(10.0f).margin(0.001f));
+
+    // ...and later CCs keep driving the callback.
+    ml.processMidi(juce::MidiMessage::controllerEvent(1, 11, 0));
+    REQUIRE(value == Catch::Approx(0.0f).margin(0.001f));
+}
+
+TEST_CASE("MidiLearn - reconnecting to an atomic clears the callback target",
+          "[midi][callback]")
+{
+    MidiLearn ml;
+    float callbackValue = -1.0f;
+    std::atomic<float> atomicTarget{0.0f};
+
+    ml.addMapping(9, "fx0_p0",
+                  [&callbackValue](float v) { callbackValue = v; },
+                  [&callbackValue]() { return callbackValue; },
+                  0.0f, 1.0f);
+
+    ml.reconnectTarget("fx0_p0", &atomicTarget);
+    REQUIRE(ml.getMappings()[0].targetParam == &atomicTarget);
+    REQUIRE_FALSE(static_cast<bool>(ml.getMappings()[0].targetSetter));
+
+    ml.processMidi(juce::MidiMessage::controllerEvent(1, 9, 127));
+    REQUIRE(atomicTarget.load() == Catch::Approx(1.0f).margin(0.001f));
+    REQUIRE(callbackValue == Catch::Approx(-1.0f).margin(0.001f));
+}
+
+TEST_CASE("MidiLearn - reconnecting a stale atomic to callbacks",
+          "[midi][callback][state]")
+{
+    MidiLearn ml;
+    std::atomic<float> staleTarget{0.0f};
+    ml.addMapping(7, "fx1_p2", &staleTarget, 0.0f, 1.0f);
+
+    float viaCallback = -1.0f;
+    ml.reconnectTarget("fx1_p2",
+                       [&viaCallback](float v) { viaCallback = v; },
+                       [&viaCallback]() { return viaCallback; });
+
+    REQUIRE(ml.getMappings()[0].targetParam == nullptr);
+    REQUIRE(static_cast<bool>(ml.getMappings()[0].targetSetter));
+
+    ml.processMidi(juce::MidiMessage::controllerEvent(1, 7, 127));
+    REQUIRE(viaCallback == Catch::Approx(1.0f).margin(0.001f));
+    REQUIRE(staleTarget.load() == Catch::Approx(0.0f).margin(0.001f));
+}
+
+TEST_CASE("MidiLearn - empty callback target is a harmless no-op",
+          "[midi][callback][nullptr]")
+{
+    MidiLearn ml;
+    ml.addMapping(12, "fx9_p9", std::function<void(float)>{},
+                  std::function<float()>{}, 0.0f, 1.0f);
+
+    REQUIRE_NOTHROW(ml.processMidi(juce::MidiMessage::controllerEvent(1, 12, 64)));
+
+    float out = 0.0f;
+    REQUIRE_FALSE(ml.getMappingValue("fx9_p9", out));
+}
+
+TEST_CASE("MidiLearn - removeMapping stops a callback target", "[midi][callback]")
+{
+    MidiLearn ml;
+    float value = 0.0f;
+    ml.addMapping(42, "fx0_p3",
+                  [&value](float v) { value = v; },
+                  [&value]() { return value; },
+                  0.0f, 1.0f);
+
+    ml.processMidi(juce::MidiMessage::controllerEvent(1, 42, 127));
+    REQUIRE(value == Catch::Approx(1.0f).margin(0.001f));
+
+    ml.removeMapping(42);
+    REQUIRE(ml.getMappings().empty());
+
+    ml.processMidi(juce::MidiMessage::controllerEvent(1, 42, 0));
+    REQUIRE(value == Catch::Approx(1.0f).margin(0.001f));
+}
+
+TEST_CASE("MidiLearn - getMappingValue reads atomic and callback targets",
+          "[midi][callback]")
+{
+    MidiLearn ml;
+    std::atomic<float> atomicValue{0.25f};
+    ml.addMapping(1, "atomic_param", &atomicValue, 0.0f, 1.0f);
+
+    float callbackValue = 0.75f;
+    ml.addMapping(2, "cb_param",
+                  [&callbackValue](float v) { callbackValue = v; },
+                  [&callbackValue]() { return callbackValue; },
+                  0.0f, 1.0f);
+
+    float out = -1.0f;
+    REQUIRE(ml.getMappingValue("atomic_param", out));
+    REQUIRE(out == Catch::Approx(0.25f));
+
+    REQUIRE(ml.getMappingValue("cb_param", out));
+    REQUIRE(out == Catch::Approx(0.75f));
+
+    REQUIRE_FALSE(ml.getMappingValue("no_such_param", out));
+}
+
+TEST_CASE("MidiLearn - callback targets survive a state round-trip disconnected",
+          "[midi][callback][state]")
+{
+    MidiLearn ml;
+    float callbackValue = 0.5f;
+    ml.addMapping(30, "fx3_p1",
+                  [&callbackValue](float v) { callbackValue = v; },
+                  [&callbackValue]() { return callbackValue; },
+                  0.0f, 2.0f);
+
+    const auto state = ml.saveProcessorState();
+
+    MidiLearn loaded;
+    loaded.loadProcessorState(state);
+    REQUIRE(loaded.getMappings().size() == 1);
+    REQUIRE(loaded.getMappings()[0].parameterId == "fx3_p1");
+    REQUIRE(loaded.getMappings()[0].minValue == Catch::Approx(0.0f));
+    REQUIRE(loaded.getMappings()[0].maxValue == Catch::Approx(2.0f));
+
+    // Callbacks are runtime-only: a loaded mapping has no target until the
+    // editor reconnects it (and must not crash in the meantime).
+    REQUIRE(loaded.getMappings()[0].targetParam == nullptr);
+    REQUIRE_FALSE(static_cast<bool>(loaded.getMappings()[0].targetSetter));
+    REQUIRE_FALSE(static_cast<bool>(loaded.getMappings()[0].targetGetter));
+
+    REQUIRE_NOTHROW(loaded.processMidi(juce::MidiMessage::controllerEvent(1, 30, 100)));
+}
+
