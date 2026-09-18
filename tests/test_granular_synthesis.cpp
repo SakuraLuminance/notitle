@@ -775,6 +775,48 @@ TEST_CASE("GranularSynthesizer reports grain direction to the display", "[granul
     REQUIRE(render(1.0f) > 0);       // the display can tell them apart
 }
 
+TEST_CASE("GranularSynthesizer reports each grain's pan to the display", "[granular]")
+{
+    const std::vector<float> source(48000, 0.5f);
+    ana::GranularSynthesizer::GrainSnapshot cloud[64];
+    juce::AudioBuffer<float> buf(2, 512);
+
+    auto panSpread = [&](float spread)
+    {
+        ana::GranularSynthesizer synth;
+        synth.setSourceBuffer(source, 48000.0);
+        synth.setGrainSize(50.0f);
+        synth.setDensity(200.0f);
+        synth.setPosition(0.5f);
+        synth.setAmplitude(0.5f);
+        synth.setStereoSpread(spread);
+
+        for (int b = 0; b < 40; ++b)
+        {
+            buf.clear();
+            synth.process(buf);
+        }
+
+        const int count = synth.getActiveGrainSnapshots(cloud, 64);
+        REQUIRE(count > 1);
+
+        float lowest = 1.0f, highest = -1.0f;
+        for (int i = 0; i < count; ++i)
+        {
+            REQUIRE(cloud[i].pan >= -1.0f);
+            REQUIRE(cloud[i].pan <= 1.0f);
+            lowest  = juce::jmin(lowest, cloud[i].pan);
+            highest = juce::jmax(highest, cloud[i].pan);
+        }
+
+        return highest - lowest;
+    };
+
+    REQUIRE(panSpread(0.0f) < 1.0e-6f);   // no spread: every grain shares one pan
+    REQUIRE(panSpread(1.0f) > 0.05f);     // spread: the clicks land apart
+}
+
+
 
 
 

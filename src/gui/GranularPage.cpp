@@ -400,8 +400,11 @@ void GranularPage::paint(juce::Graphics& g)
                        static_cast<float>(strip.getY() + 1),
                        static_cast<float>(grainArea.getBottom() - 1));
 
-    // One bar per grain: x = read position, y = age (fresh at the top),
-    // width = grain length in source units, colour = cyan -> magenta as it ages.
+    // One bar per grain: x = read position, y = age (fresh at the top, sinking),
+    // width = grain length in source units, colour = pan (cyan left -> magenta
+    // right), alpha = amplitude.  Age is already carried by y, so the colour is
+    // free to show the one axis the layout cannot: where the grain sits in the
+    // stereo field, which is exactly what SPREAD moves.
     if (cloudCount_ <= 0)
     {
         g.setColour(CyberpunkTheme::fg_.withAlpha(0.30f));
@@ -421,8 +424,9 @@ void GranularPage::paint(juce::Graphics& g)
                       + progress * static_cast<float>(grainArea.getHeight() - 1);
         const float w = juce::jmax(2.0f, s.duration * static_cast<float>(grainArea.getWidth()));
 
+        const float panNorm = (juce::jlimit(-1.0f, 1.0f, s.pan) + 1.0f) * 0.5f;
         g.setColour(CyberpunkTheme::cyan_
-                        .interpolatedWith(CyberpunkTheme::magenta_, progress)
+                        .interpolatedWith(CyberpunkTheme::magenta_, panNorm)
                         .withAlpha(juce::jlimit(0.15f, 1.0f, s.amplitude)));
         g.fillRect(juce::Rectangle<float>(x - w * 0.5f, y - 1.0f, w, 2.0f));
 
