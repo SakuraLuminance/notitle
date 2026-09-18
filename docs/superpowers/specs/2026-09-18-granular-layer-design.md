@@ -57,6 +57,25 @@
 | `reserveWindowCache` 扩容 | 预留后容量 ≥ 请求值；多次不同粒度渲染后不缩小；`reserveWindowCache(0)` 被忽略 |
 | 预留不改变输出 | 预留实例与普通实例输出能量一致（窗表内容不受容量影响） |
 
+## SPREAD / REVERSE（立体声散布 + 反向粒子）
+
+| 参数 | 语义 | 实现 |
+|---|---|---|
+| `grain_spread`（SPREAD，0–100%） | 每个粒子在 \(pan\) 上再加一个均匀随机偏移 `±spread`，再 clamp 到 [-1,1]；等功率 pan 不变 | `spawnGrain()`：`panValue = juce::jlimit(-1.0f, 1.0f, pan_ + U(-spread_, +spread_))` |
+| `grain_reverse`（REVERSE，0–100%） | 该比例的粒子**倒放**：起点放在同一跨度的**远端**、步进为负 | `startPos = centre + halfSpan`，`pitchRatio = -ratio` |
+
+关键不变量：倒放粒子的**跨度、窗、时长、个数**与正放完全一致，只有样本顺序翻转 —— 因此密度、SIZE、POSITION 的语义和听感平衡都不变，而且渲染循环里除 `pitchRatio` 的符号外**一行都不用改**（读指针越界由生成时的 clamp 保证：起点 ∈ [0, len-1]，之后单调递减且不会低于 `centre - halfSpan` ≥ 0）。
+
+接线（“不接线就不出现在 UI”）：
+
+| 层 | 改动 |
+|---|---|
+| DSP | `setStereoSpread()` / `setReverseProbability()`，clamp 0..1 |
+| 处理器 | 原子 `granularSpread_` / `granularReverse_` + `set/get`，`renderGranularLayer()` 与 `prepareToPlay()` 推入引擎 |
+| 状态 | `grainSpread` / `grainReverse` 属性保存 + 恢复（老工程缺属性时默认 0） |
+| UI | GRAIN 页第 6 行 `SPREAD ▬ 0%` / `REVERSE ▬ 0%`，均带 tooltip 与百分比读数 |
+| MIDI Learn | `grain_spread` / `grain_reverse`（% ↔ 0..1 转换器） |
+
 ## GRAIN 页的粒子云（视觉反馈）
 
 页面上原来只有控件，没有任何反馈：DENSITY / SIZE / SPACE+MOD / RATE 到底在做什么看不出来。

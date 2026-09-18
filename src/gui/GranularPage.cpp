@@ -173,6 +173,44 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     modRateLabel_.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.7f));
     addAndMakeVisible(modRateLabel_);
 
+    // -- Stereo spread ------------------------------------------------------
+    spreadSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    spreadSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    spreadSlider_.setRange(0.0, 100.0, 1.0);
+    spreadSlider_.setTooltip("Random pan spread across grains (0% = every grain shares one pan)\nRight-click: MIDI Learn");
+    spreadSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
+    spreadSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
+    spreadSlider_.onValueChange = [this]
+    {
+        processor_.setGrainSpread(static_cast<float>(spreadSlider_.getValue() / 100.0));
+    };
+    addAndMakeVisible(spreadSlider_);
+    addReadout(spreadReadout_, "Random pan spread across grains");
+
+    spreadLabel_.setText("SPREAD", juce::dontSendNotification);
+    spreadLabel_.setFont(CyberpunkTheme::getCyberFont(9.0f, true));
+    spreadLabel_.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.7f));
+    addAndMakeVisible(spreadLabel_);
+
+    // -- Reverse ------------------------------------------------------------
+    reverseSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    reverseSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    reverseSlider_.setRange(0.0, 100.0, 1.0);
+    reverseSlider_.setTooltip("Share of grains that play backwards (same span, opposite direction)\nRight-click: MIDI Learn");
+    reverseSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
+    reverseSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
+    reverseSlider_.onValueChange = [this]
+    {
+        processor_.setGrainReverse(static_cast<float>(reverseSlider_.getValue() / 100.0));
+    };
+    addAndMakeVisible(reverseSlider_);
+    addReadout(reverseReadout_, "Share of grains that play backwards");
+
+    reverseLabel_.setText("REVERSE", juce::dontSendNotification);
+    reverseLabel_.setFont(CyberpunkTheme::getCyberFont(9.0f, true));
+    reverseLabel_.setColour(juce::Label::textColourId, CyberpunkTheme::fg_.withAlpha(0.7f));
+    addAndMakeVisible(reverseLabel_);
+
     // -- Status -------------------------------------------------------------
     statusLabel_.setJustificationType(juce::Justification::centredLeft);
     statusLabel_.setFont(CyberpunkTheme::getCyberFont(10.0f, true));
@@ -272,6 +310,17 @@ void GranularPage::resized()
         modRateSlider_.setBounds(right.removeFromLeft(juce::jmax(50, right.getWidth()
                                                                  - CyberpunkTheme::kReadoutWidth)));
         modRateReadout_.setBounds(right);
+        area.removeFromTop(4);
+    }
+
+    // Row 6: stereo spread + reverse probability
+    {
+        auto row = area.removeFromTop(kRowH);
+        auto left = row.removeFromLeft(halfW);
+        auto right = row;
+
+        layoutSliderRow(left, spreadLabel_, spreadSlider_, spreadReadout_);
+        layoutSliderRow(right, reverseLabel_, reverseSlider_, reverseReadout_);
         area.removeFromTop(6);
     }
 
@@ -398,6 +447,8 @@ void GranularPage::syncFromProcessor()
     syncSlider(pitchSlider_,    processor_.getGrainPitch());
     syncSlider(modDepthSlider_, processor_.getGrainModDepth() * 100.0);
     syncSlider(modRateSlider_,  processor_.getGrainModRate());
+    syncSlider(spreadSlider_,   processor_.getGrainSpread() * 100.0);
+    syncSlider(reverseSlider_,  processor_.getGrainReverse() * 100.0);
 
     if (windowCombo_.getSelectedId() != processor_.getGrainWindow() + 1)
         windowCombo_.setSelectedId(processor_.getGrainWindow() + 1, juce::dontSendNotification);
@@ -418,6 +469,10 @@ void GranularPage::syncFromProcessor()
     modDepthReadout_.setText(CyberpunkTheme::formatPercent(static_cast<float>(modDepthSlider_.getValue())),
                              juce::dontSendNotification);
     modRateReadout_.setText(CyberpunkTheme::formatNumber(static_cast<float>(modRateSlider_.getValue()), 2) + " Hz",
+                            juce::dontSendNotification);
+    spreadReadout_.setText(CyberpunkTheme::formatPercent(static_cast<float>(spreadSlider_.getValue())),
+                           juce::dontSendNotification);
+    reverseReadout_.setText(CyberpunkTheme::formatPercent(static_cast<float>(reverseSlider_.getValue())),
                             juce::dontSendNotification);
 
     // Grain cloud: the processor publishes a guarded copy once per audio block,

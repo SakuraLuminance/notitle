@@ -95,6 +95,16 @@ void GranularSynthesizer::setWindowType(GrainWindowType type)
     windowType_ = type;
 }
 
+void GranularSynthesizer::setStereoSpread(float spread)
+{
+    stereoSpread_ = std::clamp(spread, 0.0f, 1.0f);
+}
+
+void GranularSynthesizer::setReverseProbability(float probability)
+{
+    reverseProbability_ = std::clamp(probability, 0.0f, 1.0f);
+}
+
 void GranularSynthesizer::setPositionModulation(PositionModulation mod, float depth, float rate)
 {
     posMod_       = mod;
@@ -363,12 +373,34 @@ bool GranularSynthesizer::spawnGrain()
     // Centre the grain playback around the target position
     const double centreSample = modPosition * static_cast<double>(sourceLen - 1);
     const double halfSpan     = static_cast<double>(grainDur) * ratio * 0.5;
-    const double startPos     = std::clamp(centreSample - halfSpan,
-                                           0.0,
-                                           static_cast<double>(sourceLen - 1));
 
-    // Constant-power pan
-    const float panNorm = (pan_ + 1.0f) * 0.5f; // [-1, 1] -> [0, 1]
+    // Direction.  A reversed grain starts at the far end of the same span and
+    // walks back through it, so geometry, window and duration are unchanged -
+    // only the order of the samples it contributes is flipped.
+    bool reversed = false;
+    if (reverseProbability_ > 0.0f)
+    {
+        std::uniform_real_distribution<float> chance(0.0f, 1.0f);
+        reversed = chance(rng_) < reverseProbability_;
+    }
+
+    const double startPos = std::clamp(reversed ? centreSample + halfSpan
+                                               : centreSample - halfSpan,
+                                       0.0,
+                                       static_cast<double>(sourceLen - 1));
+
+    // Constant-power pan, optionally offset per grain so stacked grains fill
+    // the stereo field instead of piling up in the middle.
+    float panValue = pan_;
+    if (stereoSpread_ > 0.0f)
+    {
+        std::uniform_real_distribution<float> offset(-stereoSpread_, stereoSpread_);
+        panValue += offset(rng_);
+    }
+
+    panValue = juce::jlimit(-1.0f, 1.0f, panValue);
+
+    const float panNorm = (panValue + 1.0f) * 0.5f; // [-1, 1] -> [0, 1]
     const float panL    = std::cos(panNorm * juce::MathConstants<float>::halfPi);
     const float panR    = std::sin(panNorm * juce::MathConstants<float>::halfPi);
 
@@ -379,7 +411,7 @@ bool GranularSynthesizer::spawnGrain()
     g.sourcePosition  = startPos;
     g.currentSample   = 0;
     g.durationSamples = grainDur;
-    g.pitchRatio      = ratio;
+    g.pitchRatio      = reversed ? -ratio : ratio;
     g.amplitude       = amplitude_;
     g.panL            = panL;
     g.panR            = panR;

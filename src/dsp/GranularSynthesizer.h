@@ -96,6 +96,16 @@ public:
     /** Sets the window shape applied to each grain envelope. */
     void setWindowType(GrainWindowType type);
 
+    /** Random per-grain pan spread (0 = every grain uses the pan set by
+        setPan(), 1 = up to full opposite sides).
+    */
+    void setStereoSpread(float spread);
+
+    /** Share of grains that play their window backwards (0..1).  A reversed
+        grain starts at the far end of the same span and walks back, so it reads
+        the same material and lasts exactly as long. */
+    void setReverseProbability(float probability);
+
     /** Configures position modulation.
         @param mod    Modulation mode
         @param depth  Modulation depth (fraction of buffer, 0-1)
@@ -172,6 +182,8 @@ private:
     // Source envelope for the display.  The count is published with a release
     // store after the buckets are filled, so a reader that sees a non-zero
     // count also sees a filled array.
+    float stereoSpread_       = 0.0f;   // random pan offset per grain
+    float reverseProbability_ = 0.0f;   // share of grains playing backwards
     float sourcePeaks_[kSourcePeakBuckets] = {};
     std::atomic<int> sourcePeakCount_{ 0 };
 

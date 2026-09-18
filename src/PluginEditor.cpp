@@ -784,6 +784,14 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
         setupMidiLearnForSlider(granularPage_.getModRateSlider(), "grain_mod_rate",
             [processor](float v) { processor->setGrainModRate(v); },
             [processor]() { return processor->getGrainModRate(); });
+
+        setupMidiLearnForSlider(granularPage_.getSpreadSlider(), "grain_spread",
+            [processor](float v) { processor->setGrainSpread(v * 0.01f); },
+            [processor]() { return processor->getGrainSpread() * 100.0f; });
+
+        setupMidiLearnForSlider(granularPage_.getReverseSlider(), "grain_reverse",
+            [processor](float v) { processor->setGrainReverse(v * 0.01f); },
+            [processor]() { return processor->getGrainReverse() * 100.0f; });
     }
 
     // Volume ADSR MIDI Learn

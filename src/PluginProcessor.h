@@ -313,6 +313,15 @@ public:
     void  setGrainModRate(float hz);
     float getGrainModRate() const { return granularModRate_.load(); }
 
+    /** Random per-grain pan spread (0..1): 0 keeps every grain on the pan set
+        below, 1 lets grains land anywhere in the stereo field. */
+    void  setGrainSpread(float spread);
+    float getGrainSpread() const { return granularSpread_.load(); }
+
+    /** Share of grains that play backwards (0..1). */
+    void  setGrainReverse(float probability);
+    float getGrainReverse() const { return granularReverse_.load(); }
+
     /** Grains currently sounding — published by the audio thread. */
     int   getActiveGrainCount() const { return activeGrainCount_.load(); }
 
@@ -706,6 +715,8 @@ private:
     std::atomic<float> granularMix_{ 0.6f };
     std::atomic<float> granularModDepth_{ 0.15f };
     std::atomic<float> granularModRate_{ 1.0f };
+    std::atomic<float> granularSpread_{ 0.0f };
+    std::atomic<float> granularReverse_{ 0.0f };
     std::atomic<int>   granularWindow_{ 0 };
     std::atomic<int>   granularModMode_{ 0 };
     std::atomic<int>   activeGrainCount_{ 0 };

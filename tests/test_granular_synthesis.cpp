@@ -630,5 +630,114 @@ TEST_CASE("GranularSynthesizer publishes a source envelope for the display", "[g
     REQUIRE(synth.getSourcePeaks(peaks, 4) == 4);
 }
 
+//==============================================================================
+// Stereo spread and reverse grains (GRAIN page: SPREAD / REVERSE).
+
+namespace
+{
+    struct StereoResult { float leftRightDiff = 0.0f; float energy = 0.0f; };
+
+    StereoResult renderGrainStereo(ana::GranularSynthesizer& synth,
+                                   const std::vector<float>& source, double sr,
+                                   int blocks)
+    {
+        synth.setSourceBuffer(source, sr);
+        synth.setGrainSize(50.0f);
+        synth.setDensity(200.0f);
+        synth.setPosition(0.5f);
+        synth.setAmplitude(0.5f);
+
+        StereoResult result;
+        juce::AudioBuffer<float> buf(2, 512);
+
+        for (int b = 0; b < blocks; ++b)
+        {
+            buf.clear();
+            synth.process(buf);
+
+            for (int i = 0; i < buf.getNumSamples(); ++i)
+            {
+                const float l = buf.getSample(0, i);
+                const float r = buf.getSample(1, i);
+                result.energy = juce::jmax(result.energy, std::abs(l));
+                result.leftRightDiff = juce::jmax(result.leftRightDiff, std::abs(l - r));
+            }
+        }
+
+        return result;
+    }
+}
+
+TEST_CASE("GranularSynthesizer spreads grains across the stereo field", "[granular]")
+{
+    std::vector<float> source(48000);
+    for (size_t i = 0; i < source.size(); ++i)
+        source[i] = std::sin(static_cast<float>(i) * 0.05f);
+
+    ana::GranularSynthesizer tight;
+    const auto tightResult = renderGrainStereo(tight, source, 48000.0, 40);
+    REQUIRE(tightResult.energy > 0.01f);                       // it is sounding
+    REQUIRE(tightResult.leftRightDiff < tightResult.energy * 0.01f);
+
+    ana::GranularSynthesizer wide;
+    wide.setStereoSpread(1.0f);
+    const auto wideResult = renderGrainStereo(wide, source, 48000.0, 40);
+    REQUIRE(wideResult.energy > 0.01f);
+    REQUIRE(wideResult.leftRightDiff > wideResult.energy * 0.05f);
+}
+
+TEST_CASE("GranularSynthesizer can play grains backwards", "[granular]")
+{
+    // A ramp makes direction audible: the same window over the same span reads
+    // the material in the opposite order.
+    std::vector<float> ramp(48000);
+    for (size_t i = 0; i < ramp.size(); ++i)
+        ramp[i] = static_cast<float>(i) / static_cast<float>(ramp.size() - 1);
+
+    auto renderForward = [&ramp](bool backwards)
+    {
+        ana::GranularSynthesizer synth;
+        synth.setSourceBuffer(ramp, 48000.0);
+        synth.setGrainSize(50.0f);
+        synth.setDensity(200.0f);
+        synth.setPosition(0.5f);
+        synth.setAmplitude(0.5f);
+        synth.setReverseProbability(backwards ? 1.0f : 0.0f);
+
+        juce::AudioBuffer<float> buf(2, 512);
+        std::vector<float> rendered;
+
+        for (int b = 0; b < 40; ++b)
+        {
+            buf.clear();
+            synth.process(buf);
+
+            for (int i = 0; i < buf.getNumSamples(); ++i)
+                rendered.push_back(buf.getSample(0, i));
+        }
+
+        return rendered;
+    };
+
+    const auto forward  = renderForward(false);
+    const auto reversed = renderForward(true);
+    REQUIRE(forward.size() == reversed.size());
+
+    float forwardPeak = 0.0f, reversedPeak = 0.0f, biggestGap = 0.0f;
+
+    for (size_t i = 0; i < forward.size(); ++i)
+    {
+        forwardPeak  = juce::jmax(forwardPeak, std::abs(forward[i]));
+        reversedPeak = juce::jmax(reversedPeak, std::abs(reversed[i]));
+        biggestGap   = juce::jmax(biggestGap, std::abs(forward[i] - reversed[i]));
+    }
+
+    REQUIRE(forwardPeak > 0.01f);
+    REQUIRE(reversedPeak > 0.01f);                       // still a full grain
+    REQUIRE(reversedPeak == Catch::Approx(forwardPeak).epsilon(0.25));
+    REQUIRE(biggestGap > 0.001f);                        // but not the same audio
+}
+
+
 
 

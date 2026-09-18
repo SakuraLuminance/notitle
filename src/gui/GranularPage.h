@@ -21,12 +21,14 @@ namespace ana
       SIZE  ▬▬▬  60 ms     DENSITY ▬▬▬  20 /s
       SPACE ▬▬▬  25%       PITCH   ▬▬▬   0 st
       WINDOW [HANN ▾]      MOD [OFF ▾]  DEPTH ▬▬▬  RATE ▬▬▬
-      [ grain cloud: x = read position, y = age, width = grain length ]
+      SPREAD ▬▬▬  0%       REVERSE ▬▬▬  0%
+      [ sample envelope strip ][ grain cloud: x = position, y = age, w = size ]
       status: N GRAINS ACTIVE / NO SAMPLE LOADED
 
-    The cloud is the only feedback that shows what the four modulation-flavoured
-    controls actually do: density turns into more bars, size into wider ones,
-    SPACE + MOD/DEPTH into the x spread, and RATE into how the bars drift.
+    The cloud is the page's feedback: density turns into more bars, size into
+    wider ones, SPACE + MOD/DEPTH into the x spread, RATE into how the bars
+    drift, and REVERSE into bars that read right-to-left (the bar is centred on
+    the read head either way, so direction shows up in the audio, not the bar).
 */
 class GranularPage : public juce::Component
 {
@@ -48,6 +50,8 @@ public:
     juce::Slider& getPitchSlider()     noexcept { return pitchSlider_; }
     juce::Slider& getModDepthSlider()  noexcept { return modDepthSlider_; }
     juce::Slider& getModRateSlider()   noexcept { return modRateSlider_; }
+    juce::Slider& getSpreadSlider()    noexcept { return spreadSlider_; }
+    juce::Slider& getReverseSlider()   noexcept { return reverseSlider_; }
 
 private:
     void addReadout(juce::Label& readout, const juce::String& tooltip);
@@ -68,6 +72,10 @@ private:
     juce::ComboBox windowCombo_, modCombo_;
     juce::Slider modDepthSlider_, modRateSlider_;
     juce::Label  modDepthReadout_, modRateReadout_;
+
+    juce::Label  spreadLabel_, reverseLabel_;
+    juce::Slider spreadSlider_, reverseSlider_;
+    juce::Label  spreadReadout_, reverseReadout_;
 
     juce::Label statusLabel_;
 
