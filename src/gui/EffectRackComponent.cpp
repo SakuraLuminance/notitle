@@ -547,6 +547,7 @@ void EffectRackComponent::rebuildSlots()
     }
 
     expanded_.assign(static_cast<size_t>(numEffects), false);
+    lastSignature_ = buildChainSignature();
     resized();
 }
 
@@ -598,10 +599,50 @@ void EffectRackComponent::onSlotExpandToggled(int slotIndex)
 }
 
 //==============================================================================
+juce::String EffectRackComponent::buildChainSignature() const
+{
+    auto& chain = processor_.getEffectsChain();
+
+    juce::String signature;
+    for (int i = 0; i < chain.getNumEffects(); ++i)
+        signature << chain.getEffect(i).name << '\n';
+
+    return signature;
+}
+
+//==============================================================================
 void EffectRackComponent::syncFromProcessor()
 {
+    // A preset load, a host state restore or an undo replaces the chain without
+    // going through this component, and the count alone would miss a reorder of
+    // the same effects - so compare the names in order.
+    if (buildChainSignature() != lastSignature_)
+    {
+        rebuildSlots();
+        return;
+    }
+
     for (auto& slot : slots_)
-        slot->syncFromProcessor();
+        if (slot != nullptr)
+            slot->syncFromProcessor();
+}
+
+//==============================================================================
+void EffectRackComponent::undoChainEdit()
+{
+    if (undoManager_.canUndo())
+        undoManager_.undo();
+
+    // The action mutated the chain directly, so the slots have to follow it.
+    rebuildSlots();
+}
+
+void EffectRackComponent::redoChainEdit()
+{
+    if (undoManager_.canRedo())
+        undoManager_.redo();
+
+    rebuildSlots();
 }
 
 void EffectRackComponent::visitSlots(const std::function<void(int, EffectSlotWidget&)>& fn) const

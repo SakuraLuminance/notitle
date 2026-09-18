@@ -103,14 +103,30 @@ public:
     /** Full rebuild of slot widgets from the EffectsChain state. */
     void rebuildSlots();
 
-    /** Sync all slot values from the EffectsChain state (no structural changes). */
+    /** Syncs the slots from the chain: always the values, and a full rebuild when
+        the chain itself changed behind the rack's back (a preset load, a host
+        state restore or an undo).  The rack used to rebuild only from its own
+        button handlers, so those paths left the previous effects on screen.
+        Cheap enough for the editor timer: one string compare unless it moved. */
     void syncFromProcessor();
+
+    juce::UndoManager& getUndoManager() noexcept { return undoManager_; }
+
+    /** Undo/redo one chain edit (add, remove, reorder) and rebuild the slots. */
+    void undoChainEdit();
+    void redoChainEdit();
 
     /** Visit every live slot widget (used by the editor to register the
         dynamically created effect knobs for MIDI Learn). */
     void visitSlots(const std::function<void(int, EffectSlotWidget&)>& fn) const;
 
 private:
+    /** Count + type names of every slot, in order. */
+    juce::String buildChainSignature() const;
+
+    /** Signature the slots on screen were built from. */
+    juce::String lastSignature_;
+
     AnaPlugAudioProcessor& processor_;
     juce::Viewport viewport_;
     juce::Component contentPanel_;

@@ -164,6 +164,8 @@ private:
     // Process panel — Effects rack (dynamic, replaces hardcoded slider stack)
     juce::ComboBox effectPresetCombo_;
     juce::Label    fxPresetLabel_;
+    juce::TextButton fxUndoButton_{ "UNDO" };
+    juce::TextButton fxRedoButton_{ "REDO" };
     juce::TextButton prismButton_{"PRISM"};
     juce::TextButton blurButton_{"BLUR"};
     juce::TextButton harmButton_{"HARMONIZER"};

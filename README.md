@@ -26,6 +26,14 @@ Windows x64 合成器插件（VST3 + CLAP）：把采样分析成**谐波图像*
 **粒子云**（页面下半）：顶部窄条是采样包络，下面是正在发声的粒子——横轴 = 读头位置，纵轴 = 粒子年龄（新粒子在顶部、逐渐下沉），条宽 = 粒子时长，颜色 = 声像（青=左、品红=右），条端竖线 = 粒子方向，黄色竖线 = `SPACE` 基准位置。
 
 每个旋钮都支持**右键 → MIDI Learn**（参数 id：`grain_mix` / `grain_size` / `grain_density` / `grain_position` / `grain_pitch` / `grain_mod_depth` / `grain_mod_rate` / `grain_spread` / `grain_reverse` / `grain_jitter`）；所有参数随工程状态保存与恢复。
+## FX 页（效果器链）使用说明
+
+切到 **FX** 页签（第 5 页）：顶行是效果预设下拉框与 **UNDO / REDO**（效果链的增删与排序可撤销——`+ ADD EFFECT` 加上、`X` 删掉、上下箭头换位都会进撤销栈，按钮在无可撤/可重做时自动置灰）。
+
+链里的每个槽位：`▾` 展开该效果器的全部参数旋钮与枚举菜单（枚举是真下拉菜单，不是旋钮）、`BYP` 旁通、`LO`/`HI` 湿声带通（4 阶，约 24 dB/oct）、`MIX` 干湿比。参数旋钮与菜单都支持右键 MIDI Learn，控件 tooltip 会列出枚举的每个取值含义。
+
+**所有控件的 tooltip 都会显示**：插件自己持有 JUCE 的 TooltipWindow（没有它，`setTooltip` 写了也不会弹——这是之前所有提示都静默失效的原因）。
+
 ## 构建（需要 VS2022 + CMake）
 
 ```powershell

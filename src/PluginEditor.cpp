@@ -408,6 +408,21 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     effectPresetCombo_.addMouseListener(this, false);
     addAndMakeVisible(effectPresetCombo_);
 
+    // Chain undo/redo.  The rack pushed juce::UndoableActions for add / remove /
+    // reorder from the start but nothing ever called undo() on them, so deleting
+    // an effect was final.  These buttons are that missing trigger.
+    for (auto* b : { &fxUndoButton_, &fxRedoButton_ })
+    {
+        addCyberButton(*b);
+        addAndMakeVisible(*b);
+    }
+    fxUndoButton_.setTooltip("Undo the last effect change (add, remove or reorder)");
+    fxRedoButton_.setTooltip("Redo the last undone effect change");
+    fxUndoButton_.onClick = [this] { effectRack_.undoChainEdit(); };
+    fxRedoButton_.onClick = [this] { effectRack_.redoChainEdit(); };
+    fxUndoButton_.setEnabled(false);
+    fxRedoButton_.setEnabled(false);
+
     //==============================================================================
     // Spectral effects buttons (Prism / Blur / Harmonizer)
     // Each toggles its corresponding atomic flag on the processor and
@@ -977,6 +992,8 @@ void AnaPlugAudioProcessorEditor::resized()
             auto fxArea = ca;
             auto fxPresetRow = fxArea.removeFromTop(16).reduced(2, 0);
             fxPresetLabel_.setBounds(fxPresetRow.removeFromLeft(52));
+            fxRedoButton_.setBounds(fxPresetRow.removeFromRight(46).reduced(1, 0));
+            fxUndoButton_.setBounds(fxPresetRow.removeFromRight(46).reduced(1, 0));
             effectPresetCombo_.setBounds(fxPresetRow.reduced(0, 1));
             auto specRow = fxArea.removeFromTop(18).reduced(pad);
             prismButton_.setBounds(specRow.removeFromLeft(specRow.getWidth() / 3).reduced(1));
@@ -1145,6 +1162,8 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
 
     fxPresetLabel_.setVisible(page == 4);
     effectPresetCombo_.setVisible(page == 4);
+    fxUndoButton_.setVisible(page == 4);
+    fxRedoButton_.setVisible(page == 4);
     prismButton_.setVisible(page == 4);
     blurButton_.setVisible(page == 4);
     harmButton_.setVisible(page == 4);
@@ -1193,6 +1212,12 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
 //==============================================================================
 void AnaPlugAudioProcessorEditor::timerCallback()
 {
+    // The effect chain can be replaced behind the rack's back (preset load, host
+    // state restore, chain undo), so the rack re-checks its slots first.  It may
+    // rebuild them, and the MIDI Learn registry below then re-scans the new ones
+    // in the same tick rather than holding pointers to destroyed knobs.
+    effectRack_.syncFromProcessor();
+
     // MIDI Learn: indicator blink, timeout, parameter polling
     updateMidiLearnState();
 
@@ -1382,9 +1407,17 @@ void AnaPlugAudioProcessorEditor::timerCallback()
         }
     }
 
-    // --- Spectral freeze sync (FX page) ---
+    // --- Chain undo buttons (FX page) ---
     if (activePage_ == 4)
     {
+        auto& chainUndo = effectRack_.getUndoManager();
+
+        if (fxUndoButton_.isEnabled() != chainUndo.canUndo())
+            fxUndoButton_.setEnabled(chainUndo.canUndo());
+
+        if (fxRedoButton_.isEnabled() != chainUndo.canRedo())
+            fxRedoButton_.setEnabled(chainUndo.canRedo());
+
         if (freezeButton_.getToggleState() != audioProcessor.isSpectralFreezeEnabled())
             freezeButton_.setToggleState(audioProcessor.isSpectralFreezeEnabled(),
                                          juce::dontSendNotification);
