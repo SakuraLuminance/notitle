@@ -12,11 +12,12 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`，测试 `AnaPlugTests` |
-| 本地 HEAD | `69169ca` = `origin/main`，工作区干净（仅 `juce-test-clone` 行尾噪音） |
-| 最近全绿 CI | Run `#35313451841`（`69169ca`）：Build **0 条 error**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
-| 用例计数 | 源码内 **617 个 `TEST_CASE` 名**；本轮已把精确的"named tests / executed cases / failed cases"写进 ci-diagnostics 注解（见 §1） |
-| 未推送批次 | **无**；下一批候选见 §6.3（枚举真菜单需先与用户确认范围） |
-| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、**rack 内 MIDI Learn ✓**、**颗粒层 + GRAIN 页 ✓**、**DNA fittest → 音色 ✓**、**图像谐波分箱 ✓**；剩余：枚举真菜单（待确认）、成品安装（待 UAC） |
+| 最新已验证提交 | `c335326`（帧混合曲线）；其后只跟文档提交 |
+| 最近全绿 CI | Run `#35316399784`（`c335326`）：Build **0 条 error**、**613 用例 / 0 失败 / 341909 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
+| 上一轮全绿 | Run `#35315329172`（`a6e5f3b`）：611 用例 / 0 失败 / 341892 断言 / strictness 5（谐波分箱批次） |
+| 用例计数 | 源码内 **619 个 `TEST_CASE` 名**、**611→613 个实际执行**（数字全部来自 runner 注解，见 §1） |
+| 未推送批次 | **无**；下一批候选见 §6.3（枚举真菜单**必须先问用户**、成品安装需 UAC） |
+| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、**rack 内 MIDI Learn ✓**、**颗粒层 + GRAIN 页 ✓**、**DNA fittest → 音色 ✓**、**图像谐波分箱 ✓**、**帧混合曲线（LINEAR/SMOOTH/STEP）✓**；剩余：枚举真菜单（待确认）、成品安装（待 UAC） |
 | 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |
 
 ---
@@ -168,7 +169,7 @@ processBlock 顺序（简化）：
 | 颗粒 UI | ✓ `578253a` | 见 `docs/superpowers/specs/2026-09-18-granular-layer-design.md` |
 | DNA fittest → 当前音色 | ✓ `578253a` | EVO 页 `-> TIMBRE`，写入当前编辑帧并把 SYNTH 打开 |
 | P6 遗留（跨帧索引） | ✓ `69169ca` | `HarmonicBinning`：共享 f0 中位数轴；spec `2026-09-18-harmonic-binning-design.md` |
-| P6 遗留（帧插值曲线） | 未做（可选） | `AdditiveBank` 目前 floor/ceil 线性插值；可加 smoothstep/曲线选项 + UI |
+| P6 遗留（帧插值曲线） | ✓ `c335326` | `AdditiveSynth::shapeFrameMix`：LINEAR/SMOOTH/STEP，TIMBRE 页 `CURVE` 下拉，spec `2026-09-18-frame-blend-curve-design.md` |
 | 成品安装 | **待 UAC** | `tools/install-vst3.ps1`（自提权）已就位；本机**无法下载 artifact**，需用户在浏览器里从绿色 run 下载 `AnaPlug-windows-latest` 再运行脚本 |
 
 ---
