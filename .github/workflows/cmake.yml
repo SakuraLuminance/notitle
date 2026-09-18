@@ -270,16 +270,33 @@ jobs:
         # ---- Catch2 counts (XML reporter written by the forensics step) -----
         $out.Add("")
         $out.Add("### TESTS")
+        if (Test-Path test-names.txt) {
+          $named = @(Get-Content test-names.txt | Where-Object { $_.Trim() -ne '' })
+          $out.Add("named tests in sources: " + $named.Count)
+        }
         if (Test-Path test-results.xml) {
           try {
             [xml]$xml = Get-Content test-results.xml -Raw
-            $overall = $xml.SelectSingleNode("//OverallResults")
+            $cases = @($xml.SelectNodes("//TestCase"))
+            $out.Add("executed test cases (XML): " + $cases.Count)
+            $failed = @($cases | Where-Object { $_.OverallResult -and $_.OverallResult.success -eq 'false' })
+            $out.Add("failed test cases (XML): " + $failed.Count)
+            $overall = $xml.SelectSingleNode("/Catch2TestRun/OverallResults")
             if ($overall) {
-              $out.Add("OverallResults successes=" + $overall.successes + " failures=" + $overall.failures + " testCases=" + $overall.testCases)
+              $out.Add("OverallResults assertions: successes=" + $overall.successes + " failures=" + $overall.failures + " expectedFailures=" + $overall.expectedFailures)
+            }
+            foreach ($f in ($failed | Select-Object -First 15)) {
+              $out.Add("  FAILED: " + $f.name)
             }
           } catch { $out.Add("test-results.xml parse error: " + $_.Exception.Message) }
         } else {
           $out.Add("test-results.xml missing (build or test exe unavailable)")
+        }
+        foreach ($f in @('test-stderr.log')) {
+          if (Test-Path $f) {
+            $tail = @(Get-Content $f -Tail 3 -ErrorAction SilentlyContinue)
+            if ($tail.Count -gt 0) { $out.Add($f + " tail: " + ($tail -join ' | ')) }
+          }
         }
         foreach ($f in @('test-stdout.log', 'test-log.txt')) {
           if (Test-Path $f) {
