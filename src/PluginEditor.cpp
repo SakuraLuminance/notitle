@@ -751,6 +751,41 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     setupMidiLearnForSlider(masterSection_.getVolumeSlider(), "master_vol");
     setupMidiLearnForSlider(masterSection_.getPanSlider(), "master_pan");
 
+    // GRAIN page (P7): the page shows % / ms / grains-per-second, the processor
+    // atomics behind it are normalised, so each slider needs its own convertor.
+    // The lambdas capture the processor: a mapping outlives this editor.
+    {
+        auto* processor = &audioProcessor;
+
+        setupMidiLearnForSlider(granularPage_.getMixSlider(), "grain_mix",
+            [processor](float v) { processor->setGrainMix(v * 0.01f); },
+            [processor]() { return processor->getGrainMix() * 100.0f; });
+
+        setupMidiLearnForSlider(granularPage_.getSizeSlider(), "grain_size",
+            [processor](float v) { processor->setGrainSizeMs(v); },
+            [processor]() { return processor->getGrainSizeMs(); });
+
+        setupMidiLearnForSlider(granularPage_.getDensitySlider(), "grain_density",
+            [processor](float v) { processor->setGrainDensity(v); },
+            [processor]() { return processor->getGrainDensity(); });
+
+        setupMidiLearnForSlider(granularPage_.getPositionSlider(), "grain_position",
+            [processor](float v) { processor->setGrainPosition(v * 0.01f); },
+            [processor]() { return processor->getGrainPosition() * 100.0f; });
+
+        setupMidiLearnForSlider(granularPage_.getPitchSlider(), "grain_pitch",
+            [processor](float v) { processor->setGrainPitch(v); },
+            [processor]() { return processor->getGrainPitch(); });
+
+        setupMidiLearnForSlider(granularPage_.getModDepthSlider(), "grain_mod_depth",
+            [processor](float v) { processor->setGrainModDepth(v * 0.01f); },
+            [processor]() { return processor->getGrainModDepth() * 100.0f; });
+
+        setupMidiLearnForSlider(granularPage_.getModRateSlider(), "grain_mod_rate",
+            [processor](float v) { processor->setGrainModRate(v); },
+            [processor]() { return processor->getGrainModRate(); });
+    }
+
     // Volume ADSR MIDI Learn
 
     // Effect rack 鈥?MIDI Learn for the rack controls is handled internally
@@ -1543,6 +1578,28 @@ void AnaPlugAudioProcessorEditor::setupMidiLearnForSlider(juce::Slider& slider,
     info.paramId = paramId;
     info.target  = target;
     midiLearnSliders_[&slider] = std::move(info);
+}
+
+void AnaPlugAudioProcessorEditor::setupMidiLearnForSlider(juce::Slider& slider,
+                                                          const juce::String& paramId,
+                                                          std::function<void(float)> targetSetter,
+                                                          std::function<float()> targetGetter)
+{
+    slider.addMouseListener(this, false);
+    learnableSliders_[paramId] = &slider;
+
+    MidiLearnSliderInfo info;
+    info.paramId = paramId;
+    info.target  = nullptr;
+    info.targetSetter = std::move(targetSetter);
+    info.targetGetter = std::move(targetGetter);
+    midiLearnSliders_[&slider] = std::move(info);
+
+    // A mapping may already exist (state load, or a preset that carried one):
+    // point it at these convertors instead of the ones it was created with.
+    auto& stored = midiLearnSliders_[&slider];
+    audioProcessor.getMidiLearn().reconnectTarget(paramId, stored.targetSetter,
+                                                  stored.targetGetter);
 }
 
 //==============================================================================

@@ -276,6 +276,15 @@ private:
                                  const juce::String& paramId,
                                  std::atomic<float>* target = nullptr);
 
+    /** Same, for sliders whose display units differ from the processor's
+        (the GRAIN page works in %, the atomics it drives are normalised).
+        The convertors must capture the processor, never the editor: a mapping
+        outlives the editor that created it. */
+    void setupMidiLearnForSlider(juce::Slider& slider,
+                                 const juce::String& paramId,
+                                 std::function<void(float)> targetSetter,
+                                 std::function<float()> targetGetter);
+
     /** Register one knob of an expanded effect slot.  The callbacks resolve
         the slot by index at call time, so removing/reordering effects can
         never leave a dangling EffectBase pointer behind. */

@@ -31,7 +31,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     mixSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     mixSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     mixSlider_.setRange(0.0, 100.0, 1.0);
-    mixSlider_.setTooltip("Grain layer level mixed into the output");
+    mixSlider_.setTooltip("Grain layer level mixed into the output\nRight-click: MIDI Learn");
     mixSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
     mixSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
     mixSlider_.onValueChange = [this]
@@ -46,7 +46,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     sizeSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     sizeSlider_.setRange(1.0, 100.0, 0.5);
     sizeSlider_.setSkewFactorFromMidPoint(25.0);
-    sizeSlider_.setTooltip("Grain duration in milliseconds (1-100)");
+    sizeSlider_.setTooltip("Grain duration in milliseconds (1-100)\nRight-click: MIDI Learn");
     sizeSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
     sizeSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
     sizeSlider_.onValueChange = [this]
@@ -61,7 +61,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     densitySlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     densitySlider_.setRange(1.0, 1000.0, 1.0);
     densitySlider_.setSkewFactorFromMidPoint(60.0);
-    densitySlider_.setTooltip("Grains spawned per second (1-1000)");
+    densitySlider_.setTooltip("Grains spawned per second (1-1000)\nRight-click: MIDI Learn");
     densitySlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
     densitySlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
     densitySlider_.onValueChange = [this]
@@ -75,7 +75,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     positionSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     positionSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     positionSlider_.setRange(0.0, 100.0, 0.5);
-    positionSlider_.setTooltip("Read position inside the sample (0% = start, 100% = end)");
+    positionSlider_.setTooltip("Read position inside the sample (0% = start, 100% = end)\nRight-click: MIDI Learn");
     positionSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
     positionSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
     positionSlider_.onValueChange = [this]
@@ -90,7 +90,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     pitchSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     pitchSlider_.setRange(-24.0, 24.0, 1.0);
     pitchSlider_.setDoubleClickReturnValue(true, 0.0);
-    pitchSlider_.setTooltip("Grain pitch shift in semitones (-24 to +24)");
+    pitchSlider_.setTooltip("Grain pitch shift in semitones (-24 to +24)\nRight-click: MIDI Learn");
     pitchSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::cyan_.withAlpha(0.5f));
     pitchSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::cyan_);
     pitchSlider_.onValueChange = [this]
@@ -139,7 +139,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     modDepthSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     modDepthSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     modDepthSlider_.setRange(0.0, 100.0, 1.0);
-    modDepthSlider_.setTooltip("Position modulation depth (fraction of the sample)");
+    modDepthSlider_.setTooltip("Position modulation depth (fraction of the sample)\nRight-click: MIDI Learn");
     modDepthSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::magenta_.withAlpha(0.5f));
     modDepthSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::magenta_);
     modDepthSlider_.onValueChange = [this]
@@ -153,7 +153,7 @@ GranularPage::GranularPage(AnaPlugAudioProcessor& processor)
     modRateSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     modRateSlider_.setRange(0.05, 10.0, 0.01);
     modRateSlider_.setSkewFactorFromMidPoint(1.0);
-    modRateSlider_.setTooltip("Position modulation rate in Hz");
+    modRateSlider_.setTooltip("Position modulation rate in Hz\nRight-click: MIDI Learn");
     modRateSlider_.setColour(juce::Slider::trackColourId, CyberpunkTheme::magenta_.withAlpha(0.5f));
     modRateSlider_.setColour(juce::Slider::thumbColourId, CyberpunkTheme::magenta_);
     modRateSlider_.onValueChange = [this]

@@ -39,6 +39,16 @@ public:
     /** Pulls the processor state into the controls (editor timer). */
     void syncFromProcessor();
 
+    // The editor registers these for right-click MIDI Learn; the page itself
+    // never talks to the mapping system.
+    juce::Slider& getMixSlider()       noexcept { return mixSlider_; }
+    juce::Slider& getSizeSlider()      noexcept { return sizeSlider_; }
+    juce::Slider& getDensitySlider()   noexcept { return densitySlider_; }
+    juce::Slider& getPositionSlider()  noexcept { return positionSlider_; }
+    juce::Slider& getPitchSlider()     noexcept { return pitchSlider_; }
+    juce::Slider& getModDepthSlider()  noexcept { return modDepthSlider_; }
+    juce::Slider& getModRateSlider()   noexcept { return modRateSlider_; }
+
 private:
     void addReadout(juce::Label& readout, const juce::String& tooltip);
     void layoutSliderRow(juce::Rectangle<int>& area,

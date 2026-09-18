@@ -70,6 +70,12 @@
 | 刷新 | 只在 GRAIN 页可见时（编辑器只同步当前页）`repaint(cloudBounds_)`，不做整页重绘 |
 | 顺手修的 bug | `renderGranularLayer()` 提前返回（层关掉或没载入采样）时原来会把 `activeGrainCount_` 留成旧值，UI 会一直显示“N GRAINS ACTIVE”；现在归零并清空云 |
 
+## MIDI Learn
+
+GRAIN 页的 7 个旋钮也支持右键 MIDI Learn（与主界面/rack 一致），参数 id：`grain_mix` / `grain_size` / `grain_density` / `grain_position` / `grain_pitch` / `grain_mod_depth` / `grain_mod_rate`。
+
+页面显示的是 % / ms / 粒每秒，而处理器原子是归一化的，因此走 `setupMidiLearnForSlider(slider, id, setter, getter)` 这个**带转换器**的重载（% ↔ 0..1 在转换器里做）。转换器**捕获处理器指针而不是编辑器**：映射的生命周期长于编辑器，捕获 `this` 会在编辑器销毁后变成悬垂调用。
+
 测试（`test_granular_synthesis.cpp`）：空源/空指针/maxCount=0 返回 0；渲染后条数 == `getActiveGrainCount()`；每个字段落在 [0,1]（pan 为 [-1,1]）、amplitude == 设定值、duration == 100 ms / 1 s；小缓冲截断；`reset()` 后为空。
 
 ## 验证
