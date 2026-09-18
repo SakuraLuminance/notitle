@@ -187,6 +187,42 @@ void GranularSynthesizer::reserveWindowCache(int maxSamples)
 }
 
 //==============================================================================
+int GranularSynthesizer::getActiveGrainSnapshots(GrainSnapshot* out, int maxCount) const noexcept
+{
+    if (out == nullptr || maxCount <= 0)
+        return 0;
+
+    const int sourceLen = static_cast<int>(sourceBuffer.size());
+    if (sourceLen <= 0)
+        return 0;
+
+    // The scan prefix holds every grain that can be active (spawnGrain() always
+    // takes the lowest free slot), so this never misses one.
+    const double lastIndex = static_cast<double>(juce::jmax(1, sourceLen - 1));
+    int written = 0;
+
+    for (int i = 0; i < scanCount_ && written < maxCount; ++i)
+    {
+        const auto& g = grains_[i];
+        if (! g.active)
+            continue;
+
+        auto& s = out[written++];
+        s.position  = static_cast<float>(juce::jlimit(0.0, 1.0, g.sourcePosition / lastIndex));
+        s.duration  = static_cast<float>(juce::jlimit(0.0, 1.0,
+                        static_cast<double>(juce::jmax(0, g.durationSamples)) / static_cast<double>(sourceLen)));
+        s.progress  = g.durationSamples > 0
+                        ? static_cast<float>(juce::jlimit(0.0, 1.0,
+                              static_cast<double>(g.currentSample) / static_cast<double>(g.durationSamples)))
+                        : 1.0f;
+        s.amplitude = juce::jlimit(0.0f, 1.0f, g.amplitude);
+        s.pan       = juce::jlimit(-1.0f, 1.0f, g.panR - g.panL);
+    }
+
+    return written;
+}
+
+//==============================================================================
 int GranularSynthesizer::getActiveGrainCount() const
 {
     int count = 0;

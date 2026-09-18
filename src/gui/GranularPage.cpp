@@ -275,6 +275,9 @@ void GranularPage::resized()
         area.removeFromTop(6);
     }
 
+    // Grain cloud: whatever is left between the controls and the status line.
+    cloudBounds_ = area.removeFromTop(juce::jmax(0, area.getHeight() - 18)).reduced(1);
+
     // Status line
     statusLabel_.setBounds(area.removeFromTop(16));
 }
@@ -290,16 +293,66 @@ void GranularPage::paint(juce::Graphics& g)
     g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasBorderAlpha));
     g.drawRect(bounds, 1);
 
-    g.setColour(CyberpunkTheme::cyan_.withAlpha(0.08f));
-    g.drawHorizontalLine(juce::jmin(bounds.getBottom() - 1, 132), 6.0f,
-                         static_cast<float>(bounds.getWidth() - 6));
-
     if (! processor_.isGrainSourceReady())
     {
         g.setColour(CyberpunkTheme::fg_.withAlpha(0.35f));
         g.setFont(CyberpunkTheme::getCyberFont(12.0f, true));
         g.drawText("NO SAMPLE LOADED - IMPORT A SAMPLE TO GRAIN",
                    bounds.reduced(8), juce::Justification::centred);
+        return;
+    }
+
+    // -- Grain cloud ---------------------------------------------------------
+    const auto cloud = cloudBounds_;
+    if (cloud.getWidth() <= 2 || cloud.getHeight() <= 2)
+        return;
+
+    g.setColour(CyberpunkTheme::bg_.darker(CyberpunkTheme::kCanvasBgDarken));
+    g.fillRect(cloud);
+    g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasBorderAlpha));
+    g.drawRect(cloud, 1);
+
+    // Position guides at 25 / 50 / 75 % of the source.
+    g.setColour(CyberpunkTheme::fg_.withAlpha(CyberpunkTheme::kCanvasGridAlpha));
+    for (int i = 1; i < 4; ++i)
+        g.drawVerticalLine(cloud.getX() + cloud.getWidth() * i / 4,
+                           static_cast<float>(cloud.getY() + 1),
+                           static_cast<float>(cloud.getBottom() - 1));
+
+    // The base read position the grains are centred on.
+    const float baseX = static_cast<float>(cloud.getX())
+                      + juce::jlimit(0.0f, 1.0f, processor_.getGrainPosition())
+                            * static_cast<float>(cloud.getWidth() - 1);
+    g.setColour(CyberpunkTheme::yellow_.withAlpha(0.30f));
+    g.drawVerticalLine(static_cast<int>(baseX),
+                       static_cast<float>(cloud.getY() + 1),
+                       static_cast<float>(cloud.getBottom() - 1));
+
+    // One bar per grain: x = read position, y = age (fresh at the top),
+    // width = grain length in source units, colour = cyan -> magenta as it ages.
+    if (cloudCount_ <= 0)
+    {
+        g.setColour(CyberpunkTheme::fg_.withAlpha(0.30f));
+        g.setFont(CyberpunkTheme::getCyberFont(9.0f, true));
+        g.drawText("NO ACTIVE GRAINS", cloud, juce::Justification::centred);
+        return;
+    }
+
+    for (int i = 0; i < cloudCount_; ++i)
+    {
+        const auto& s = cloud_[i];
+        const float progress = juce::jlimit(0.0f, 1.0f, s.progress);
+        const float x = static_cast<float>(cloud.getX())
+                      + juce::jlimit(0.0f, 1.0f, s.position)
+                            * static_cast<float>(cloud.getWidth() - 1);
+        const float y = static_cast<float>(cloud.getY())
+                      + progress * static_cast<float>(cloud.getHeight() - 1);
+        const float w = juce::jmax(2.0f, s.duration * static_cast<float>(cloud.getWidth()));
+
+        g.setColour(CyberpunkTheme::cyan_
+                        .interpolatedWith(CyberpunkTheme::magenta_, progress)
+                        .withAlpha(juce::jlimit(0.15f, 1.0f, s.amplitude)));
+        g.fillRect(juce::Rectangle<float>(x - w * 0.5f, y - 1.0f, w, 2.0f));
     }
 }
 
@@ -343,6 +396,13 @@ void GranularPage::syncFromProcessor()
                              juce::dontSendNotification);
     modRateReadout_.setText(CyberpunkTheme::formatNumber(static_cast<float>(modRateSlider_.getValue()), 2) + " Hz",
                             juce::dontSendNotification);
+
+    // Grain cloud: the processor publishes a guarded copy once per audio block,
+    // so this is a plain copy plus a repaint of the canvas only.
+    cloudCount_ = processor_.getGrainVisualisation(cloud_, AnaPlugAudioProcessor::kGrainVisualMax);
+
+    if (isShowing() && ! cloudBounds_.isEmpty())
+        repaint(cloudBounds_);
 
     if (! processor_.isGrainSourceReady())
         statusLabel_.setText("STATUS :: WAITING FOR SAMPLE", juce::dontSendNotification);

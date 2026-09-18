@@ -125,6 +125,27 @@ public:
     int getWindowCacheCapacity() const noexcept;
 
     //==============================================================================
+    /** One sounding grain, normalised for a view: it never mentions sample
+        rates or buffer sizes, so the UI can draw it directly.  This is live
+        visualisation data - the audio thread keeps moving between two reads,
+        so a caller on another thread must tolerate a value shifting under it
+        (the processor publishes a guarded copy for exactly that reason).
+    */
+    struct GrainSnapshot
+    {
+        float position  = 0.0f;   // current read position in the source, 0..1
+        float duration  = 0.0f;   // grain length as a fraction of the source
+        float progress  = 0.0f;   // 0 = just spawned, 1 = about to finish
+        float amplitude = 0.0f;   // grain amplitude, 0..1
+        float pan       = 0.0f;   // -1 = left, +1 = right
+    };
+
+    /** Copies up to @a maxCount active grains into @a out (pool order) and
+        returns how many were written.  Allocation-free and lock-free, so it is
+        safe on the audio thread.
+    */
+    int getActiveGrainSnapshots(GrainSnapshot* out, int maxCount) const noexcept;
+
     /** Returns the number of currently active grains. */
     int getActiveGrainCount() const;
 

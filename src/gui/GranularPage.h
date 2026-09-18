@@ -21,7 +21,12 @@ namespace ana
       SIZE  ▬▬▬  60 ms     DENSITY ▬▬▬  20 /s
       SPACE ▬▬▬  25%       PITCH   ▬▬▬   0 st
       WINDOW [HANN ▾]      MOD [OFF ▾]  DEPTH ▬▬▬  RATE ▬▬▬
+      [ grain cloud: x = read position, y = age, width = grain length ]
       status: N GRAINS ACTIVE / NO SAMPLE LOADED
+
+    The cloud is the only feedback that shows what the four modulation-flavoured
+    controls actually do: density turns into more bars, size into wider ones,
+    SPACE + MOD/DEPTH into the x spread, and RATE into how the bars drift.
 */
 class GranularPage : public juce::Component
 {
@@ -55,6 +60,11 @@ private:
     juce::Label  modDepthReadout_, modRateReadout_;
 
     juce::Label statusLabel_;
+
+    // Grain cloud (written by the audio thread, copied under a seqlock).
+    ana::GranularSynthesizer::GrainSnapshot cloud_[AnaPlugAudioProcessor::kGrainVisualMax];
+    int cloudCount_ = 0;
+    juce::Rectangle<int> cloudBounds_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GranularPage)
 };

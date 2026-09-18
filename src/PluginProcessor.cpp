@@ -1793,8 +1793,16 @@ void AnaPlugAudioProcessor::setGrainModRate(float hz)
 
 void AnaPlugAudioProcessor::renderGranularLayer(juce::AudioBuffer<float>& buffer, int numSamples)
 {
+    // The UI reads these counters; a layer that is not running must not leave a
+    // stale "N GRAINS ACTIVE" on screen (unloading the sample lands here).
     if (! granularEnabled_.load() || ! granularSourceReady_.load())
+    {
+        activeGrainCount_.store(0, std::memory_order_relaxed);
+        grainVisualGeneration_.fetch_add(1, std::memory_order_acq_rel);
+        grainVisualCount_.store(0, std::memory_order_relaxed);
+        grainVisualGeneration_.fetch_add(1, std::memory_order_acq_rel);
         return;
+    }
 
     const int scratchChannels = granularScratch_.getNumChannels();
     if (numSamples <= 0 || scratchChannels < 2
@@ -1828,6 +1836,42 @@ void AnaPlugAudioProcessor::renderGranularLayer(juce::AudioBuffer<float>& buffer
 
     activeGrainCount_.store(granularSynth_.getActiveGrainCount(),
                             std::memory_order_relaxed);
+
+    // Publish the grain cloud for the GRAIN page.  Seqlock: odd generation while
+    // the buffer is being written, even (and unchanged) when it is consistent.
+    grainVisualGeneration_.fetch_add(1, std::memory_order_acq_rel);
+
+    const int visualCount = granularSynth_.getActiveGrainSnapshots(grainVisual_,
+                                                                   kGrainVisualMax);
+    grainVisualCount_.store(visualCount, std::memory_order_relaxed);
+
+    grainVisualGeneration_.fetch_add(1, std::memory_order_acq_rel);
+}
+
+int AnaPlugAudioProcessor::getGrainVisualisation(
+    ana::GranularSynthesizer::GrainSnapshot* out, int maxCount) const noexcept
+{
+    if (out == nullptr || maxCount <= 0)
+        return 0;
+
+    const int limit = juce::jmin(maxCount, kGrainVisualMax);
+
+    for (int attempt = 0; attempt < 4; ++attempt)
+    {
+        const unsigned before = grainVisualGeneration_.load(std::memory_order_acquire);
+        if ((before & 1u) != 0u)
+            continue;                       // the audio thread is mid-update
+
+        const int n = juce::jlimit(0, limit, grainVisualCount_.load(std::memory_order_relaxed));
+        for (int i = 0; i < n; ++i)
+            out[i] = grainVisual_[i];
+
+        if (grainVisualGeneration_.load(std::memory_order_acquire) == before)
+            return n;
+    }
+
+    // Torn on every attempt: draw nothing this frame instead of garbage.
+    return 0;
 }
 
 //==============================================================================

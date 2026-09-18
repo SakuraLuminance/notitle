@@ -57,6 +57,21 @@
 | `reserveWindowCache` 扩容 | 预留后容量 ≥ 请求值；多次不同粒度渲染后不缩小；`reserveWindowCache(0)` 被忽略 |
 | 预留不改变输出 | 预留实例与普通实例输出能量一致（窗表内容不受容量影响） |
 
+## GRAIN 页的粒子云（视觉反馈）
+
+页面上原来只有控件，没有任何反馈：DENSITY / SIZE / SPACE+MOD / RATE 到底在做什么看不出来。
+
+| 项 | 决定 |
+|---|---|
+| 数据源 | `GranularSynthesizer::getActiveGrainSnapshots(out, maxCount)`：把活跃粒子归一化成 `{position, duration, progress, amplitude, pan}`，**无分配、无锁**，沿用活跃前缀扫描 |
+| 跨线程 | 音频线程每块发布一次到 `grainVisual_[64]`：**seqlock**（generation 先 +1 变奇数 → 写缓冲 → 写计数 → 再 +1 变偶数）。UI 端 `getGrainVisualisation()` 读到奇数或前后 generation 不等就重试，4 次都不一致就**这一帧不画**（宁可空一帧，不画撕裂数据） |
+| 绘制 | x = 源内读取位置，y = 年龄（新粒子在顶部、随进度下沉），条宽 = 粒子长度（占源比例），颜色 cyan→magenta 按进度插值，透明度 = 粒子振幅；另画 25/50/75% 参考线与黄色的基准读取位置线 |
+| 主题 | 全部走 token（`kCanvasBgDarken` / `kCanvasBorderAlpha` / `kCanvasGridAlpha` / cyan_ / magenta_ / yellow_），无硬编码颜色 |
+| 刷新 | 只在 GRAIN 页可见时（编辑器只同步当前页）`repaint(cloudBounds_)`，不做整页重绘 |
+| 顺手修的 bug | `renderGranularLayer()` 提前返回（层关掉或没载入采样）时原来会把 `activeGrainCount_` 留成旧值，UI 会一直显示“N GRAINS ACTIVE”；现在归零并清空云 |
+
+测试（`test_granular_synthesis.cpp`）：空源/空指针/maxCount=0 返回 0；渲染后条数 == `getActiveGrainCount()`；每个字段落在 [0,1]（pan 为 [-1,1]）、amplitude == 设定值、duration == 100 ms / 1 s；小缓冲截断；`reset()` 后为空。
+
 ## 验证
 
 | 项 | 值 |

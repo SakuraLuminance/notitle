@@ -316,6 +316,17 @@ public:
     /** Grains currently sounding — published by the audio thread. */
     int   getActiveGrainCount() const { return activeGrainCount_.load(); }
 
+    /** How many grains the GRAIN page's cloud can draw at once. */
+    static constexpr int kGrainVisualMax = 64;
+
+    /** Copies the grains the audio thread is sounding into @a out (normalised,
+        pool order) and returns how many were written.  The audio thread
+        publishes a guarded copy once per block, so the UI never reads a
+        half-written grain - a frame that stays torn is skipped, not drawn.
+    */
+    int getGrainVisualisation(ana::GranularSynthesizer::GrainSnapshot* out,
+                              int maxCount) const noexcept;
+
     /** True once a sample has been handed to the granular engine. */
     bool  isGrainSourceReady() const { return granularSourceReady_.load(); }
 
@@ -689,6 +700,13 @@ private:
     std::atomic<int>   granularWindow_{ 0 };
     std::atomic<int>   granularModMode_{ 0 };
     std::atomic<int>   activeGrainCount_{ 0 };
+
+    // Grain cloud for the GRAIN page: the audio thread bumps the generation to
+    // odd, writes the buffer, stores the count, then bumps it back to even.  The
+    // UI retries when it catches an odd or a changed generation.
+    ana::GranularSynthesizer::GrainSnapshot grainVisual_[kGrainVisualMax];
+    std::atomic<int>      grainVisualCount_{ 0 };
+    std::atomic<unsigned> grainVisualGeneration_{ 0 };
     mutable std::atomic<int> currentResynthBuffer_{0};
     std::vector<float> resynthBuffer_[2];  // double buffer: one for read, one for write
     std::atomic<bool> resynthBufferReady_{false};

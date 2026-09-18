@@ -522,3 +522,58 @@ TEST_CASE("GranularSynthesizer empties its grain pool between spawns", "[granula
     REQUIRE(minActive == 0);
 }
 
+//==============================================================================
+// The GRAIN page draws these.
+
+TEST_CASE("GranularSynthesizer hands the UI a normalised grain cloud", "[granular]")
+{
+    ana::GranularSynthesizer synth;
+    ana::GranularSynthesizer::GrainSnapshot cloud[64];
+
+    // Nothing to draw before a source is loaded, and bad arguments are ignored.
+    REQUIRE(synth.getActiveGrainSnapshots(cloud, 64) == 0);
+    REQUIRE(synth.getActiveGrainSnapshots(nullptr, 64) == 0);
+    REQUIRE(synth.getActiveGrainSnapshots(cloud, 0) == 0);
+
+    const std::vector<float> source(48000, 0.5f);   // 1 s
+    synth.setSourceBuffer(source, 48000.0);
+    synth.setGrainSize(100.0f);
+    synth.setDensity(200.0f);                       // ~20 grains overlap
+    synth.setAmplitude(0.5f);
+    synth.setPosition(0.5f);
+
+    juce::AudioBuffer<float> buf(2, 512);
+    for (int b = 0; b < 40; ++b)
+    {
+        buf.clear();
+        synth.process(buf);
+    }
+
+    const int count = synth.getActiveGrainSnapshots(cloud, 64);
+    REQUIRE(count == synth.getActiveGrainCount());
+    REQUIRE(count > 0);
+
+    for (int i = 0; i < count; ++i)
+    {
+        REQUIRE(cloud[i].position  >= 0.0f);
+        REQUIRE(cloud[i].position  <= 1.0f);
+        REQUIRE(cloud[i].progress  >= 0.0f);
+        REQUIRE(cloud[i].progress  <= 1.0f);
+        REQUIRE(cloud[i].duration  >  0.0f);
+        REQUIRE(cloud[i].duration  <= 1.0f);
+        REQUIRE(cloud[i].amplitude == Catch::Approx(0.5f));
+        REQUIRE(cloud[i].pan       >= -1.0f);
+        REQUIRE(cloud[i].pan       <= 1.0f);
+    }
+
+    // 100 ms of a 1 s source, wherever the grain currently reads.
+    REQUIRE(cloud[0].duration == Catch::Approx(0.1f).margin(0.01f));
+
+    // A smaller buffer truncates instead of overflowing.
+    REQUIRE(synth.getActiveGrainSnapshots(cloud, 3) == 3);
+
+    synth.reset();
+    REQUIRE(synth.getActiveGrainSnapshots(cloud, 64) == 0);
+}
+
+
