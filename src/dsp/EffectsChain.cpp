@@ -1,8 +1,49 @@
 #include "EffectsChain.h"
 #include <algorithm>
 #include <iterator>
+#include <utility>
+#include <vector>
 
 namespace ana {
+
+juce::StringArray EffectParamSpec::getChoiceLabels() const
+{
+    juce::StringArray labels;
+    if (values == nullptr)
+        return labels;
+
+    // "0=SINE 1=TRI 2=SQUARE" -> { SINE, TRI, SQUARE }.  Sorted by the declared
+    // index, so a table written out of order still lists correctly.
+    juce::StringArray tokens;
+    tokens.addTokens(juce::String(values), " \t", "");
+    tokens.removeEmptyStrings();
+
+    std::vector<std::pair<int, juce::String>> entries;
+    entries.reserve(static_cast<size_t>(tokens.size()));
+
+    for (const auto& token : tokens)
+    {
+        const int eq = token.indexOfChar('=');
+        if (eq <= 0 || eq >= token.length() - 1)
+            continue;
+
+        const int index = token.substring(0, eq).getIntValue();
+        auto label = token.substring(eq + 1).trim();
+        if (label.isEmpty())
+            continue;
+
+        entries.emplace_back(index, label);
+    }
+
+    std::sort(entries.begin(), entries.end(),
+              [](const std::pair<int, juce::String>& a, const std::pair<int, juce::String>& b)
+              { return a.first < b.first; });
+
+    for (const auto& e : entries)
+        labels.add(e.second);
+
+    return labels;
+}
 
 EffectsChain::EffectsChain() {}
 

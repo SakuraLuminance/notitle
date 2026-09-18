@@ -17,6 +17,16 @@ struct EffectParamSpec
     float skew = 1.0f;
     bool  isInt = false;
     const char* values = nullptr;   // optional enumeration labels, e.g. "0=SINE 1=TRI 2=SQUARE"
+
+    /** True when this parameter is an enumeration and belongs in a menu: an
+        explicit choice list on an integer-stepped parameter.  A continuous
+        parameter can still carry values as anchors for its tooltip
+        (e.g. "0=MONO 0.5=100% 1=200%") - that one stays a knob. */
+    bool isChoice() const noexcept { return values != nullptr && isInt; }
+
+    /** The labels of a choice parameter in index order: "1=TRI 0=SINE" gives
+        { "SINE", "TRI" }.  Empty when values is missing or malformed. */
+    juce::StringArray getChoiceLabels() const;
 };
 
 class EffectBase {

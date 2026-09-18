@@ -1769,11 +1769,38 @@ void AnaPlugAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 }
 
 //==============================================================================
+void AnaPlugAudioProcessorEditor::refreshEffectMenus()
+{
+    // Choice parameters are drawn as menus, but their value can move behind the
+    // UI's back: a preset load, a state restore or a MIDI mapping all write
+    // through the effect.  The menus follow the effect, never the other way
+    // round, and never notify (that would write the value straight back).
+    effectRack_.visitSlots([](int, ana::EffectSlotWidget& slot)
+    {
+        auto* panel = slot.getParamPanel();
+        if (panel == nullptr || panel->getEffect() == nullptr)
+            return;
+
+        auto* effect = panel->getEffect();
+        panel->visitMenus([effect](int paramIndex, juce::ComboBox& menu)
+        {
+            const int lastIndex = juce::jmax(0, menu.getNumItems() - 1);
+            const int value = juce::jlimit(0, lastIndex,
+                static_cast<int>(std::lround(effect->getParamValue(paramIndex))));
+
+            if (menu.getSelectedId() != value + 1)
+                menu.setSelectedId(value + 1, juce::dontSendNotification);
+        });
+    });
+}
+
+//==============================================================================
 void AnaPlugAudioProcessorEditor::updateMidiLearnState()
 {
     // Effect knobs are created/destroyed by the rack (expand, rebuild, remove),
     // so the registry is re-scanned before anything dereferences it.
     refreshEffectKnobMidiLearn();
+    refreshEffectMenus();
 
     auto& midiLearn = audioProcessor.getMidiLearn();
 

@@ -286,6 +286,7 @@ private:
     /** Re-scan the rack's expanded slots: register new knobs, drop the ones
         that were destroyed (collapse / rebuild / slot removal). */
     void refreshEffectKnobMidiLearn();
+    void refreshEffectMenus();
 
     /** Process MIDI Learn timeout + indicator blink in timer. */
     void updateMidiLearnState();

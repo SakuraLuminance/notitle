@@ -80,6 +80,7 @@ test_vocal_effects.cpp
 # ctor/paint is MessageManager-free and safe headless
 test_ui_paint.cpp
 test_ui_colors.cpp
+test_effect_param_menus.cpp
 
 # Engine source files needed by cutting-edge features tests
     ../src/dsp/VoiceManager.cpp

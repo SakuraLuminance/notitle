@@ -46,7 +46,7 @@ public:
             { "delay_ms", "TIME",      1.0f, 2000.0f, 300.0f, 0.25f, false },
             { "feedback", "FEEDBACK",  0.0f, 100.0f,   45.0f, 1.0f,  false },
             { "mix",      "MIX",       0.0f, 100.0f,   30.0f, 1.0f,  false },
-            { "ping",     "PING-PONG", 0.0f, 1.0f,      0.0f, 1.0f,  true  },
+            { "ping",     "PING-PONG", 0.0f, 1.0f,      0.0f, 1.0f,  true,  "0=OFF 1=ON" },
         };
         return table[(size_t) i];
     }
@@ -293,7 +293,7 @@ public:
         static const std::vector<EffectParamSpec> table = {
             { "speed",   "SPEED",   0.01f, 20.0f, 10.0f, 0.3f, false, nullptr },
             { "amount",  "AMOUNT",  0.0f,  1.0f,  0.5f,  1.0f, false, nullptr },
-            { "enabled", "ON",      0.0f,  1.0f,  1.0f,  1.0f, true,  nullptr },
+            { "enabled", "ON",      0.0f,  1.0f,  1.0f,  1.0f, true,  "0=OFF 1=ON" },
         };
         return table[(size_t) i];
     }

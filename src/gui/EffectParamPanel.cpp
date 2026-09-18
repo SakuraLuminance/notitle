@@ -9,13 +9,17 @@ EffectParamPanel::EffectParamPanel(EffectBase* liveEffect)
     : effect_(liveEffect)
 {
     setInterceptsMouseClicks(true, true);
-    rebuildKnobs();
+    rebuildControls();
 }
 
-void EffectParamPanel::rebuildKnobs()
+void EffectParamPanel::rebuildControls()
 {
     knobs_.clear();
     labels_.clear();
+    menus_.clear();
+    menuLabels_.clear();
+    knobParamIndex_.clear();
+    menuParamIndex_.clear();
 
     if (effect_ == nullptr)
         return;
@@ -24,6 +28,42 @@ void EffectParamPanel::rebuildKnobs()
     for (int i = 0; i < n; ++i)
     {
         const auto& spec = effect_->getParamSpec(i);
+
+        // Enumerations are menus, not knobs: a discrete choice has no useful
+        // rotary position and no meaningful read-out.
+        if (spec.isChoice())
+        {
+            const auto choices = spec.getChoiceLabels();
+
+            auto menu = std::make_unique<juce::ComboBox>();
+            for (int c = 0; c < choices.size(); ++c)
+                menu->addItem(choices[c], c + 1);
+            menu->setSelectedId(juce::jlimit(1, juce::jmax(1, choices.size()),
+                                             static_cast<int>(std::lround(effect_->getParamValue(i))) + 1),
+                               juce::dontSendNotification);
+            menu->setTooltip(juce::String(spec.label != nullptr ? spec.label : "")
+                             + "\n" + spec.values);
+
+            menu->onChange = [this, i, menuPtr = menu.get()]()
+            {
+                if (effect_ != nullptr)
+                    effect_->setParamValue(i, static_cast<float>(menuPtr->getSelectedId() - 1));
+            };
+
+            addAndMakeVisible(menu.get());
+            menus_.add(std::move(menu));
+            menuParamIndex_.push_back(i);
+
+            auto menuLabel = std::make_unique<juce::Label>();
+            menuLabel->setText(spec.label != nullptr ? spec.label : "", juce::dontSendNotification);
+            menuLabel->setFont(CyberpunkTheme::getCyberFont(9.0f, true));
+            menuLabel->setColour(juce::Label::textColourId, CyberpunkTheme::cyan_.withAlpha(0.85f));
+            menuLabel->setJustificationType(juce::Justification::centredLeft);
+            menuLabel->setInterceptsMouseClicks(false, false);
+            addAndMakeVisible(menuLabel.get());
+            menuLabels_.add(std::move(menuLabel));
+            continue;
+        }
 
         auto knob = std::make_unique<juce::Slider>();
         knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -39,14 +79,17 @@ void EffectParamPanel::rebuildKnobs()
             ? juce::String(spec.label) + "\n" + spec.values
             : juce::String(spec.label))
             + "\nRight-click: MIDI Learn");
-        const int idx = i;
-        knob->onValueChange = [this, idx]()
+        // The knob's own pointer, not an index: with enumeration menus in the
+        // panel the knob order no longer matches the parameter order.
+        auto* knobPtr = knob.get();
+        knob->onValueChange = [this, i, knobPtr]()
         {
             if (effect_ != nullptr)
-                effect_->setParamValue(idx, static_cast<float>(knobs_.getUnchecked(idx)->getValue()));
+                effect_->setParamValue(i, static_cast<float>(knobPtr->getValue()));
         };
         addAndMakeVisible(knob.get());
         knobs_.add(std::move(knob));
+        knobParamIndex_.push_back(i);
 
         auto label = std::make_unique<juce::Label>();
         label->setText(spec.label != nullptr ? spec.label : "", juce::dontSendNotification);
@@ -66,15 +109,38 @@ void EffectParamPanel::visitKnobs(const std::function<void(int, juce::Slider&)>&
 
     for (int i = 0; i < knobs_.size(); ++i)
         if (auto* knob = knobs_[i])
-            fn(i, *knob);
+            fn(knobParamIndex_[(size_t) i], *knob);
+}
+
+void EffectParamPanel::visitMenus(const std::function<void(int, juce::ComboBox&)>& fn)
+{
+    if (! fn)
+        return;
+
+    for (int i = 0; i < menus_.size(); ++i)
+        if (auto* menu = menus_[i])
+            fn(menuParamIndex_[(size_t) i], *menu);
 }
 
 void EffectParamPanel::resized()
 {
-    if (knobs_.isEmpty())
+    if (knobs_.isEmpty() && menus_.isEmpty())
         return;
 
     auto area = getLocalBounds();
+
+    // Enumeration menus first, one per row: they need the full width to show
+    // their labels, which a 46 px knob column cannot do.
+    for (int i = 0; i < menus_.size(); ++i)
+    {
+        auto row = area.removeFromTop(menuRowH).reduced(2, 1);
+        menuLabels_.getUnchecked(i)->setBounds(row.removeFromLeft(menuLabelW));
+        menus_.getUnchecked(i)->setBounds(row);
+    }
+
+    if (knobs_.isEmpty())
+        return;
+
     const int perRow = juce::jmax(1, area.getWidth() / knobW);
     const int n = knobs_.size();
 
@@ -92,13 +158,13 @@ void EffectParamPanel::resized()
 
 int EffectParamPanel::getPreferredHeight(int width) const
 {
-    if (effect_ == nullptr || knobs_.isEmpty())
+    if (effect_ == nullptr || (knobs_.isEmpty() && menus_.isEmpty()))
         return 18;
 
     const int perRow = juce::jmax(1, width / knobW);
     const int rows = static_cast<int>(std::ceil(
         static_cast<float>(knobs_.size()) / static_cast<float>(perRow)));
-    return rows * rowH + 6;
+    return menus_.size() * menuRowH + rows * rowH + 6;
 }
 
 void EffectParamPanel::paint(juce::Graphics& g)
