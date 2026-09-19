@@ -97,6 +97,62 @@ void minimumSize (const juce::Component& c, int& minW, int& minH)
     else if (dynamic_cast<const juce::Label*> (&c) != nullptr)       { minW = 1;  minH = 6;  }
 }
 
+/** The floor a control has to clear to be comfortably usable, as opposed to the
+    floor below which it is broken.  minimumSize() answers "is this a bug"; this
+    answers "is this cramped", and its findings are advisory - reported, not gating -
+    because a small control is a design decision until someone looks at it.
+
+    kControlHeight is 20; a control two thirds of that is still usable, a control
+    half of it is a target you have to aim at. */
+int comfortableHeight (const juce::Component& c)
+{
+    if (dynamic_cast<const juce::Slider*> (&c) != nullptr)
+    {
+        const auto style = static_cast<const juce::Slider&> (c).getSliderStyle();
+        const bool rotary = style == juce::Slider::Rotary
+                         || style == juce::Slider::RotaryHorizontalDrag
+                         || style == juce::Slider::RotaryVerticalDrag
+                         || style == juce::Slider::RotaryHorizontalVerticalDrag;
+
+        return rotary ? 24 : 12;
+    }
+
+    if (dynamic_cast<const juce::ComboBox*> (&c) != nullptr)   return 16;
+    if (dynamic_cast<const juce::TextButton*> (&c) != nullptr) return 16;
+    if (dynamic_cast<const juce::ToggleButton*> (&c) != nullptr) return 16;
+
+    return 0;   // labels and canvases are not click targets
+}
+
+/** Pixels that differ between two renders inside an area.
+
+    This is what turns "nothing overlaps" into "nothing is hidden": hiding a control
+    and re-rendering changes the picture only where that control was actually drawn.
+    A control that changes nothing is a control the user cannot see, whatever its
+    geometry says. */
+int countChangedPixels (const juce::Image& a, const juce::Image& b, juce::Rectangle<int> area)
+{
+    if (! a.isValid() || ! b.isValid() || a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight())
+        return 0;
+
+    const auto r = area.getIntersection ({ 0, 0, a.getWidth(), a.getHeight() });
+
+    if (r.getWidth() <= 0 || r.getHeight() <= 0)
+        return 0;
+
+    const juce::Image::BitmapData pa (a, juce::Image::BitmapData::readOnly);
+    const juce::Image::BitmapData pb (b, juce::Image::BitmapData::readOnly);
+
+    int changed = 0;
+
+    for (int y = r.getY(); y < r.getBottom(); ++y)
+        for (int x = r.getX(); x < r.getRight(); ++x)
+            if (pa.getPixelColour (x, y) != pb.getPixelColour (x, y))
+                ++changed;
+
+    return changed;
+}
+
 juce::String rectToString (juce::Rectangle<int> r)
 {
     return juce::String (r.getX()) + "," + juce::String (r.getY())
@@ -116,6 +172,19 @@ public:
     }
 
     std::vector<Finding> findings;
+
+    /** Findings that are reported but do not fail the build.
+
+        The gate is a promise that the interface has no broken geometry, and that
+        promise is kept.  These are the next question - is it cramped, is anything
+        drawn underneath something else - and they become findings once they have
+        been driven to zero, in that order, rather than by moving the goalposts. */
+    std::vector<Finding> advisory;
+
+    /** Visible interactive controls, in editor coordinates, for the render-and-hide
+        check that the geometry pass cannot do. */
+    std::vector<juce::Component*> interactive;
+
     int visibleControls = 0;
     int visibleComponents = 0;
 
@@ -132,6 +201,11 @@ private:
     void add (const juce::String& kind, const juce::String& path, const juce::String& detail)
     {
         findings.push_back ({ kind, path, detail });
+    }
+
+    void advise (const juce::String& kind, const juce::String& path, const juce::String& detail)
+    {
+        advisory.push_back ({ kind, path, detail });
     }
 
     void walk (juce::Component& parent, const juce::String& path)
@@ -203,6 +277,21 @@ private:
                 // (4) the project rule: every control explains itself
                 if (! hasTooltip (*child))
                     add ("no-tooltip", childPath, rectToString (child->getBounds()));
+
+                // Advisory: clear of the broken floor, but below the point where a
+                // control is comfortable to hit.  The design row is kControlHeight.
+                const int wantH = comfortableHeight (*child);
+
+                if (wantH > 0 && child->getHeight() < wantH)
+                    advise ("cramped", childPath,
+                            rectToString (child->getBounds()) + " is under the "
+                            + juce::String (wantH) + "-pixel comfortable height");
+
+                // Everything the render-and-hide check may ask about: on screen (not
+                // merely flagged visible behind a hidden page), interactive, and big
+                // enough that it was meant to be seen.
+                if (child->isShowing() && child->getWidth() > 2 && child->getHeight() > 2)
+                    interactive.push_back (child);
             }
             else if (auto* label = dynamic_cast<juce::Label*> (child))
             {
@@ -288,6 +377,92 @@ struct SnapshotStats
     juce::String inkMap;        // downsampled view of what was drawn, one line per row
 };
 
+/** One offscreen render, exactly the one the snapshots are made of. */
+juce::Image renderToImage (juce::Component& component)
+{
+    if (component.getWidth() <= 0 || component.getHeight() <= 0)
+        return {};
+
+    juce::Image image (juce::Image::ARGB, component.getWidth(), component.getHeight(), true);
+
+    {
+        juce::Graphics g (image);
+        component.paintEntireComponent (g, true);
+    }
+
+    return image;
+}
+
+/** Hides each candidate control in turn and re-renders, to find controls that are
+    drawn but cannot be seen - covered by a sibling painted after them, or hanging
+    off the edge of the page.
+
+    Geometry cannot answer this.  Two disjoint rectangles can still leave one of the
+    controls painting nothing, and two overlapping ones are usually fine on purpose.
+    What is unambiguous is the picture: hide the control, and if not one pixel inside
+    its rectangle changes, the user never saw it.
+
+    Controls inside a Viewport are skipped, because a rack slot scrolled out of view
+    is working as intended rather than hidden from the user.  The deadline keeps the
+    check inside the CI step's budget: it reports how many controls it managed to
+    look at, so a short run is visible in the report rather than silent. */
+int checkHiddenControls (juce::Component& root,
+                         const std::vector<juce::Component*>& candidates,
+                         const juce::String& tag,
+                         std::vector<Finding>& out,
+                         double deadlineMs,
+                         int& checked)
+{
+    const auto baseline = renderToImage (root);
+
+    if (! baseline.isValid())
+        return 0;
+
+    int hidden = 0;
+
+    for (auto* c : candidates)
+    {
+        if (c == nullptr || ! c->isShowing())
+            continue;
+
+        bool scrollable = false;
+
+        for (auto* p = c->getParentComponent(); p != nullptr; p = p->getParentComponent())
+            if (dynamic_cast<juce::Viewport*> (p) != nullptr)
+                scrollable = true;
+
+        if (scrollable)
+            continue;
+
+        if (juce::Time::getMillisecondCounterHiRes() > deadlineMs)
+            break;
+
+        // A pixel of slack on each side: a LookAndFeel is allowed to paint a control
+        // slightly outside its own bounds, and that should not read as invisible.
+        const auto area = root.getLocalArea (c, c->getLocalBounds()).expanded (2);
+
+        if (area.getWidth() <= 0 || area.getHeight() <= 0)
+            continue;
+
+        c->setVisible (false);
+        const auto without = renderToImage (root);
+        c->setVisible (true);
+
+        ++checked;
+
+        if (countChangedPixels (baseline, without, area) == 0)
+        {
+            ++hidden;
+            out.push_back ({ "invisible-control", tag + "  " + prettyType (*c),
+                             "hiding it changed no pixel in " + rectToString (area)
+                             + " - it is painted under a sibling, or off the page" });
+        }
+    }
+
+    root.repaint();
+    return hidden;
+}
+
 SnapshotStats renderSnapshot (juce::Component& component, const juce::File& file)
 {
     SnapshotStats stats;
@@ -298,12 +473,7 @@ SnapshotStats renderSnapshot (juce::Component& component, const juce::File& file
         return stats;
     }
 
-    juce::Image image (juce::Image::ARGB, component.getWidth(), component.getHeight(), true);
-
-    {
-        juce::Graphics g (image);
-        component.paintEntireComponent (g, true);
-    }
+    const auto image = renderToImage (component);
 
     stats.status = savePng (image, file) ? "ok" : "png write failed";
 
@@ -492,7 +662,15 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     struct Snapshot { juce::String tag, png, summary; bool blank = false; };
     std::vector<Snapshot> gallery;
 
-    auto capture = [&] (const juce::String& tag, const juce::String& fileName)
+    // The render-and-hide pass costs one render per control, so it is limited to the
+    // size where things go wrong first and to a wall-clock budget; the report says
+    // how far it got.
+    const double deepDeadline = juce::Time::getMillisecondCounterHiRes() + 300000.0;
+    int deepChecked = 0;
+    int deepFound = 0;
+    std::vector<Finding> advisory;
+
+    auto capture = [&] (const juce::String& tag, const juce::String& fileName, bool deep)
     {
         const auto pngName = juce::File::createLegalFileName (fileName) + ".png";
         const auto file = outputDir.getChildFile (pngName);
@@ -539,6 +717,13 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
         for (const auto& f : auditor.findings)
             all.push_back (f);
 
+        for (const auto& f : auditor.advisory)
+            advisory.push_back (f);
+
+        if (deep)
+            deepFound += checkHiddenControls (*editor, auditor.interactive, tag,
+                                              advisory, deepDeadline, deepChecked);
+
         inkMaps.add ("--- " + tag + "  ink=" + juce::String (inkPercent, 2) + "%");
         inkMaps.add (stats.inkMap);
     };
@@ -562,7 +747,8 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
             const auto pageName = AnaPlugAudioProcessorEditor::getPageName (page);
 
             capture (sizeTag + "  " + pageName,
-                     juce::String (page) + "-" + pageName + "_" + sizeTag);
+                     juce::String (page) + "-" + pageName + "_" + sizeTag,
+                     actualW == 900);
         }
     }
 
@@ -596,7 +782,8 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
             editor->timerCallback();
 
             capture (sizeTag + "  VIEW " + editor->getViewModeName (mode),
-                     "view-" + editor->getViewModeName (mode) + "_" + sizeTag);
+                     "view-" + editor->getViewModeName (mode) + "_" + sizeTag,
+                     size.first == 900);
         }
 
         // Back to a software-painted view before anything else is rendered.
@@ -622,6 +809,21 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
         }
     }
 
+    std::map<juce::String, int> advisoryByKind;
+    std::map<juce::String, int> advisoryPrinted;
+    std::vector<Finding> advisoryPrintedList;
+
+    for (const auto& f : advisory)
+    {
+        ++advisoryByKind[f.kind];
+
+        if (advisoryPrinted[f.kind] < 12)
+        {
+            ++advisoryPrinted[f.kind];
+            advisoryPrintedList.push_back (f);
+        }
+    }
+
     juce::String summary;
     summary << "UI AUDIT: " << snapshots << " snapshots, "
             << visibleControls << " visible controls, "
@@ -629,6 +831,14 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
 
     for (const auto& entry : byKind)
         summary << " | " << entry.first << "=" << entry.second;
+
+    if (! advisory.empty())
+    {
+        summary << "  ||  advisory:";
+
+        for (const auto& entry : advisoryByKind)
+            summary << " " << entry.first << "=" << entry.second;
+    }
 
     // How cramped is it really?  One line, so it survives into the CI annotation.
     const juce::String heightLine =
@@ -647,6 +857,17 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
 
     for (const auto& f : printed)
         lines.add ("  [" + f.kind + "] " + f.path + " :: " + f.detail);
+
+    if (! advisory.empty())
+    {
+        lines.add ("");
+        lines.add ("advisory (does not fail the build; next on the list to drive to zero):");
+        lines.add ("  render-and-hide pass looked at " + juce::String (deepChecked)
+                   + " controls and found " + juce::String (deepFound) + " drawn but not visible");
+
+        for (const auto& f : advisoryPrintedList)
+            lines.add ("  [" + f.kind + "] " + f.path + " :: " + f.detail);
+    }
 
     reportText = lines.joinIntoString ("\n") + "\n";
 
@@ -683,7 +904,21 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
         jsonFindings.add (juce::var (o.get()));
     }
 
+    juce::Array<juce::var> jsonAdvisory;
+
+    for (const auto& f : advisory)
+    {
+        juce::DynamicObject::Ptr o (new juce::DynamicObject());
+        o->setProperty ("kind", f.kind);
+        o->setProperty ("path", f.path);
+        o->setProperty ("detail", f.detail);
+        jsonAdvisory.add (juce::var (o.get()));
+    }
+
     root->setProperty ("items", jsonFindings);
+    root->setProperty ("advisory", static_cast<int> (advisory.size()));
+    root->setProperty ("advisoryItems", jsonAdvisory);
+    root->setProperty ("deepChecked", deepChecked);
 
     outputDir.getChildFile ("report.json")
              .replaceWithText (juce::JSON::toString (juce::var (root.get()), false));
