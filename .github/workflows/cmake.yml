@@ -137,10 +137,20 @@ jobs:
     # ANAPLUG_UI_AUDIT environment variable, and needs no window or audio device.
     # Non-fatal on purpose: the findings are published for triage, and the step can
     # be made gating by dropping continue-on-error once the report is clean.
-    - name: UI audit (offscreen render + layout checks)
-      if: always()
-      continue-on-error: true
+    # A canary, because the audit step below runs no script at all: it reports
+    # completed/success while writing neither its probe nor its output, which is
+    # only possible if nothing was executed.  This step exists to prove that newly
+    # added steps in this job do run.
+    - name: UI audit canary
       shell: pwsh
+      run: |
+        'canary ' + (Get-Date -Format o) | Set-Content -Path 'ui-audit-canary.txt'
+        python -c "print('hi')" | Out-Null
+        Write-Host ('canary wrote ' + (Get-Item 'ui-audit-canary.txt').Length + ' bytes')
+
+    - name: UI audit (offscreen render + layout checks)
+      shell: pwsh
+      timeout-minutes: 15
       run: |
         # Everything this step learns goes into a probe file that the publish step
         # puts on the ci-reports branch: the step's own stdout is unreadable from the
