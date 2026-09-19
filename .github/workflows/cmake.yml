@@ -122,13 +122,31 @@ jobs:
     # Standalone build remains the fallback runner.
     - name: Build UI audit runner (console)
       continue-on-error: true
+      timeout-minutes: 20
       shell: pwsh
       run: |
         cmake --build build --config Release --target AnaPlugUiAudit `
           2>&1 | Tee-Object -FilePath audit-runner-build-log.txt
-        Write-Host ('audit runner build exit: ' + $LASTEXITCODE)
+        $buildExit = $LASTEXITCODE
+        Write-Host ('audit runner build exit: ' + $buildExit)
         Get-Content audit-runner-build-log.txt -Tail 12
-        "AUDIT_RUNNER_BUILD_EXIT=$LASTEXITCODE" | Out-File -FilePath $env:GITHUB_ENV -Append
+        "AUDIT_RUNNER_BUILD_EXIT=$buildExit" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+        # The audit runs here too, in a step that is known to execute.  The step
+        # dedicated to it reports completed/success while running no script at all -
+        # no probe, no output, nothing - and this is the same work from a step with a
+        # track record.  Whatever it prints is published by the last step.
+        $runner = Get-ChildItem -Path build -Recurse -Filter '*Audit*.exe' -ErrorAction SilentlyContinue |
+                    Select-Object -First 1
+        if ($runner) {
+            Write-Host ('running the audit from the build step: ' + $runner.FullName)
+            $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
+            & $runner.FullName 2>&1 | Tee-Object -FilePath 'ui-audit-console.txt'
+            Write-Host ('audit runner exit: ' + $LASTEXITCODE)
+        } else {
+            Write-Host 'no *Audit*.exe under build - the audit could not be run from here'
+            'no *Audit*.exe under build' | Set-Content -Path 'ui-audit-console.txt'
+        }
 
     # Offscreen UI audit: renders every page at every supported window size and
     # checks each visible control's geometry (clipped outside its parent? squeezed
@@ -812,6 +830,7 @@ jobs:
           Publish-File 'ui-audit-probe.txt'           'ui-audit-probe.txt'
           Publish-File 'ui-audit-stdout.txt'          'ui-audit-stdout.txt'
           Publish-File 'ui-audit-stderr.txt'          'ui-audit-stderr.txt'
+          Publish-File 'ui-audit-console.txt'         'ui-audit-console.txt'
           Publish-File 'audit-runner-build-log.txt'   'tail-audit-runner-build-log.txt'
           Publish-File 'standalone-build-log.txt'     'tail-standalone-build-log.txt'
           Publish-File 'build-log.txt'                'tail-build-log.txt'
