@@ -49,27 +49,30 @@ void TimbrePanel::resized()
     const int pad = 3;
     auto area = getLocalBounds().reduced(6, pad * 2);
 
-    // The knob was sized from the panel's width alone - half of it, which at
-    // 900x660 asks for 136-pixel knobs in a column 288 pixels tall.  Two knob rows
-    // plus the HPF row need 340, so the second row collapsed to zero height and the
-    // audit found zero-height labels and sliders that were never placed at all
-    // (0,0 0x0).  The height gets a say now.
+    // Four controls, not three.  The constructor makes SUB, BRIGHT, BLUR and HPF,
+    // but resized() only ever placed SUB, BRIGHT and HPF - blurSlider_ and
+    // blurLabel_ were never given a rectangle at all.  That single omission is what
+    // the audit kept reporting as 0,0 0x0 sliders and labels and as "BLUR"
+    // overflowing a zero-width label, on the page and on all eight view modes.
+    //
+    // Three rotary rows above a linear HPF strip now, with every height derived from
+    // what the panel actually has, so no row can be handed an empty rectangle.
     const int captionH = 14;
-    const int hpfH = 16 + 12;
-    const int rows = 2;
-    const int reserved = captionH * rows + hpfH + pad * 4;
+    const int hpfH = 28;
+    const int knobArea = juce::jmax (3 * (captionH + 8), area.getHeight() - hpfH);
     const int knobSize = juce::jmax (24,
                             juce::jmin ((area.getWidth() - pad * 2) / 2,
-                                        (area.getHeight() - reserved) / rows));
+                                        knobArea / 3 - captionH));
     auto row = [&](juce::Slider& s, juce::Label& l) {
         auto cell = area.removeFromTop(knobSize + captionH).reduced(pad);
-        s.setBounds(cell.removeFromTop(knobSize));
+        s.setBounds(cell.removeFromTop(juce::jmin(knobSize, cell.getHeight())));
         l.setBounds(cell);
     };
     row(subSlider_, subLabel_);
     row(brightSlider_, brightLabel_);
-    hpfSlider_.setBounds(area.removeFromTop(16).reduced(pad));
-    hpfLabel_.setBounds(area.removeFromTop(12).reduced(pad));
+    row(blurSlider_, blurLabel_);
+    hpfSlider_.setBounds(area.removeFromTop(juce::jmin(16, area.getHeight())).reduced(pad));
+    hpfLabel_.setBounds(area.removeFromTop(juce::jmin(12, area.getHeight())).reduced(pad));
 }
 
 } // namespace ana
