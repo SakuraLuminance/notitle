@@ -101,6 +101,10 @@ jobs:
           2>&1 | Tee-Object -FilePath standalone-build-log.txt
         Write-Host ('standalone build exit: ' + $LASTEXITCODE)
         Get-Content standalone-build-log.txt -Tail 12
+        # The step ends with Get-Content, so its own conclusion is always success.
+        # Pass the real exit code on, and the audit step turns it into a readable
+        # verdict instead of a silently skipped audit.
+        "STANDALONE_BUILD_EXIT=$LASTEXITCODE" | Out-File -FilePath $env:GITHUB_ENV -Append
 
     # Crash forensics: WER writes a minidump for ANY process that dies with
     # an unhandled exception (AnaPlugTests.exe, pluginval.exe) into C:\dumps.
@@ -125,9 +129,35 @@ jobs:
       continue-on-error: true
       shell: pwsh
       run: |
-        $exe = Get-ChildItem -Path build -Recurse -Filter 'AnaPlug.exe' -ErrorAction SilentlyContinue |
-               Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1
-        if (-not $exe) { Write-Host 'standalone executable not found - UI audit skipped'; exit 0 }
+        # Everything this step learns goes into a probe file that the publish step
+        # puts on the ci-reports branch: the step's own stdout is unreadable from the
+        # development machine, and for three runs in a row a 'successful' audit step
+        # turned out to have produced nothing at all.
+        $probe = [System.Collections.Generic.List[string]]::new()
+        $probe.Add ('standalone build exit: ' + $env:STANDALONE_BUILD_EXIT)
+        $probe.Add ('working directory: ' + $PWD)
+
+        $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug.exe' -ErrorAction SilentlyContinue)
+        $exe = $candidates | Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1
+        if (-not $exe) { $exe = $candidates | Select-Object -First 1 }
+        $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
+        foreach ($c in $candidates) { $probe.Add ('  ' + $c.FullName) }
+        $probe.Add ('chosen exe: ' + $(if ($exe) { $exe.FullName } else { 'NONE' }))
+
+        foreach ($dir in @(Get-ChildItem -Path build -Recurse -Directory -Filter '*artefacts' -ErrorAction SilentlyContinue))
+            { $probe.Add ('artefacts dir: ' + $dir.FullName) }
+
+        function Write-Probe { $probe -join [Environment]::NewLine | Set-Content -Path 'ui-audit-probe.txt' }
+
+        if (-not $exe) {
+            $probe.Add ('standalone-build-log.txt tail:')
+            if (Test-Path standalone-build-log.txt) {
+                $probe.AddRange ([string[]](Get-Content standalone-build-log.txt -Tail 120))
+            } else { $probe.Add ('  (no standalone-build-log.txt)') }
+            Write-Probe
+            Write-Host 'standalone executable not found - UI audit could not run'
+            exit 1
+        }
         $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
         Write-Host ('running ' + $exe.FullName + ' with ANAPLUG_UI_AUDIT=' + $env:ANAPLUG_UI_AUDIT)
         # Bounded run: a GUI-subsystem binary with no desktop session must never
@@ -137,14 +167,30 @@ jobs:
                   -RedirectStandardError  'ui-audit-stderr.txt'
         if (-not $proc.WaitForExit(600000)) {
           $proc.Kill()
+          $probe.Add ('the audit process was killed after the 10 minute guard')
           Write-Host 'UI audit timed out after 10 minutes'
         } else {
+          $probe.Add ('audit process exit code: ' + $proc.ExitCode)
           Write-Host ('exit code: ' + $proc.ExitCode)
         }
+
+        $produced = @(Get-ChildItem ui-audit -ErrorAction SilentlyContinue)
+        $probe.Add ('files under ui-audit: ' + $produced.Count)
+        foreach ($p in $produced) { $probe.Add ('  ' + $p.Name + '  ' + $p.Length) }
+        $probe.Add ('ui-audit-stdout.txt tail:')
+        if (Test-Path ui-audit-stdout.txt) { $probe.AddRange ([string[]](Get-Content ui-audit-stdout.txt -Tail 40)) }
+        $probe.Add ('ui-audit-stderr.txt tail:')
+        if (Test-Path ui-audit-stderr.txt) { $probe.AddRange ([string[]](Get-Content ui-audit-stderr.txt -Tail 40)) }
+        Write-Probe
+
         Get-Content ui-audit-stdout.txt -Tail 12 -ErrorAction SilentlyContinue
         Get-Content ui-audit-stderr.txt -Tail 12 -ErrorAction SilentlyContinue
-        Get-ChildItem ui-audit -ErrorAction SilentlyContinue | Select-Object -First 8 Name, Length
         if (Test-Path ui-audit/summary.txt) { Get-Content ui-audit/summary.txt }
+
+        # No summary means the audit never ran to completion.  The step stays
+        # non-gating (its findings are not fixed yet), but it must not look green
+        # while doing nothing - that is exactly how three runs went by unnoticed.
+        if (-not (Test-Path ui-audit/summary.txt)) { Write-Host 'UI AUDIT PRODUCED NO SUMMARY'; exit 1 }
 
     - name: Upload UI audit snapshots
       if: always()
@@ -210,6 +256,17 @@ jobs:
         mkdir -p /tmp/ci-reports
         cp -r ui-audit/. /tmp/ci-reports/ 2>/dev/null || true
         cp ui-audit-stdout.txt ui-audit-stderr.txt /tmp/ci-reports/ 2>/dev/null || true
+        cp ui-audit-probe.txt /tmp/ci-reports/ 2>/dev/null || true
+        if [ -f ui-audit-probe.txt ]; then
+          sed 's/%/%25/g' ui-audit-probe.txt | head -12 | while IFS= read -r line; do
+            echo "::error title=ui-probe::$line"
+          done | cat
+        fi
+        # Tails only: the full build log is megabytes and this branch is replaced
+        # wholesale every run, so it would only slow the fetch down.
+        for f in standalone-build-log.txt build-log.txt; do
+          [ -f "$f" ] && tail -200 "$f" > "/tmp/ci-reports/tail-$f"
+        done
 
         cd /tmp/ci-reports
         {
