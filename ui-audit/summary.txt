@@ -1,1 +1,2 @@
-﻿placeholder written by the local end-to-end test of the ci-reports channel
+control heights: <12px=106 12-15px=65 16-19px=1040 20-27px=886 >=28px=610 (design row = 20px)
+UI AUDIT: 59 snapshots, 2707 visible controls, 648 findings | outside-parent=7 | overlap=79 | text-overflow=97 | text-tight=35 | too-small=220 | zero-size=210
