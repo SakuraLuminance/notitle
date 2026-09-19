@@ -17,6 +17,10 @@
 #include <utility>
 #include <vector>
 
+#if defined (__GNUG__)
+ #include <cxxabi.h>   // abi::__cxa_demangle, for readable type names off MSVC
+#endif
+
 namespace ana::uiaudit
 {
 
@@ -37,6 +41,20 @@ struct Finding
 juce::String prettyType (const juce::Component& c)
 {
     juce::String name (typeid (c).name());
+
+    // MSVC's typeid().name() is already readable; the Itanium ABI used by clang and
+    // gcc mangles it into N3ana19EffectRackComponentE, which makes a locally built
+    // report unreadable next to the one CI writes.
+   #if defined (__GNUG__)
+    {
+        int status = 0;
+        std::unique_ptr<char, void (*) (void*)> demangled (
+            abi::__cxa_demangle (name.toRawUTF8(), nullptr, nullptr, &status), std::free);
+
+        if (status == 0 && demangled != nullptr)
+            name = juce::String (demangled.get());
+    }
+   #endif
 
     name = name.replace ("class ", "").replace ("struct ", "").replace ("ana::", "");
 
@@ -151,6 +169,38 @@ int countChangedPixels (const juce::Image& a, const juce::Image& b, juce::Rectan
                 ++changed;
 
     return changed;
+}
+
+/** Visible all the way up to the editor.
+
+    Not Component::isShowing(), which also asks whether the component's window is on
+    screen - and an offscreen editor has no peer at all, so isShowing() is false for
+    every component in it.  The render-and-hide pass looked at zero controls until
+    this was noticed: the first full local run reported "looked at 0 controls". */
+bool isShownIn (const juce::Component& c)
+{
+    for (auto* p = &c; p != nullptr; p = p->getParentComponent())
+        if (! p->isVisible())
+            return false;
+
+    return true;
+}
+
+/** Shown, and not scrolled out of any viewport it lives in.
+
+    A control scrolled out of sight really is invisible, and that is not a defect, so
+    those are skipped.  Everything a viewport is actually showing is checked. */
+bool isOnScreen (juce::Component& c)
+{
+    if (! isShownIn (c))
+        return false;
+
+    for (auto* p = c.getParentComponent(); p != nullptr; p = p->getParentComponent())
+        if (auto* vp = dynamic_cast<juce::Viewport*> (p))
+            if (! vp->getViewArea().intersects (vp->getLocalArea (&c, c.getLocalBounds())))
+                return false;
+
+    return true;
 }
 
 juce::String rectToString (juce::Rectangle<int> r)
@@ -290,7 +340,7 @@ private:
                 // Everything the render-and-hide check may ask about: on screen (not
                 // merely flagged visible behind a hidden page), interactive, and big
                 // enough that it was meant to be seen.
-                if (child->isShowing() && child->getWidth() > 2 && child->getHeight() > 2)
+                if (isShownIn (*child) && child->getWidth() > 2 && child->getHeight() > 2)
                     interactive.push_back (child);
             }
             else if (auto* label = dynamic_cast<juce::Label*> (child))
@@ -422,16 +472,7 @@ int checkHiddenControls (juce::Component& root,
 
     for (auto* c : candidates)
     {
-        if (c == nullptr || ! c->isShowing())
-            continue;
-
-        bool scrollable = false;
-
-        for (auto* p = c->getParentComponent(); p != nullptr; p = p->getParentComponent())
-            if (dynamic_cast<juce::Viewport*> (p) != nullptr)
-                scrollable = true;
-
-        if (scrollable)
+        if (c == nullptr || ! isOnScreen (*c))
             continue;
 
         if (juce::Time::getMillisecondCounterHiRes() > deadlineMs)
@@ -627,6 +668,13 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
         return 1;
     }
 
+    // Show it explicitly.  AudioProcessor::createEditor() only makes the editor
+    // visible for a plugin that has a host; an editor created outside one comes back
+    // invisible, and every control in it then reads as hidden - which is why the
+    // render-and-hide pass was looking at zero controls, not because of anything in
+    // the interface itself.
+    editor->setVisible (true);
+
     // Below the editor's own resize floor JUCE clamps silently, so the audit
     // covers the documented minimum and a few realistic sizes.
     const std::pair<int, int> sizes[] =
@@ -721,8 +769,10 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
             advisory.push_back (f);
 
         if (deep)
+        {
             deepFound += checkHiddenControls (*editor, auditor.interactive, tag,
                                               advisory, deepDeadline, deepChecked);
+        }
 
         inkMaps.add ("--- " + tag + "  ink=" + juce::String (inkPercent, 2) + "%");
         inkMaps.add (stats.inkMap);
