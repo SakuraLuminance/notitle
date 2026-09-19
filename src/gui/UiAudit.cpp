@@ -58,9 +58,11 @@ bool isControlLike (const juce::Component& c)
 
 /** Tooltips come from TooltipClient, not from Component - a control that is not
     also a tooltip client cannot show one at all. */
-bool hasTooltip (const juce::Component& c)
+bool hasTooltip (juce::Component& c)
 {
-    if (auto* client = dynamic_cast<const juce::TooltipClient*> (&c))
+    // TooltipClient::getTooltip() is not const in JUCE 8, so this cannot take a
+    // const reference: "cannot convert 'this' pointer from 'const juce::TooltipClient'".
+    if (auto* client = dynamic_cast<juce::TooltipClient*> (&c))
         return client->getTooltip().trim().isNotEmpty();
 
     return false;
@@ -183,7 +185,10 @@ private:
 
                 if (text.isNotEmpty())
                 {
-                    const auto needed = label->getFont().getStringWidth (text);
+                    // JUCE 8 removed Font::getStringWidth; the replacement lives on
+                    // GlyphArrangement (modules/juce_graphics/fonts/juce_GlyphArrangement.h,
+                    // pinned 8.0.13: static int getStringWidthInt (const Font&, StringRef)).
+                    const auto needed = juce::GlyphArrangement::getStringWidthInt (label->getFont(), text);
                     const auto room   = child->getWidth();
 
                     // JUCE squeezes label text horizontally down to

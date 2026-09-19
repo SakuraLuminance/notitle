@@ -2,7 +2,13 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-namespace ana { class AnaPlugAudioProcessor; }
+// Global scope on purpose: AnaPlugAudioProcessor is a global class, and a
+// namespace-scoped forward declaration would introduce a different, permanently
+// incomplete ana::AnaPlugAudioProcessor.  Inside namespace ana - which is where
+// GranularPage.h lives - that phantom type shadows the real one, so any use
+// that needs the complete type (GranularPage's array bounds) fails with
+// "error C2027: use of undefined type 'ana::AnaPlugAudioProcessor'".
+class AnaPlugAudioProcessor;
 
 namespace ana::uiaudit
 {

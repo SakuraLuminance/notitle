@@ -346,11 +346,14 @@ jobs:
 
         # ---- compile errors -------------------------------------------------
         if (Test-Path build-log.txt) {
-          # Case-insensitive and deliberately broad: a build killed with no message at
-          # all (disk, memory) still has to be distinguishable from a compile error.
-          $errs = @(Select-String -Path build-log.txt -Pattern 'error|fatal|failed|cannot|denied|no space|MSB[0-9]+' -ErrorAction SilentlyContinue)
+          # Real errors only, warnings excluded.  MSVC interleaves parallel project
+          # builds, so a 25-line cap filled with C4566 code-page warnings used to hide
+          # the two lines that actually explained the failure.
+          $errs = @(Select-String -Path build-log.txt -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Line -match 'error [A-Z][0-9]{4}|error LNK|error MSB|fatal error|ninja: build stopped' })
+          $warnings = @(Select-String -Path build-log.txt -Pattern 'warning [A-Z][0-9]{4}' -ErrorAction SilentlyContinue).Count
           $out.Add("")
-          $out.Add("### BUILD (" + $errs.Count + " matching lines)")
+          $out.Add("### BUILD (" + $errs.Count + " errors, " + $warnings + " warnings)")
           if ($errs.Count -eq 0) {
             # No compile error matched: the failure is a configure, link or copy
             # step whose wording the patterns above miss.  The tail of every log is
@@ -371,7 +374,7 @@ jobs:
               }
             }
           }
-          foreach ($e in ($errs | Select-Object -First 25)) {
+          foreach ($e in ($errs | Select-Object -First 30)) {
             $t = ($e.Line -replace '\s+', ' ').Trim()
             if ($t.Length -gt 500) { $t = $t.Substring(0, 500) }
             $out.Add("- " + $t)
