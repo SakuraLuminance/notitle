@@ -3,5 +3,649 @@
   "visibleControls": 2707,
   "visibleComponents": 4422,
   "findings": 0,
-  "items": []
+  "items": [],
+  "advisory": 128,
+  "advisoryItems": [
+    {
+      "kind": "cramped",
+      "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FILTER/FilterPanel/juce::ComboBox",
+      "detail": "6,20 876x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,38 876x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,54 876x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "5,18 291x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "298,18 291x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::TextButton",
+      "detail": "10,282 64x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::TextButton",
+      "detail": "76,282 44x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::ComboBox",
+      "detail": "122,282 102x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::ComboBox",
+      "detail": "70,227 730x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::TextButton",
+      "detail": "10,246 292x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::TextButton",
+      "detail": "304,246 292x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::TextButton",
+      "detail": "598,246 292x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  FX/juce::ComboBox",
+      "detail": "43,264 848x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  MASTER/juce::ComboBox",
+      "detail": "225,246 150x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  MASTER/juce::ComboBox",
+      "detail": "302,268 71x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  MASTER/juce::ComboBox",
+      "detail": "387,246 100x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FILTER/FilterPanel/juce::ComboBox",
+      "detail": "6,20 1076x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,38 1076x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,54 1076x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "5,18 358x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "365,18 358x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::TextButton",
+      "detail": "10,323 64x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::TextButton",
+      "detail": "76,323 44x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::ComboBox",
+      "detail": "122,323 102x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::ComboBox",
+      "detail": "70,268 930x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::TextButton",
+      "detail": "10,287 358x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::TextButton",
+      "detail": "370,287 359x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::TextButton",
+      "detail": "731,287 359x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  FX/juce::ComboBox",
+      "detail": "43,305 1048x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  MASTER/juce::ComboBox",
+      "detail": "273,287 186x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  MASTER/juce::ComboBox",
+      "detail": "368,309 89x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  MASTER/juce::ComboBox",
+      "detail": "471,287 126x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,381 404x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,381 404x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FILTER/FilterPanel/juce::ComboBox",
+      "detail": "6,20 1256x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,38 1256x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,54 1256x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "5,18 418x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "425,18 418x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::TextButton",
+      "detail": "10,350 64x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::TextButton",
+      "detail": "76,350 44x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::ComboBox",
+      "detail": "122,350 102x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::ComboBox",
+      "detail": "70,295 1110x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::TextButton",
+      "detail": "10,314 418x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::TextButton",
+      "detail": "430,314 419x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::TextButton",
+      "detail": "851,314 419x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  FX/juce::ComboBox",
+      "detail": "43,332 1228x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  MASTER/juce::ComboBox",
+      "detail": "316,314 219x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  MASTER/juce::ComboBox",
+      "detail": "427,336 106x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1280x860  MASTER/juce::ComboBox",
+      "detail": "547,314 149x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,474 511x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,474 511x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FILTER/FilterPanel/juce::ComboBox",
+      "detail": "6,20 1576x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,38 1576x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,54 1576x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "5,18 524x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "531,18 525x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::TextButton",
+      "detail": "10,398 64x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::TextButton",
+      "detail": "76,398 44x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::ComboBox",
+      "detail": "122,398 102x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::ComboBox",
+      "detail": "70,343 1430x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::TextButton",
+      "detail": "10,362 525x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::TextButton",
+      "detail": "537,362 525x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::TextButton",
+      "detail": "1064,362 526x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  FX/juce::ComboBox",
+      "detail": "43,380 1548x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  MASTER/juce::ComboBox",
+      "detail": "393,362 277x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  MASTER/juce::ComboBox",
+      "detail": "533,384 135x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1600x1000  MASTER/juce::ComboBox",
+      "detail": "682,362 189x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,606 618x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
+      "detail": "9,606 618x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FILTER/FilterPanel/juce::ComboBox",
+      "detail": "6,20 1896x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,38 1896x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FILTER/FilterPanel/juce::Slider",
+      "detail": "6,54 1896x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "5,18 631x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  SEQ/SequencerPanel/juce::ComboBox",
+      "detail": "638,18 631x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::TextButton",
+      "detail": "10,466 64x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::TextButton",
+      "detail": "76,466 44x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::ComboBox",
+      "detail": "122,466 102x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::ComboBox",
+      "detail": "70,411 1750x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::TextButton",
+      "detail": "10,430 632x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::TextButton",
+      "detail": "644,430 632x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::TextButton",
+      "detail": "1278,430 632x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  FX/juce::ComboBox",
+      "detail": "43,448 1868x10 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  MASTER/juce::ComboBox",
+      "detail": "469,430 336x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  MASTER/juce::ComboBox",
+      "detail": "639,452 164x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1920x1200  MASTER/juce::ComboBox",
+      "detail": "817,430 230x12 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
+      "detail": "9,249 278x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/juce::TextButton",
+      "detail": "10,54 54x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/juce::TextButton",
+      "detail": "66,54 54x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/juce::TextButton",
+      "detail": "122,54 56x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/juce::TextButton",
+      "detail": "180,54 52x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "900x660  VIEW IMAGE/juce::TextButton",
+      "detail": "234,54 64x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
+      "detail": "9,330 344x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/juce::TextButton",
+      "detail": "10,54 54x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/juce::TextButton",
+      "detail": "66,54 54x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/juce::TextButton",
+      "detail": "122,54 56x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/juce::TextButton",
+      "detail": "180,54 52x14 is under the 16-pixel comfortable height"
+    },
+    {
+      "kind": "cramped",
+      "path": "1100x780  VIEW IMAGE/juce::TextButton",
+      "detail": "234,54 64x14 is under the 16-pixel comfortable height"
+    }
+  ],
+  "deepChecked": 0
 }
