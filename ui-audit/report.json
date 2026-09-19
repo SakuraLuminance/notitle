@@ -2,7 +2,7 @@
   "snapshots": 59,
   "visibleControls": 2707,
   "visibleComponents": 4422,
-  "findings": 200,
+  "findings": 190,
   "items": [
     {
       "kind": "zero-size",
@@ -55,16 +55,6 @@
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
     },
     {
-      "kind": "too-small",
-      "path": "900x660  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,46 291x12 needs at least 24x24"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  SEQ/SequencerPanel/juce::Slider",
-      "detail": "298,46 291x12 needs at least 24x24"
-    },
-    {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
@@ -113,16 +103,6 @@
       "kind": "text-overflow",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,46 358x12 needs at least 24x24"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  SEQ/SequencerPanel/juce::Slider",
-      "detail": "365,46 358x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
@@ -175,16 +155,6 @@
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
     },
     {
-      "kind": "too-small",
-      "path": "1280x860  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,46 418x12 needs at least 24x24"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  SEQ/SequencerPanel/juce::Slider",
-      "detail": "425,46 418x12 needs at least 24x24"
-    },
-    {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
@@ -235,16 +205,6 @@
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
     },
     {
-      "kind": "too-small",
-      "path": "1600x1000  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,46 524x12 needs at least 24x24"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  SEQ/SequencerPanel/juce::Slider",
-      "detail": "531,46 525x12 needs at least 24x24"
-    },
-    {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
@@ -293,16 +253,6 @@
       "kind": "text-overflow",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,46 631x12 needs at least 24x24"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  SEQ/SequencerPanel/juce::Slider",
-      "detail": "638,46 631x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
