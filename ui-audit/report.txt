@@ -1,0 +1,137 @@
+AnaPlug UI audit
+================
+sample loaded: yes
+
+900x660  TIMBRE  controls=38  components=67  ink=81.73%  colours=232  findings=24  png=ok
+900x660  FILTER  controls=22  components=35  ink=92.99%  colours=159  findings=2  png=ok
+900x660  MOD  controls=59  components=118  ink=91.64%  colours=147  findings=11  png=ok
+900x660  SEQ  controls=55  components=87  ink=91.44%  colours=142  findings=8  png=ok
+900x660  FX  controls=143  components=191  ink=65.74%  colours=183  findings=10  png=ok
+900x660  MASTER  controls=30  components=54  ink=91.66%  colours=157  findings=2  png=ok
+900x660  ENV  controls=27  components=41  ink=95.80%  colours=168  findings=2  png=ok
+900x660  EVO  controls=27  components=40  ink=96.62%  colours=126  findings=2  png=ok
+900x660  GRAIN  controls=32  components=62  ink=96.52%  colours=154  findings=2  png=ok
+1100x780  TIMBRE  controls=38  components=67  ink=80.32%  colours=276  findings=24  png=ok
+1100x780  FILTER  controls=22  components=35  ink=93.79%  colours=157  findings=2  png=ok
+1100x780  MOD  controls=59  components=118  ink=91.69%  colours=153  findings=11  png=ok
+1100x780  SEQ  controls=55  components=87  ink=91.40%  colours=160  findings=8  png=ok
+1100x780  FX  controls=143  components=191  ink=61.48%  colours=180  findings=10  png=ok
+1100x780  MASTER  controls=30  components=54  ink=91.64%  colours=158  findings=2  png=ok
+1100x780  ENV  controls=27  components=41  ink=96.20%  colours=182  findings=2  png=ok
+1100x780  EVO  controls=27  components=40  ink=96.75%  colours=136  findings=2  png=ok
+1100x780  GRAIN  controls=32  components=62  ink=96.65%  colours=167  findings=2  png=ok
+1280x860  TIMBRE  controls=38  components=67  ink=79.85%  colours=275  findings=24  png=ok
+1280x860  FILTER  controls=22  components=35  ink=94.15%  colours=166  findings=2  png=ok
+1280x860  MOD  controls=59  components=118  ink=91.59%  colours=155  findings=11  png=ok
+1280x860  SEQ  controls=55  components=87  ink=91.70%  colours=166  findings=8  png=ok
+1280x860  FX  controls=143  components=191  ink=62.54%  colours=178  findings=10  png=ok
+1280x860  MASTER  controls=30  components=54  ink=91.80%  colours=171  findings=2  png=ok
+1280x860  ENV  controls=27  components=41  ink=96.20%  colours=191  findings=2  png=ok
+1280x860  EVO  controls=27  components=40  ink=96.84%  colours=137  findings=2  png=ok
+1280x860  GRAIN  controls=32  components=62  ink=96.79%  colours=151  findings=2  png=ok
+1600x1000  TIMBRE  controls=38  components=67  ink=79.30%  colours=265  findings=24  png=ok
+1600x1000  FILTER  controls=22  components=35  ink=94.91%  colours=175  findings=2  png=ok
+1600x1000  MOD  controls=59  components=118  ink=91.63%  colours=163  findings=11  png=ok
+1600x1000  SEQ  controls=55  components=87  ink=91.70%  colours=174  findings=8  png=ok
+1600x1000  FX  controls=143  components=190  ink=66.28%  colours=184  findings=9  png=ok
+1600x1000  MASTER  controls=30  components=54  ink=91.79%  colours=172  findings=2  png=ok
+1600x1000  ENV  controls=27  components=41  ink=96.61%  colours=185  findings=2  png=ok
+1600x1000  EVO  controls=27  components=40  ink=97.16%  colours=134  findings=2  png=ok
+1600x1000  GRAIN  controls=32  components=62  ink=97.11%  colours=152  findings=2  png=ok
+1920x1200  TIMBRE  controls=38  components=67  ink=78.71%  colours=289  findings=24  png=ok
+1920x1200  FILTER  controls=22  components=35  ink=95.92%  colours=177  findings=2  png=ok
+1920x1200  MOD  controls=59  components=117  ink=91.87%  colours=162  findings=10  png=ok
+1920x1200  SEQ  controls=55  components=87  ink=92.08%  colours=175  findings=8  png=ok
+1920x1200  FX  controls=143  components=190  ink=70.53%  colours=181  findings=9  png=ok
+1920x1200  MASTER  controls=30  components=54  ink=92.15%  colours=160  findings=2  png=ok
+1920x1200  ENV  controls=27  components=41  ink=97.05%  colours=185  findings=2  png=ok
+1920x1200  EVO  controls=27  components=40  ink=97.52%  colours=125  findings=2  png=ok
+1920x1200  GRAIN  controls=32  components=62  ink=97.47%  colours=152  findings=2  png=ok
+900x660  VIEW LIVE  controls=38  components=67  ink=81.73%  colours=232  findings=24  png=ok
+900x660  VIEW PARTIALS  controls=38  components=67  ink=81.73%  colours=236  findings=24  png=ok
+900x660  VIEW WATERFALL  controls=38  components=67  ink=81.73%  colours=238  findings=24  png=ok
+900x660  VIEW EDITOR  controls=38  components=67  ink=81.73%  colours=265  findings=24  png=ok
+900x660  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
+900x660  VIEW SCOPE  controls=38  components=67  ink=57.38%  colours=232  findings=24  png=ok
+900x660  VIEW PARTICLES  controls=38  components=67  ink=81.63%  colours=248  findings=24  png=ok
+900x660  VIEW IMAGE  controls=43  components=73  ink=77.52%  colours=288  findings=24  png=ok
+1100x780  VIEW LIVE  controls=38  components=67  ink=80.32%  colours=276  findings=24  png=ok
+1100x780  VIEW PARTIALS  controls=38  components=67  ink=80.32%  colours=278  findings=24  png=ok
+1100x780  VIEW WATERFALL  controls=38  components=67  ink=80.32%  colours=280  findings=24  png=ok
+1100x780  VIEW EDITOR  controls=38  components=67  ink=80.32%  colours=334  findings=24  png=ok
+1100x780  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
+1100x780  VIEW SCOPE  controls=38  components=67  ink=54.60%  colours=277  findings=24  png=ok
+1100x780  VIEW PARTICLES  controls=38  components=67  ink=80.31%  colours=297  findings=24  png=ok
+1100x780  VIEW IMAGE  controls=43  components=73  ink=76.80%  colours=325  findings=24  png=ok
+
+control heights: <12px=106 12-15px=65 16-19px=1040 20-27px=886 >=28px=610 (design row = 20px)
+UI AUDIT: 59 snapshots, 2707 visible controls, 648 findings | outside-parent=7 | overlap=79 | text-overflow=97 | text-tight=35 | too-small=220 | zero-size=210
+
+findings (max 12 per kind, counts above are complete):
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 9,265 278x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 9,265 278x0
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
+  [text-overflow] 900x660  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Slider :: visible but 9,271 278x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 9,271 278x0 needs at least 8x8
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 9,271 278x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 9,271 278x0
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 9,265 278x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 9,265 278x0
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
+  [text-overflow] 900x660  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Slider :: visible but 9,271 278x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 9,271 278x0 needs at least 8x8
+  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 9,271 278x0
+  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 9,271 278x0
+  [text-overflow] 900x660  TIMBRE/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  TIMBRE :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [text-overflow] 900x660  FILTER/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  FILTER :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [zero-size] 900x660  MOD/MacroPanel/juce::Label :: visible but 8,62 215x0
+  [too-small] 900x660  MOD/MacroPanel/juce::Label :: 8,62 215x0
+  [zero-size] 900x660  MOD/MacroPanel/juce::Label :: visible but 227,62 215x0
+  [too-small] 900x660  MOD/MacroPanel/juce::Label :: 227,62 215x0
+  [outside-parent] 900x660  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel :: child 0,0 300x564 parent 0,0 880x300
+  [text-overflow] 900x660  MOD/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  MOD :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [overlap] 900x660  SEQ/SequencerPanel :: juce::ComboBox 5,18 291x14 x juce::Label 5,22 291x16 -> 5,22 291x10
+  [overlap] 900x660  SEQ/SequencerPanel :: juce::ComboBox 298,18 291x14 x juce::Label 298,22 291x16 -> 298,22 291x10
+  [overlap] 900x660  SEQ/SequencerPanel :: juce::Slider 5,34 291x16 x juce::Label 5,22 291x16 -> 5,34 291x4
+  [overlap] 900x660  SEQ/SequencerPanel :: juce::Slider 298,34 291x16 x juce::Label 298,22 291x16 -> 298,34 291x4
+  [text-overflow] 900x660  SEQ/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  SEQ :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [text-tight] 900x660  FX/juce::Label :: "FX PRESET" needs 55 px, label is 52 px
+  [outside-parent] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component :: child 0,0 880x420 parent 0,0 878x274
+  [text-tight] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "StereoWidener" needs 79 px, label is 58 px
+  [text-tight] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Distortion" needs 61 px, label is 58 px
+  [text-tight] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Saturation" needs 61 px, label is 58 px
+  [text-tight] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Bitcrusher" needs 61 px, label is 58 px
+  [text-tight] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Compressor" needs 61 px, label is 58 px
+  [text-tight] 900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "RingModulator" needs 79 px, label is 58 px
+  [text-overflow] 900x660  FX/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  FX :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [text-overflow] 900x660  MASTER/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  MASTER :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [text-overflow] 900x660  ENV/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  ENV :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [text-overflow] 900x660  EVO/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [overlap] 900x660  EVO :: MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16
+  [text-overflow] 900x660  GRAIN/juce::ComboBox/juce::Label :: "±25%" needs 32 px, label is 21 px
+  [text-overflow] 1100x780  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
+  [outside-parent] 1100x780  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel :: child 0,0 300x564 parent 0,0 1080x379
+  [text-tight] 1100x780  FX/juce::Label :: "FX PRESET" needs 55 px, label is 52 px
+  [outside-parent] 1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component :: child 0,0 1080x420 parent 0,0 1078x353
+  [text-tight] 1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "StereoWidener" needs 79 px, label is 58 px
+  [text-tight] 1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Distortion" needs 61 px, label is 58 px
+  [text-tight] 1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Saturation" needs 61 px, label is 58 px
+  [text-tight] 1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label :: "Bitcrusher" needs 61 px, label is 58 px
+  [outside-parent] 1280x860  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel :: child 0,0 300x564 parent 0,0 1260x432
+  [outside-parent] 1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component :: child 0,0 1260x420 parent 0,0 1258x406
+  [outside-parent] 1600x1000  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel :: child 0,0 300x564 parent 0,0 1580x524
