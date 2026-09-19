@@ -10,8 +10,8 @@ MSBuild version 18.9.1+a81b43525 for .NET Framework
   juce_audio_plugin_client_AAX_utils.cpp
   juce_audio_plugin_client_ARA.cpp
   juce_audio_plugin_client_Standalone.cpp
-  juce_audio_plugin_client_Unity.cpp
   juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_Unity.cpp
   juce_audio_plugin_client_VST3.cpp
   Generating code
 D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2447): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_Standalone.vcxproj]
