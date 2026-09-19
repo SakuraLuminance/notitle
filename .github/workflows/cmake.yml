@@ -151,15 +151,14 @@ jobs:
         $probe.Add ('audit runner build exit: ' + $env:AUDIT_RUNNER_BUILD_EXIT)
         $probe.Add ('working directory: ' + $PWD)
 
-        # Not just 'AnaPlug.exe': the standalone artefact is named after the product
-        # but the JUCE target is AnaPlug_Standalone, so match liberally and prefer
-        # anything on a standalone path.
+        # Not just 'AnaPlug.exe': the artefact is named after the product but the
+        # JUCE target is AnaPlugUiAudit, so match on the target's name.
         $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug*.exe' -ErrorAction SilentlyContinue)
-        # Prefer the console runner, then the standalone artefact: the console
-        # runner cannot be missing for any reason other than its own build failing.
+        # Only the console runner can do this.  The standalone has no main() of ours:
+        # it opens its window and sits there, so falling back to it spent ten
+        # minutes waiting for a process that was never going to write a report and
+        # then reported "the audit produced no report" with no reason attached.
         $exe = $candidates | Where-Object { $_.Name -match 'Audit' } | Select-Object -First 1
-        if (-not $exe) { $exe = $candidates | Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1 }
-        if (-not $exe) { $exe = $candidates | Select-Object -First 1 }
         $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
         foreach ($c in $candidates) { $probe.Add ('  ' + $c.FullName) }
         $probe.Add ('chosen exe: ' + $(if ($exe) { $exe.FullName } else { 'NONE' }))
@@ -196,7 +195,7 @@ jobs:
                 else { $probe.Add ('  (no ' + $log + ')') }
             }
             Write-Probe
-            Write-Host 'standalone executable not found - UI audit could not run'
+            Write-Host 'no UI audit runner executable was found - the audit could not run'
             exit 1
         }
         $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
