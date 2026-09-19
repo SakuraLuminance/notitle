@@ -19,7 +19,7 @@
 | 用例计数 | 源码内 **638 个 `TEST_CASE` 名**（`d6d4a67` 注解实测）；最后一次成功执行的是 **624 个 / 0 失败 / 343042 断言**（`deb270c`） |
 | 未验证批次 | `157b71b`（FX 链重建 + UNDO/REDO）、`51e9a31`（UI 自检报告）、`d6d4a67`（ARP 接线）、`f3627ad`（CI 加固）——**都还没拿到全绿注解**，见下方“构建被杀”条目 |
 | 未推送批次 | **无**；唯一剩余候选 = 成品安装（需 UAC + 浏览器下载，脚本 `tools/install-vst3.ps1` 已就绪） |
-| **当前阻塞** | 加 `Standalone` 格式后连续两次 CI 都在**链接阶段被 runner 杀掉**（`5a7bc0d` / `d6d4a67`）：configure 成功、build-log 中途截断且**没有任何 error 行**。`f3627ad` 已加 `--parallel 2`（三个 LTO 链接同时跑最可能是内存峰值）并把磁盘余量写进注解，等结果 |
+| **已定位的 CI 盲区（已修）** | `5a7bc0d` / `d6d4a67` 连续两次失败，注解却写「no error pattern matched」——**根因是诊断脚本的正则 `error [A-Z]{2,4}[0-9]{3,5}` 要求 2–4 个大写字母，而 MSVC 的 `error C2065` 只有 1 个字母**，于是所有编译错误都被吞掉；同时 MSBuild 并行编多个工程，出错行出现在日志中段，而我当时只看日志**尾部**，尾部全是无关工程的正常输出。现在：正则改为大小写不敏感且宽泛（`error\|fatal\|failed\|cannot\|denied\|no space\|MSB`），并**无条件**输出 configure-log / build-log 尾部 + 磁盘余量。真实错误随之暴露：`UiAudit.cpp` 用了 `juce::WavAudioFormat` 但该 TU 没有包含 `juce_audio_formats` 头（模块本来已链接）——已加 `#include <juce_audio_formats/juce_audio_formats.h>` |
 | UI 自检通道 | 插件可**无宿主无窗口**渲染自己的界面：`ANAPLUG_UI_AUDIT=<dir>` + `AnaPlug_Standalone_artefacts/Release/Standalone/AnaPlug.exe` → 9 页 × 5 尺寸 + 8 种视图模式截图 + 逐控件几何检查（超出父组件 / 零尺寸 / 同级重叠 / 小于可用下限 / 无 tooltip / 文字比标签宽 / 整页几乎空白），报告写 `report.txt` / `report.json` / `inkmap*.txt`；CI 自动跑并把摘要 + 最小尺寸 ASCII 墨迹图写进 `ci-diagnostics` 注解 |
 | 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、rack 内 MIDI Learn ✓、颗粒层 + GRAIN 页 ✓（粒子云 / 采样包络条 / SPREAD / REVERSE / JITTER / 9 旋钮全部可 MIDI Learn）、DNA fittest → 音色 ✓、图像谐波分箱 ✓、帧混合曲线 ✓、**枚举真菜单 ✓**（用户已确认：仅 UI 菜单）、颗粒池性能 ✓、**ARP 接线 ✓**（PATTERN/RATE/GATE 三个控件此前完全没接线，属死控件）、FX 链自动重建 + 链 UNDO/REDO ✓、MOD/FILTER/MASTER/EVO 面板补 `syncFromProcessor()`（预置载入后界面不再停留在上一套参数）✓；**路线图全部完成**，只剩成品安装 |
 | 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |

@@ -2,6 +2,11 @@
 #include "../PluginProcessor.h"
 #include "../PluginEditor.h"
 
+// WavAudioFormat/AudioFormatWriter live in juce_audio_formats, which the plugin
+// target links (the processor reads audio files) but which no header pulled in
+// for this translation unit: "error C2065: 'WavAudioFormat': undeclared".
+#include <juce_audio_formats/juce_audio_formats.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>

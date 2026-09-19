@@ -53,10 +53,7 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-        # Limited parallelism on purpose: the format targets link the same object
-        # set with LTO, and letting MSBuild saturate every core made the runner
-        # kill the build mid-link with no error line at all (run 35414818193).
-        cmake --build build --config Release --parallel 2 `
+        cmake --build build --config Release `
           --target AnaPlug_VST3 AnaPlug_CLAP AnaPlugTests 2>&1 | Tee-Object -FilePath build-log.txt
         if ($LASTEXITCODE -ne 0) {
           Write-Host '===== build failed, last 60 lines ====='
@@ -71,7 +68,7 @@ jobs:
       continue-on-error: true
       shell: pwsh
       run: |
-        cmake --build build --config Release --parallel 2 --target AnaPlug_Standalone `
+        cmake --build build --config Release --target AnaPlug_Standalone `
           2>&1 | Tee-Object -FilePath standalone-build-log.txt
         Write-Host ('standalone build exit: ' + $LASTEXITCODE)
         Get-Content standalone-build-log.txt -Tail 12
