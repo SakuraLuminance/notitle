@@ -1,0 +1,22 @@
+MSBuild version 18.9.1+a81b43525 for .NET Framework
+
+  Checking File Globs
+  AnaPlug_rc_lib.vcxproj -> D:\a\notitle\notitle\build\AnaPlug_rc_lib.dir\Release\AnaPlug_rc_lib.lib
+  clap_juce_extensions.vcxproj -> D:\a\notitle\notitle\build\_deps\clap-juce-extensions-build\Release\clap_juce_extensions.lib
+  ebur128.vcxproj -> D:\a\notitle\notitle\build\Release\ebur128.lib
+  AnaPlug.vcxproj -> D:\a\notitle\notitle\build\AnaPlug_artefacts\Release\AnaPlug_SharedCode.lib
+  Building Custom Rule D:/a/notitle/notitle/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+  Generating code
+D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2447): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_Standalone.vcxproj]
+D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2386): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_Standalone.vcxproj]
+D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2337): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_Standalone.vcxproj]
+D:\a\notitle\notitle\src\dsp\VoiceManager.cpp(1028): warning C4701: potentially uninitialized local variable 'sample' used [D:\a\notitle\notitle\build\AnaPlug_Standalone.vcxproj]
+  Finished generating code
+  AnaPlug_Standalone.vcxproj -> D:\a\notitle\notitle\build\AnaPlug_artefacts\Release\Standalone\AnaPlug.exe
