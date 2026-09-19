@@ -3,7 +3,7 @@ add_executable(AnaPlugTests
     bench_performance.cpp
     test_advanced_granular.cpp
     test_arpeggiator.cpp
-    test_blur_effect.cpp
+    test_arpeggiator_driver.cpp    test_blur_effect.cpp
     test_bpm_detector.cpp
     test_cutting_edge_features.cpp
     test_data_structures.cpp
@@ -130,7 +130,7 @@ test_effect_param_menus.cpp
     # DSP sources needed by various test files
     ../src/dsp/AnaPlugEngine.cpp
     ../src/dsp/Arpeggiator.cpp
-    ../src/dsp/FrequencyShaper.cpp
+    ../src/dsp/ArpeggiatorDriver.cpp    ../src/dsp/FrequencyShaper.cpp
     ../src/dsp/BlurEffect.cpp
     ../src/dsp/AdditiveSynth.cpp
     ../src/dsp/TimbreShaper.cpp

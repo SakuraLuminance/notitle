@@ -77,6 +77,35 @@ FilterPanel::FilterPanel(AnaPlugAudioProcessor& processor)
     };
 }
 
+void FilterPanel::syncFromProcessor()
+{
+    auto& multi = processor_.getMultiFilter();
+    if (multi.getNumSlots() == 0)
+        return;
+
+    const auto& slot = multi.getSlot(0);
+
+    if (std::abs(cutoffSlider_.getValue() - slot.params.cutoff) > 0.5)
+        cutoffSlider_.setValue(slot.params.cutoff, juce::dontSendNotification);
+
+    if (std::abs(resSlider_.getValue() - slot.params.resonance) > 0.001)
+        resSlider_.setValue(slot.params.resonance, juce::dontSendNotification);
+
+    int id = 1;
+    switch (slot.type)
+    {
+        case FilterType::LowPass:  id = 1; break;
+        case FilterType::HighPass: id = 2; break;
+        case FilterType::BandPass: id = 3; break;
+        case FilterType::Notch:    id = 4; break;
+        case FilterType::Comb:     id = 5; break;
+        default:                   id = 1; break;
+    }
+
+    if (typeCombo_.getSelectedId() != id)
+        typeCombo_.setSelectedId(id, juce::dontSendNotification);
+}
+
 void FilterPanel::resized()
 {
     const int pad = 3;

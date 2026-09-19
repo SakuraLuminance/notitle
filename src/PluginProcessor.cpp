@@ -401,6 +401,9 @@ void AnaPlugAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     ANA_CRUMB("ptp:enter");
     juce::ignoreUnused(samplesPerBlock);
 
+    // Arpeggiator step clock follows the host sample rate.
+    arpDriver_.prepare(sampleRate);
+
     // Ensure FTZ/DAZ is active (some hosts may reset FP control state
     // between constructor and prepareToPlay or between successive calls)
 #if JUCE_INTEL
@@ -578,6 +581,7 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         if (ph->getCurrentPosition(pos))
         {
             stepSequencer_.setBpm(pos.bpm);
+            arpDriver_.setTempo(pos.bpm);
 
             // Drive envelope tempo sync from the host transport.
             const juce::SpinLock::ScopedLockType envLockScope(envLock_);
@@ -592,6 +596,31 @@ void AnaPlugAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     {
         // Flatten is triggered from the UI, we just acknowledge it here
         // The actual flatten processing happens on the message thread
+    }
+
+    // --- Arpeggiator (MASTER page) ---
+    // Runs before the side-effect loop and before the synthesiser, so every
+    // consumer downstream (unison, envelopes, voices, MIDI Learn) sees the arp's
+    // stepped notes instead of the raw chord.  OFF is a pass-through with no cost.
+    {
+        const int   arpMode = arpMode_.load();
+        const float arpRate = arpRate_.load();
+        const float arpGate = arpGate_.load();
+
+        // Only forward real changes: the setters reconfigure the step clock.
+        if (arpMode != arpCachedMode_ || arpRate != arpCachedRate_ || arpGate != arpCachedGate_)
+        {
+            arpCachedMode_ = arpMode;
+            arpCachedRate_ = arpRate;
+            arpCachedGate_ = arpGate;
+
+            arpDriver_.setEnabled(arpMode > 0);
+            arpDriver_.setMode(static_cast<ana::ArpMode>(juce::jlimit(0, 4, arpMode - 1)));
+            arpDriver_.setRate(0.25f / juce::jmax(0.25f, arpRate));
+            arpDriver_.setGate(arpGate * 100.0f);
+        }
+
+        arpDriver_.process(midiMessages, numSamples);
     }
 
     // --- MIDI side effects ---
@@ -1081,6 +1110,11 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("imageCurve", imageCurve_.load(), nullptr);
     state.setProperty("themeIndex", themeIndex_.load(), nullptr);
 
+    // Arpeggiator (MASTER page)
+    state.setProperty("arpMode", arpMode_.load(), nullptr);
+    state.setProperty("arpRate", arpRate_.load(), nullptr);
+    state.setProperty("arpGate", arpGate_.load(), nullptr);
+
     // Granular layer (P7)
     state.setProperty("grainEnabled", granularEnabled_.load(), nullptr);
     state.setProperty("grainSizeMs", granularGrainMs_.load(), nullptr);
@@ -1133,6 +1167,11 @@ void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInByte
     
     if (state.hasProperty("mpeEnabled")) setMPEEnabled(state.getProperty("mpeEnabled"));
     if (state.hasProperty("mpeMasterChannel")) setMPEMasterChannel(juce::jlimit(0, 15, (int)state.getProperty("mpeMasterChannel")));
+
+    // Arpeggiator (MASTER page)
+    if (state.hasProperty("arpMode")) setArpMode((int)state.getProperty("arpMode", 0));
+    if (state.hasProperty("arpRate")) setArpRate((float)state.getProperty("arpRate", 1.0f));
+    if (state.hasProperty("arpGate")) setArpGate((float)state.getProperty("arpGate", 0.5f));
 
     // Additive synth + timbre shaping (P6)
     if (state.hasProperty("timbreABright")) setTimbreBright(true,  (float)state.getProperty("timbreABright", 0.5f));

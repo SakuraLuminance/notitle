@@ -35,17 +35,27 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build/_deps/
-        key: ${{ runner.os }}-fetchcontent-${{ hashFiles('CMakeLists.txt') }}
+        # Deliberately NOT keyed on CMakeLists.txt: every edit to the target
+        # list used to throw away the JUCE/Catch2/clap checkouts and re-clone
+        # them, which is slow and is a configure failure waiting to happen.
+        # The pinned versions only change when the pin changes.
+        key: ${{ runner.os }}-fetchcontent-juce8013-catch252-clap
 
     - name: Configure CMake
-      run: cmake -B build -S . -DTESTING=ON
       shell: bash
+      run: |
+        cmake -B build -S . -DTESTING=ON 2>&1 | tee configure-log.txt
+        exit ${PIPESTATUS[0]}
 
     - name: Build
       shell: pwsh
       run: |
         cmake --build build --config Release 2>&1 | Tee-Object -FilePath build-log.txt
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host '===== build failed, last 60 lines ====='
+          Get-Content build-log.txt -Tail 60
+          exit $LASTEXITCODE
+        }
 
     # Crash forensics: WER writes a minidump for ANY process that dies with
     # an unhandled exception (AnaPlugTests.exe, pluginval.exe) into C:\dumps.
@@ -306,7 +316,26 @@ jobs:
           $errs = @(Select-String -Path build-log.txt -Pattern 'error [A-Z]{2,4}[0-9]{3,5}|fatal error|error MSB[0-9]+|ninja: build stopped' -ErrorAction SilentlyContinue)
           $out.Add("")
           $out.Add("### BUILD (" + $errs.Count + " matching lines)")
-          if ($errs.Count -eq 0) { $out.Add("no error pattern matched") }
+          if ($errs.Count -eq 0) {
+            # No compile error matched: the failure is a configure, link or copy
+            # step whose wording the patterns above miss.  The tail of every log is
+            # the only place that says which - and this annotation is the only
+            # channel that is reliably readable from the dev machine.
+            $out.Add("no error pattern matched; tails follow")
+            foreach ($name in @('configure-log.txt', 'build-log.txt')) {
+              if (Test-Path $name) {
+                $tail = @(Get-Content $name -Tail 30 -ErrorAction SilentlyContinue)
+                if ($tail.Count -gt 0) {
+                  $out.Add('--- ' + $name + ' (last ' + $tail.Count + ' lines) ---')
+                  foreach ($l in $tail) {
+                    $t = ($l -replace '\s+', ' ').Trim()
+                    if ($t.Length -gt 300) { $t = $t.Substring(0, 300) }
+                    $out.Add($t)
+                  }
+                }
+              }
+            }
+          }
           foreach ($e in ($errs | Select-Object -First 40)) {
             $t = ($e.Line -replace '\s+', ' ').Trim()
             if ($t.Length -gt 500) { $t = $t.Substring(0, 500) }

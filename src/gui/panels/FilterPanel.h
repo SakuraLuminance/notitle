@@ -15,6 +15,11 @@ public:
     void resized() override;
     void updateFrequencyResponse();
 
+    /** Pulls cutoff / resonance / type back out of the multi-filter.  The panel
+        only pushes values on user gestures, so without this a preset load left the
+        sliders showing the previous preset while the engine ran the new one. */
+    void syncFromProcessor();
+
     juce::Slider& getCutoffSlider() noexcept    { return cutoffSlider_; }
     juce::Slider& getResonanceSlider() noexcept { return resSlider_; }
 

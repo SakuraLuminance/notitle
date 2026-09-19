@@ -85,6 +85,7 @@ public:
 #include "dsp/SpectralFreezeEngine.h"
 #include "dsp/GranularSynthesizer.h"
 #include "dsp/PrismEffect.h"
+#include "dsp/ArpeggiatorDriver.h"
 #include "dsp/Harmonizer.h"
 #include "dsp/Randomizer.h"
 #include <array>
@@ -462,6 +463,18 @@ public:
     void setMasterPan(float v) { masterPan_.store(v); }
     float getMasterPan() const { return masterPan_.load(); }
 
+    // Arpeggiator (MASTER page).  The UI controls three values, and the driver
+    // turns the held chord into a stepped note stream - see ArpeggiatorDriver.
+    /** 0 = OFF, 1 = UP, 2 = DOWN, 3 = UP/DOWN, 4 = RANDOM. */
+    void setArpMode(int mode)  { arpMode_.store(juce::jlimit(0, 4, mode)); }
+    int  getArpMode() const    { return arpMode_.load(); }
+    /** Step rate as a multiple of the default 1/16 (0.25 = 1/4, 4.0 = 1/64). */
+    void setArpRate(float r)   { arpRate_.store(juce::jlimit(0.25f, 4.0f, r)); }
+    float getArpRate() const   { return arpRate_.load(); }
+    /** Gate length as a fraction of a step (0.01-1.0). */
+    void setArpGate(float g)   { arpGate_.store(juce::jlimit(0.01f, 1.0f, g)); }
+    float getArpGate() const   { return arpGate_.load(); }
+
     // Compressor access (for UI controls)
     ana::CompressorEffect* getCompressorEffect() { return compressorEffect_; }
 
@@ -793,6 +806,15 @@ private:
     // --- Master volume / pan (output stage) ---
     std::atomic<float> masterVol_{0.8f};   // 0..2, default 0.8
     std::atomic<float> masterPan_{0.0f};   // -1..1, default center
+
+    // --- Arpeggiator (MASTER page) ---
+    ana::ArpeggiatorDriver arpDriver_;
+    std::atomic<int>   arpMode_{0};        // 0 = OFF, 1 = UP, 2 = DOWN, 3 = UP/DOWN, 4 = RANDOM
+    std::atomic<float> arpRate_{1.0f};     // multiple of the default 1/16 step
+    std::atomic<float> arpGate_{0.5f};     // fraction of a step
+    int   arpCachedMode_ = -1;             // audio thread: last values pushed to the driver
+    float arpCachedRate_ = -1.0f;
+    float arpCachedGate_ = -1.0f;
 
     // --- Limiter (brickwall, always last in chain) ---
     ana::LimiterEffect limiterEffect_;

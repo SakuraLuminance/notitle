@@ -34,6 +34,32 @@ Windows x64 合成器插件（VST3 + CLAP）：把采样分析成**谐波图像*
 
 **所有控件的 tooltip 都会显示**：插件自己持有 JUCE 的 TooltipWindow（没有它，`setTooltip` 写了也不会弹——这是之前所有提示都静默失效的原因）。
 
+## UI 离线自检（把界面逐页渲染出来检查遮挡 / 狭窄）
+
+插件可以**不用宿主、不开窗口、不接声卡**把自己的界面渲染出来，并且逐项检查布局。做法是给插件进程设一个环境变量，插件在 `createPluginFilter()` 里（窗口创建之前，插件进程内部最早的时机）跑 `src/gui/UiAudit.cpp`：
+
+```powershell
+# 需要先构建 Standalone（cmake --build build --config Release 会一并产出）
+$env:ANAPLUG_UI_AUDIT = "$PWD/ui-audit"
+build\AnaPlug_Standalone_artefacts\Release\Standalone\AnaPlug.exe
+```
+
+它会：
+
+1. 生成一段确定性测试音频并载入，让每一页都有真实的分析数据（不是空画布）；
+2. 把 **9 个页签 × 5 种窗口尺寸**（900×660 最小 ~ 1920×1200 最大）+ **8 种频谱视图模式**（LIVE…IMAGE，最小与默认尺寸各一遍）逐张截图成 PNG；
+3. 对每张截图遍历整棵组件树，报告编译器看不见的问题：
+   - 可见控件的矩形超出父组件（被裁掉 / 点不到）；
+   - 可见控件被压成 0 宽或 0 高；
+   - 同级可见控件矩形相交（一个压在另一个上面）；
+   - 交互控件小于可用下限（布局狭窄）；
+   - 交互控件没有 tooltip（本项目自己的规则）；
+   - 标签文字比自身宽度还长（超过 1.5 倍就是 JUCE 压字也救不回来的 `text-overflow`）；
+   - 整张截图几乎没画出东西（`blank-snapshot`——EVO 页曾经因为面板没被创建而全空白）；
+4. 输出 `report.txt`（每张截图一行：控件数 / 墨迹占比 / 颜色数 / 发现数）、`report.json`、`summary.txt`、`inkmap.txt`（48×14 的 ASCII 墨迹图，**没有 PNG 也能看出布局**）。
+
+CI 会自动跑这一套：结果摘要与最小窗口尺寸的 ASCII 墨迹图会写进 `ci-diagnostics` 注解，PNG 全部作为 `ui-audit-windows-latest` artifact 上传。
+
 ## 构建（需要 VS2022 + CMake）
 
 ```powershell

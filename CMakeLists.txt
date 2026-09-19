@@ -90,7 +90,7 @@ target_sources(AnaPlug
         src/dsp/MultiFilter.cpp
         src/dsp/FilterModulation.cpp
         src/dsp/Arpeggiator.cpp
-        src/dsp/effects/ChorusEffect.cpp
+        src/dsp/ArpeggiatorDriver.cpp        src/dsp/effects/ChorusEffect.cpp
         src/dsp/effects/ConsolidatedDelay.cpp
         src/dsp/effects/DelayEffect.cpp
         src/dsp/effects/DriveModule.cpp

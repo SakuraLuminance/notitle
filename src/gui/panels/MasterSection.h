@@ -13,6 +13,9 @@ public:
 
     void resized() override;
 
+    /** Pulls volume / pan back out of the processor (preset load, MIDI Learn). */
+    void syncFromProcessor();
+
     juce::Slider& getVolumeSlider() noexcept { return volSlider_; }
     juce::Slider& getPanSlider() noexcept    { return panSlider_; }
 

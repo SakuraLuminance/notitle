@@ -1,5 +1,6 @@
 #include "MasterSection.h"
 #include "PanelWidgets.h"
+#include <cmath>
 
 namespace ana
 {
@@ -22,6 +23,18 @@ MasterSection::MasterSection(AnaPlugAudioProcessor& processor)
     {
         processor_.setMasterPan(static_cast<float>(panSlider_.getValue()));
     };
+}
+
+void MasterSection::syncFromProcessor()
+{
+    const auto vol = static_cast<double>(processor_.getMasterVol());
+    const auto pan = static_cast<double>(processor_.getMasterPan());
+
+    if (std::abs(volSlider_.getValue() - vol) > 0.001)
+        volSlider_.setValue(vol, juce::dontSendNotification);
+
+    if (std::abs(panSlider_.getValue() - pan) > 0.001)
+        panSlider_.setValue(pan, juce::dontSendNotification);
 }
 
 void MasterSection::resized()

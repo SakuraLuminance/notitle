@@ -609,13 +609,26 @@ AnaPlugAudioProcessorEditor::AnaPlugAudioProcessorEditor(AnaPlugAudioProcessor& 
     arpPatternCombo_.addItem("RANDOM", 5);
     arpPatternCombo_.setSelectedId(1);
     arpPatternCombo_.setTooltip("Arpeggiator pattern: OFF/UP/DOWN/UP-DOWN/RANDOM");
+    // 0 = OFF for the processor; the combo ids are 1-based (id - 1 = arp mode).
+    arpPatternCombo_.onChange = [this]
+    {
+        audioProcessor.setArpMode(arpPatternCombo_.getSelectedId() - 1);
+    };
     addAndMakeVisible(arpPatternCombo_);
     addCyberKnob(arpRateSlider_, arpRateLabel_, "RATE", 0.25, 4.0, 1.0, 0.25,
                  juce::Slider::RotaryVerticalDrag);
     arpRateSlider_.setTooltip("Arpeggiator rate (0.25-4.0x)");
+    arpRateSlider_.onValueChange = [this]
+    {
+        audioProcessor.setArpRate(static_cast<float>(arpRateSlider_.getValue()));
+    };
     addCyberKnob(arpGateSlider_, arpGateLabel_, "GATE", 0.01, 1.0, 0.5, 0.01,
                  juce::Slider::RotaryVerticalDrag);
     arpGateSlider_.setTooltip("Gate length (0.01-1.0)");
+    arpGateSlider_.onValueChange = [this]
+    {
+        audioProcessor.setArpGate(static_cast<float>(arpGateSlider_.getValue()));
+    };
 
     //==============================================================================
     // Step Sequencer panel
@@ -1385,7 +1398,46 @@ void AnaPlugAudioProcessorEditor::timerCallback()
 
     // --- Update filter visualization with live frequency response ---
     if (activePage_ == 1)
+    {
+        // Sliders only push on user gestures, so the panel has to pull the state
+        // back after a preset load or a MIDI Learn move.
+        filterPanel_.syncFromProcessor();
         filterPanel_.updateFrequencyResponse();
+    }
+
+    // --- MASTER page: performance controls (preset load, MIDI Learn, randomize) ---
+    if (activePage_ == 5)
+    {
+        masterSection_.syncFromProcessor();
+
+        auto syncSlider = [](juce::Slider& s, double v, double tolerance)
+        {
+            if (std::abs(s.getValue() - v) > tolerance)
+                s.setValue(v, juce::dontSendNotification);
+        };
+
+        auto syncCombo = [](juce::ComboBox& c, int id)
+        {
+            if (id > 0 && c.getSelectedId() != id)
+                c.setSelectedId(id, juce::dontSendNotification);
+        };
+
+        const auto& unison = audioProcessor.getUnisonEngine();
+        syncSlider(unisonCountSlider_,  static_cast<double>(unison.getVoiceCount()),    0.5);
+        syncSlider(unisonDetuneSlider_, static_cast<double>(unison.getDetune()),        0.5);
+        syncSlider(unisonSpreadSlider_, static_cast<double>(unison.getStereoSpread()),  0.5);
+
+        auto& voices = audioProcessor.getVoiceManager();
+        syncCombo(voiceModeCombo_, static_cast<int>(voices.getVoiceMode()) + 1);
+        syncSlider(portamentoTimeSlider_, static_cast<double>(voices.getPortamentoTime()), 0.001);
+        syncCombo(portamentoCurveCombo_, static_cast<int>(voices.getPortamentoCurve()) + 1);
+
+        // Arpeggiator: the three controls were never wired to anything before, so
+        // they are synced from the processor like the rest of the page.
+        syncCombo(arpPatternCombo_, audioProcessor.getArpMode() + 1);
+        syncSlider(arpRateSlider_, static_cast<double>(audioProcessor.getArpRate()), 0.001);
+        syncSlider(arpGateSlider_, static_cast<double>(audioProcessor.getArpGate()), 0.001);
+    }
 
     // --- Timbre shape / blend sync (preset reload, MIDI learn, etc.) ---
     if (activePage_ == 0)
