@@ -104,10 +104,11 @@ void SequencerPanel::resized()
     playModeCombo_.setBounds(seqControlRow.removeFromLeft(seqControlRow.getWidth() / 3).reduced(1));
     clockSourceCombo_.setBounds(seqControlRow.removeFromLeft(seqControlRow.getWidth() / 2).reduced(1));
     currentStepLabel_.setBounds(seqControlRow.reduced(1));
-    // 26, and the caption inside the row rather than translated 12 pixels up out
-    // of it: both captions used to land on top of the combo row above, which the
-    // audit reported as a 10-pixel overlap on every page size.
-    auto seqParamRow = seqArea.removeFromTop(26).reduced(1, 0);
+    // 38: a 12-pixel caption plus a 24-pixel rotary knob, which is the smallest
+    // the audit accepts for one.  It was 18 with the captions translated 12 pixels
+    // up out of the row, so they landed on the combo row above (a 10-pixel overlap
+    // on every page size) while the knobs themselves were never big enough.
+    auto seqParamRow = seqArea.removeFromTop(38).reduced(1, 0);
     auto bpmCell = seqParamRow.removeFromLeft(seqParamRow.getWidth() / 3).reduced(1);
     bpmLabel_.setBounds(bpmCell.removeFromTop(12));
     bpmSlider_.setBounds(bpmCell);
