@@ -89,7 +89,7 @@ sample loaded: yes
 900x660  VIEW EDITOR  controls=38  components=67  ink=81.24%  colours=270  findings=10  png=ok
 900x660  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
 900x660  VIEW SCOPE  controls=38  components=67  ink=56.89%  colours=237  findings=10  png=ok
-900x660  VIEW PARTICLES  controls=38  components=67  ink=81.14%  colours=252  findings=10  png=ok
+900x660  VIEW PARTICLES  controls=38  components=67  ink=81.14%  colours=253  findings=10  png=ok
 900x660  VIEW IMAGE  controls=43  components=73  ink=77.02%  colours=293  findings=10  png=ok
 1100x780  VIEW LIVE  controls=38  components=67  ink=80.00%  colours=290  findings=10  png=ok
 1100x780  VIEW PARTIALS  controls=38  components=67  ink=80.00%  colours=292  findings=10  png=ok
@@ -97,7 +97,7 @@ sample loaded: yes
 1100x780  VIEW EDITOR  controls=38  components=67  ink=80.01%  colours=345  findings=10  png=ok
 1100x780  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
 1100x780  VIEW SCOPE  controls=38  components=67  ink=54.28%  colours=291  findings=10  png=ok
-1100x780  VIEW PARTICLES  controls=38  components=67  ink=80.00%  colours=310  findings=10  png=ok
+1100x780  VIEW PARTICLES  controls=38  components=67  ink=80.00%  colours=309  findings=10  png=ok
 1100x780  VIEW IMAGE  controls=43  components=73  ink=76.49%  colours=339  findings=10  png=ok
 
 control heights: <12px=106 12-15px=65 16-19px=1030 20-27px=896 >=28px=610 (design row = 20px)
