@@ -687,6 +687,8 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
         html << "<h1>AnaPlug UI audit</h1>";
         html << "<p>" << summary.replace ("&", "&amp;").replace ("<", "&lt;") << "</p>";
         html << "<p>sample loaded: " << (sampleLoaded ? "yes" : "no") << "</p>";
+        html << "<p>" << heightLine.replace ("&", "&amp;").replace ("<", "&lt;") << "</p>";
+        html << "<p>click any snapshot to open it at full size</p>";
 
         if (! byKind.empty())
         {
@@ -709,12 +711,31 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
             html << "</table>";
         }
 
+        // Grouped by page so the gallery can be walked page by page, which is how
+        // it gets reviewed ("show me the UI, one page at a time").
         html << "<h2>snapshots (" << snapshots << ")</h2><div class='grid'>";
 
+        juce::String openGroup;
+        bool groupOpen = false;
+
         for (const auto& s : gallery)
+        {
+            const auto group = s.png.upToFirstOccurrenceOf ("_", false, false);
+
+            if (group != openGroup)
+            {
+                if (groupOpen)
+                    html << "</div>";
+
+                openGroup = group;
+                groupOpen = true;
+                html << "</div><h2>" << group.replace ("<", "&lt;") << "</h2><div class='grid'>";
+            }
+
             html << "<div class='card'><div class='tag'>" << s.tag.replace ("<", "&lt;")
-                 << "</div><img src='" << s.png << "' alt=''><div class='"
+                 << "</div><a href='" << s.png << "'><img src='" << s.png << "' alt=''></a><div class='"
                  << (s.blank ? "bad" : "muted") << "'>" << s.summary << "</div></div>";
+        }
 
         html << "</div>";
 
