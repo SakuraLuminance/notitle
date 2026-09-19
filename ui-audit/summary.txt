@@ -1,2 +1,2 @@
-control heights: <12px=106 12-15px=75 16-19px=1030 20-27px=886 >=28px=610 (design row = 20px)
-UI AUDIT: 59 snapshots, 2707 visible controls, 200 findings | text-overflow=38 | too-small=86 | zero-size=76
+control heights: <12px=106 12-15px=65 16-19px=1030 20-27px=896 >=28px=610 (design row = 20px)
+UI AUDIT: 59 snapshots, 2707 visible controls, 190 findings | text-overflow=38 | too-small=76 | zero-size=76
