@@ -98,6 +98,15 @@ public:
     int visibleControls = 0;
     int visibleComponents = 0;
 
+    /** Control heights, bucketed: <12, 12-15, 16-19, 20-27, >=28 pixels.
+
+        The design system says a control row is kControlHeight (20) tall, so this
+        turns "the layout looks cramped" into a number: a UI built out of 8-pixel
+        controls is not a matter of taste.  It is deliberately a report line rather
+        than a finding, because genuinely small controls do exist (sequencer step
+        cells, page tabs) and flagging each one would bury the real findings. */
+    int heightBuckets[5] { 0, 0, 0, 0, 0 };
+
 private:
     void add (const juce::String& kind, const juce::String& path, const juce::String& detail)
     {
@@ -145,6 +154,9 @@ private:
             if (isControlLike (*child))
             {
                 ++visibleControls;
+
+                const int h = child->getHeight();
+                heightBuckets[h < 12 ? 0 : h < 16 ? 1 : h < 20 ? 2 : h < 28 ? 3 : 4]++;
 
                 if (child->getWidth() < minW || child->getHeight() < minH)
                     add ("too-small", childPath,
@@ -422,6 +434,7 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     int snapshots = 0;
     int visibleControls = 0;
     int visibleComponents = 0;
+    int heightBuckets[5] { 0, 0, 0, 0, 0 };
 
     lines.add ("AnaPlug UI audit");
     lines.add ("================");
@@ -450,6 +463,9 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
 
         visibleControls   += auditor.visibleControls;
         visibleComponents += auditor.visibleComponents;
+
+        for (int b = 0; b < 5; ++b)
+            heightBuckets[b] += auditor.heightBuckets[b];
 
         const auto inkPercent = stats.inkRatio * 100.0;
 
@@ -573,7 +589,17 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     for (const auto& entry : byKind)
         summary << " | " << entry.first << "=" << entry.second;
 
+    // How cramped is it really?  One line, so it survives into the CI annotation.
+    const juce::String heightLine =
+        "control heights: <12px=" + juce::String (heightBuckets[0])
+      + " 12-15px=" + juce::String (heightBuckets[1])
+      + " 16-19px=" + juce::String (heightBuckets[2])
+      + " 20-27px=" + juce::String (heightBuckets[3])
+      + " >=28px=" + juce::String (heightBuckets[4])
+      + " (design row = " + juce::String (CyberpunkTheme::kControlHeight) + "px)";
+
     lines.add ("");
+    lines.add (heightLine);
     lines.add (summary);
     lines.add ("");
     lines.add ("findings (max 12 per kind, counts above are complete):");
@@ -584,7 +610,7 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     reportText = lines.joinIntoString ("\n") + "\n";
 
     outputDir.getChildFile ("report.txt").replaceWithText (reportText);
-    outputDir.getChildFile ("summary.txt").replaceWithText (summary + "\n");
+    outputDir.getChildFile ("summary.txt").replaceWithText (heightLine + "\n" + summary + "\n");
     outputDir.getChildFile ("inkmap.txt").replaceWithText (inkMaps.joinIntoString ("\n"));
 
     // The minimum supported window is where a cramped layout shows up first, so
