@@ -857,6 +857,42 @@ void AnaPlugAudioProcessorEditor::computeRegions(juce::Rectangle<int> bounds, Re
 //==============================================================================
 static const char* kPageNames[] = { "TIMBRE", "FILTER", "MOD", "SEQ", "FX", "MASTER", "ENV", "EVO", "GRAIN" };
 
+juce::String AnaPlugAudioProcessorEditor::getPageName(int page)
+{
+    return juce::String(kPageNames[juce::jlimit(0, getNumPages() - 1, page)]);
+}
+
+int AnaPlugAudioProcessorEditor::getNumViewModes()
+{
+    return juce::jmax(1, viewModeCombo_.getNumItems());
+}
+
+juce::String AnaPlugAudioProcessorEditor::getViewModeName(int mode)
+{
+    return viewModeCombo_.getItemText(juce::jlimit(0, getNumViewModes() - 1, mode));
+}
+
+void AnaPlugAudioProcessorEditor::showViewMode(int mode)
+{
+    // sendNotificationSync so the view swap (visibility, particle sync) happens
+    // before anything is rendered.
+    viewModeCombo_.setSelectedId(juce::jlimit(1, getNumViewModes(), mode + 1),
+                                 juce::sendNotificationSync);
+}
+
+void AnaPlugAudioProcessorEditor::showPage(int page)
+{
+    const int clamped = juce::jlimit(0, getNumPages() - 1, page);
+
+    // setActive() early-outs when the tab strip already believes it is on that
+    // page, so apply the page directly in that case (the audit switches pages
+    // without any mouse input).
+    if (pageTabs_.getActiveIndex() == clamped)
+        setActivePage(clamped);
+    else
+        pageTabs_.setActive(clamped);
+}
+
 void AnaPlugAudioProcessorEditor::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
@@ -1202,7 +1238,15 @@ void AnaPlugAudioProcessorEditor::setActivePage(int page)
 
     granularPage_.setVisible(page == 8);
 
-    // DNA evolution panel is created on first use (DNA EVOLVE button / EVO tab).
+    // The DNA evolution panel is created on first use.  It used to be created only
+    // by the DNA EVOLVE button, so reaching the EVO tab any other way showed an
+    // empty page.
+    if (page == 7 && evolutionPanel == nullptr)
+    {
+        evolutionPanel = std::make_unique<ana::EvolutionPanel>(audioProcessor);
+        addAndMakeVisible(*evolutionPanel);
+    }
+
     if (evolutionPanel != nullptr)
         evolutionPanel->setVisible(page == 7);
 
@@ -1578,14 +1622,9 @@ void AnaPlugAudioProcessorEditor::presetButtonClicked()
 //==============================================================================
 void AnaPlugAudioProcessorEditor::dnaButtonClicked()
 {
-    // The panel lives on its own page now (instead of a transient call-out).
-    if (evolutionPanel == nullptr)
-    {
-        evolutionPanel = std::make_unique<ana::EvolutionPanel>(audioProcessor);
-        addAndMakeVisible(*evolutionPanel);
-    }
-
-    // Route through the tab strip so the highlighted tab follows along.
+    // The panel lives on its own page now (instead of a transient call-out), and
+    // setActivePage() creates it on first use - so routing through the tab strip
+    // is all that is needed for the highlighted tab and the panel to follow.
     pageTabs_.setActive(7);
 }
 

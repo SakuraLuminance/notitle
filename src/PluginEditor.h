@@ -68,6 +68,27 @@ public:
     void resized() override;
     void timerCallback() override;
 
+    //==============================================================================
+    // Programmatic navigation (used by the offscreen UI audit; no mouse needed)
+
+    /** Number of page tabs (TIMBRE = 0 … GRAIN = 8). */
+    static int getNumPages() noexcept { return 9; }
+
+    /** Tab-strip name of a page index. */
+    static juce::String getPageName (int page);
+
+    /** Shows a page by index, keeping the tab strip highlight in step. */
+    void showPage (int page);
+
+    /** Number of spectrum view modes (LIVE … IMAGE). */
+    int getNumViewModes();
+
+    /** Combo label of a view mode index. */
+    juce::String getViewModeName (int mode);
+
+    /** Switches the spectrum view (used by the offscreen UI audit). */
+    void showViewMode (int mode);
+
 private:
     AnaPlugAudioProcessor& audioProcessor;
 

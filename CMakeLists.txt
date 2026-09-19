@@ -69,7 +69,10 @@ juce_add_plugin(AnaPlug
     COPY_PLUGIN_AFTER_BUILD TRUE
     PLUGIN_MANUFACTURER_CODE Anap
     PLUGIN_CODE Anap
-    FORMATS VST3 CLAP
+    # Standalone is built so CI can run the plugin's own code without a host:
+    # the offscreen UI audit (src/gui/UiAudit.cpp) is launched through it by
+    # setting ANAPLUG_UI_AUDIT, and it needs no window or audio device.
+    FORMATS VST3 CLAP Standalone
     VST3_CAN_REPLACE_VST2 FALSE
 )
 
@@ -147,6 +150,7 @@ target_sources(AnaPlug
         src/gui/panels/MasterSection.cpp
         src/gui/LiveSpectrumPanel.cpp
         src/gui/EffectParamPanel.cpp
+        src/gui/UiAudit.cpp
         # ---- New Phase 1 Modules ----
         src/dsp/SpectralFilter.cpp
         src/dsp/DualTimbre.cpp
@@ -217,6 +221,9 @@ target_link_libraries(AnaPlug
         juce::juce_core
         juce::juce_gui_basics
         juce::juce_gui_extra
+        # The standalone wrapper (built for the offscreen UI audit) draws its
+        # settings and audio-device panels with juce_audio_utils.
+        juce::juce_audio_utils
         juce::juce_opengl
         ebur128
         d2d1 d3d11 dcomp

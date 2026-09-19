@@ -58,6 +58,53 @@ jobs:
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name DumpCount -Value 10 -Type DWord
         New-Item -ItemType Directory -Force -Path "C:\dumps" | Out-Null
 
+    # Offscreen UI audit: renders every page at every supported window size and
+    # checks each visible control's geometry (clipped outside its parent? squeezed
+    # to zero? overlapping a sibling? below a usable minimum? missing a tooltip?).
+    # It runs inside the plugin's own Standalone build, driven by the
+    # ANAPLUG_UI_AUDIT environment variable, and needs no window or audio device.
+    # Non-fatal on purpose: the findings are published for triage, and the step can
+    # be made gating by dropping continue-on-error once the report is clean.
+    - name: UI audit (offscreen render + layout checks)
+      if: always()
+      continue-on-error: true
+      shell: pwsh
+      run: |
+        $exe = Get-ChildItem -Path build -Recurse -Filter 'AnaPlug.exe' -ErrorAction SilentlyContinue |
+               Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1
+        if (-not $exe) { Write-Host 'standalone executable not found - UI audit skipped'; exit 0 }
+        $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
+        Write-Host ('running ' + $exe.FullName + ' with ANAPLUG_UI_AUDIT=' + $env:ANAPLUG_UI_AUDIT)
+        # Bounded run: a GUI-subsystem binary with no desktop session must never
+        # be able to stall the job.
+        $proc = Start-Process -FilePath $exe.FullName -NoNewWindow -PassThru `
+                  -RedirectStandardOutput 'ui-audit-stdout.txt' `
+                  -RedirectStandardError  'ui-audit-stderr.txt'
+        if (-not $proc.WaitForExit(600000)) {
+          $proc.Kill()
+          Write-Host 'UI audit timed out after 10 minutes'
+        } else {
+          Write-Host ('exit code: ' + $proc.ExitCode)
+        }
+        Get-Content ui-audit-stdout.txt -Tail 12 -ErrorAction SilentlyContinue
+        Get-Content ui-audit-stderr.txt -Tail 12 -ErrorAction SilentlyContinue
+        Get-ChildItem ui-audit -ErrorAction SilentlyContinue | Select-Object -First 8 Name, Length
+        if (Test-Path ui-audit/summary.txt) { Get-Content ui-audit/summary.txt }
+
+    - name: Upload UI audit snapshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-audit-${{ matrix.os }}
+        if-no-files-found: warn
+        path: |
+          ui-audit/*.png
+          ui-audit/report.txt
+          ui-audit/report.json
+          ui-audit/summary.txt
+          ui-audit-stdout.txt
+          ui-audit-stderr.txt
+
     - name: Test
       continue-on-error: true
       shell: pwsh
@@ -309,6 +356,27 @@ jobs:
           $skip  = @(Select-String -Path forensics.txt -Pattern 'SKIP-UNMATCHED ::' -ErrorAction SilentlyContinue)
           $out.Add("forensics: " + $crash.Count + " CRASH-OR-FAIL, " + $skip.Count + " SKIP-UNMATCHED")
           foreach ($c in ($crash | Select-Object -First 20)) { $out.Add("  " + $c.Line.Trim()) }
+        }
+
+        # ---- offscreen UI audit ---------------------------------------------
+        $out.Add("")
+        $out.Add("### UI AUDIT")
+        if (Test-Path ui-audit/summary.txt) {
+          foreach ($l in @(Get-Content ui-audit/summary.txt -ErrorAction SilentlyContinue)) { $out.Add($l.Trim()) }
+          $findings = @(Select-String -Path ui-audit/report.txt -Pattern '^\s+\[' -ErrorAction SilentlyContinue)
+          foreach ($f in ($findings | Select-Object -First 30)) {
+            $t = $f.Line.Trim()
+            if ($t.Length -gt 320) { $t = $t.Substring(0, 320) }
+            $out.Add($t)
+          }
+          if ($findings.Count -gt 30) { $out.Add('... ' + ($findings.Count - 30) + ' more findings in ui-audit/report.txt') }
+        } else {
+          $out.Add('ui-audit/summary.txt missing (audit did not run)')
+          foreach ($name in @('ui-audit-stdout.txt', 'ui-audit-stderr.txt')) {
+            if (Test-Path $name) {
+              foreach ($l in @(Get-Content $name -Tail 6 -ErrorAction SilentlyContinue)) { $out.Add($name + ': ' + $l.Trim()) }
+            }
+          }
         }
 
         # ---- pluginval ------------------------------------------------------

@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "gui/UiAudit.h"
 #include "dsp/Crumb.h"
 #include "dsp/TimbreShaper.h"
 #include <cmath>
@@ -2293,5 +2294,13 @@ void AnaPlugAudioProcessor::handleDirectEvent(const clap_event_header_t* /*event
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
+    // CI-only entry point: the offscreen UI audit renders every page and checks
+    // the layout.  It runs here because this is the one place inside the plugin
+    // process that executes before any window is created, and it never returns.
+    const auto uiAuditDir = juce::SystemStats::getEnvironmentVariable("ANAPLUG_UI_AUDIT", {});
+
+    if (uiAuditDir.isNotEmpty())
+        ana::uiaudit::runFromEnvironmentAndExit(uiAuditDir);
+
     return new AnaPlugAudioProcessor();
 }
