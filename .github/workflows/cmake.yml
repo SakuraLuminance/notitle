@@ -674,22 +674,26 @@ jobs:
           Write-Host ("commit status refused: " + $_.Exception.Message)
           if ($_.ErrorDetails.Message) { Write-Host ("  detail: " + $_.ErrorDetails.Message) }
         }
-    # The report channel, take two.
+    # The report channel.
     #
     # Publishing through git failed in every run, and a failed push inside a bash
-    # step reports nothing usable from this machine.  The report goes out over the
+    # step reports nothing this machine can read.  The report goes out over the
     # REST API instead, which answers every call with a status code and a message.
-    # Only api.github.com is used: the blob domains that serve logs and artifacts
-    # resolve to 198.18.x.x where this report is read.
+    #
+    # The step also publishes its own transcript as a check run.  That is the only
+    # way the reason for a failure gets out: the step log and the artifacts live on
+    # *.blob.core.windows.net, which answers 198.18.x.x here, so a bare exit code
+    # would leave "the audit did not publish" with nothing behind it.  The check
+    # run is written in a finally block, so it survives whatever went wrong.
     - name: Publish UI audit report (GitHub API)
       if: always()
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
 
-        $token = '${{ secrets.GITHUB_TOKEN }}'
-        $repo  = '${{ github.repository }}'
-        $sha   = '${{ github.sha }}'
+        $token  = '${{ secrets.GITHUB_TOKEN }}'
+        $repo   = '${{ github.repository }}'
+        $sha    = '${{ github.sha }}'
         $branch = 'ci-reports'
 
         $headers = @{
@@ -699,71 +703,104 @@ jobs:
         }
         $api = "https://api.github.com/repos/$repo"
 
-        if (-not (Test-Path 'ui-audit/summary.txt')) {
-          Write-Host '::error title=ui-audit::the audit produced no report'
-          if (Test-Path 'ui-audit-probe.txt') {
-            Get-Content ui-audit-probe.txt -TotalCount 40 | ForEach-Object { Write-Host $_ }
+        $log = [System.Collections.Generic.List[string]]::new()
+        function Say([string] $message) {
+          Write-Host $message
+          $log.Add($message) | Out-Null
+        }
+
+        $exitCode = 0
+
+        try {
+          if (-not (Test-Path 'ui-audit/summary.txt')) {
+            Say 'the audit produced no report'
+            if (Test-Path 'ui-audit-probe.txt') {
+              Get-Content ui-audit-probe.txt -TotalCount 40 | ForEach-Object { Say ("probe: " + $_) }
+            }
+            throw 'no ui-audit/summary.txt'
           }
-          exit 1
+
+          Say ("summary.txt: " + (Get-Item 'ui-audit/summary.txt').Length + " bytes")
+          Get-Content 'ui-audit/summary.txt' -TotalCount 12 | ForEach-Object { Say ("summary: " + $_) }
+          Get-Content 'ui-audit/report.txt' -TotalCount 30 -ErrorAction SilentlyContinue |
+            ForEach-Object { Say ("finding: " + $_) }
+
+          try {
+            Invoke-RestMethod -Method Post -Uri "$api/git/refs" -Headers $headers -ContentType 'application/json' `
+              -Body (@{ ref = "refs/heads/$branch"; sha = $sha } | ConvertTo-Json) | Out-Null
+            Say ("created branch " + $branch)
+          } catch {
+            Say ("branch not created (already present?): " + $_.Exception.Message)
+          }
+
+          $script:published = 0
+          function Publish-File([string] $local, [string] $remote) {
+            if (-not (Test-Path $local)) { Say ("skip    " + $local + " (missing)"); return }
+            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $local).Path)
+            if ($bytes.Length -gt 900KB) { Say ("skip    " + $local + " (too large)"); return }
+
+            $body = @{
+              message = "UI audit report: " + $remote + " (" + $sha.Substring(0, 7) + ")"
+              content = [Convert]::ToBase64String($bytes)
+              branch  = $branch
+            }
+            try {
+              $existing = Invoke-RestMethod -Method Get -Uri ("$api/contents/" + $remote + "?ref=$branch") -Headers $headers
+              if ($existing.sha) { $body.sha = $existing.sha }
+            } catch { }
+
+            Invoke-RestMethod -Method Put -Uri ("$api/contents/" + $remote) -Headers $headers `
+              -ContentType 'application/json' -Body ($body | ConvertTo-Json) | Out-Null
+            $script:published++
+            Say ("published " + $remote + "  " + $bytes.Length + " bytes")
+          }
+
+          Publish-File 'ui-audit/summary.txt'         'ui-audit/summary.txt'
+          Publish-File 'ui-audit/report.txt'          'ui-audit/report.txt'
+          Publish-File 'ui-audit/report.json'         'ui-audit/report.json'
+          Publish-File 'ui-audit/inkmap-minimum.txt'  'ui-audit/inkmap-minimum.txt'
+          Publish-File 'ui-audit/inkmap.txt'          'ui-audit/inkmap.txt'
+          Publish-File 'ui-audit/index.html'          'ui-audit/index.html'
+          Publish-File 'ui-audit-probe.txt'           'ui-audit-probe.txt'
+          Publish-File 'ui-audit-stdout.txt'          'ui-audit-stdout.txt'
+          Publish-File 'ui-audit-stderr.txt'          'ui-audit-stderr.txt'
+          Publish-File 'audit-runner-build-log.txt'   'tail-audit-runner-build-log.txt'
+          Publish-File 'standalone-build-log.txt'     'tail-standalone-build-log.txt'
+          Publish-File 'build-log.txt'                'tail-build-log.txt'
+
+          # The snapshots are the point of the report, and the contents API takes
+          # one file per call, so the smallest window - 900x660, the size the layout
+          # has to survive - goes first.
+          $pngs = @(Get-ChildItem 'ui-audit' -Filter '*.png' -ErrorAction SilentlyContinue |
+                    Sort-Object @{ Expression = { if ($_.Name -match '900x660') { 0 } else { 1 } } }, Length)
+          $snapshots = 0
+          foreach ($png in $pngs) {
+            if ($snapshots -ge 40) { break }
+            Publish-File $png.FullName ("ui-audit/" + $png.Name)
+            $snapshots++
+          }
+          Say ("snapshots: " + $snapshots + " of " + $pngs.Count)
+        } catch {
+          Say ("FAILED: " + $_.Exception.Message)
+          if ($_.ErrorDetails.Message) { Say ("  detail: " + $_.ErrorDetails.Message) }
+          $exitCode = 1
         }
 
         try {
-          Invoke-RestMethod -Method Post -Uri "$api/git/refs" -Headers $headers -ContentType 'application/json' `
-            -Body (@{ ref = "refs/heads/$branch"; sha = $sha } | ConvertTo-Json) | Out-Null
-          Write-Host "created branch $branch"
-        } catch {
-          Write-Host ("branch already present, or creation refused: " + $_.Exception.Message)
-        }
-
-        function Publish-File([string] $local, [string] $remote) {
-          if (-not (Test-Path $local)) { Write-Host ("skip  " + $local + " (missing)"); return }
-          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $local).Path)
-          if ($bytes.Length -gt 900KB) { Write-Host ("skip  " + $local + " (too large)"); return }
-
+          $summary = ($log -join [char] 10)
+          if ($summary.Length -gt 60000) { $summary = $summary.Substring(0, 60000) }
           $body = @{
-            message = "UI audit report: " + $remote + " (" + $sha.Substring(0, 7) + ")"
-            content = [Convert]::ToBase64String($bytes)
-            branch  = $branch
+            name       = 'ui-audit-publish'
+            head_sha   = $sha
+            status     = 'completed'
+            conclusion = $(if ($exitCode -eq 0) { 'success' } else { 'failure' })
+            output     = @{ title = 'UI audit publish'; summary = $summary }
           }
-
-          try {
-            $existing = Invoke-RestMethod -Method Get -Uri ("$api/contents/" + $remote + "?ref=$branch") -Headers $headers
-            if ($existing.sha) { $body.sha = $existing.sha }
-          } catch { }
-
-          Invoke-RestMethod -Method Put -Uri ("$api/contents/" + $remote) -Headers $headers `
-            -ContentType 'application/json' -Body ($body | ConvertTo-Json) | Out-Null
-          Write-Host ("published " + $remote + "  " + $bytes.Length + " bytes")
+          Invoke-RestMethod -Method Post -Uri "$api/check-runs" -Headers $headers `
+            -ContentType 'application/json' -Body ($body | ConvertTo-Json -Depth 6) | Out-Null
+          Write-Host 'published ui-audit-publish check run'
+        } catch {
+          Write-Host ("check run refused: " + $_.Exception.Message)
         }
 
-        Publish-File 'ui-audit/summary.txt'         'ui-audit/summary.txt'
-        Publish-File 'ui-audit/report.txt'          'ui-audit/report.txt'
-        Publish-File 'ui-audit/report.json'         'ui-audit/report.json'
-        Publish-File 'ui-audit/inkmap-minimum.txt'  'ui-audit/inkmap-minimum.txt'
-        Publish-File 'ui-audit/inkmap.txt'          'ui-audit/inkmap.txt'
-        Publish-File 'ui-audit/index.html'          'ui-audit/index.html'
-        Publish-File 'ui-audit-probe.txt'           'ui-audit-probe.txt'
-        Publish-File 'ui-audit-stdout.txt'          'ui-audit-stdout.txt'
-        Publish-File 'ui-audit-stderr.txt'          'ui-audit-stderr.txt'
-        Publish-File 'audit-runner-build-log.txt'   'tail-audit-runner-build-log.txt'
-        Publish-File 'standalone-build-log.txt'     'tail-standalone-build-log.txt'
-        Publish-File 'build-log.txt'                'tail-build-log.txt'
-
-        # The snapshots are the point of the report.  The contents API takes one
-        # file per call and refuses anything large, so the smallest window size -
-        # 900x660, the one the layout has to survive - goes first.
-        $pngs = @(Get-ChildItem 'ui-audit' -Filter '*.png' -ErrorAction SilentlyContinue |
-                  Sort-Object @{ Expression = { if ($_.Name -match '900x660') { 0 } else { 1 } } }, Length)
-        $published = 0
-        foreach ($png in $pngs) {
-          if ($published -ge 40) { break }
-          try {
-            Publish-File $png.FullName ("ui-audit/" + $png.Name)
-            $published++
-          } catch {
-            Write-Host ("snapshot publishing stopped: " + $_.Exception.Message)
-            break
-          }
-        }
-
-        Write-Host ("published " + $published + " of " + $pngs.Count + " snapshots")
+        exit $exitCode

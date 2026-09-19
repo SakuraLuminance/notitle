@@ -106,6 +106,18 @@ if ($diag) {
     Write-Host '=== ci-diagnostics check run: none (that permission path is refused) ==='
 }
 
+# The publish step reports itself the same way.  Its log is otherwise on
+# *.blob.core.windows.net, which is unreachable here, so without this a failed
+# publish is a red step and nothing else.
+$publish = $checks | Where-Object { $_.name -eq 'ui-audit-publish' } | Select-Object -First 1
+Write-Host ""
+if ($publish) {
+    Write-Host ("=== ui-audit-publish check run (" + $publish.conclusion + ") ===")
+    Write-Host $publish.output.summary
+} else {
+    Write-Host '=== ui-audit-publish check run: none yet ==='
+}
+
 # Annotations are written by the runner itself ('::error title=..::message'),
 # so they survive a token that may not create check runs.  ci-annotations.ps1
 # owns that parsing: it reads the JSON as text, because deserialising it has
