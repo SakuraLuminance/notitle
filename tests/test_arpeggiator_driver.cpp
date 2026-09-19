@@ -75,7 +75,8 @@ TEST_CASE("ArpeggiatorDriver - disabled driver passes MIDI through untouched", "
 
     const auto output = runBlock(driver, input);
 
-    REQUIRE(output.size() == 3);
+    // MidiBuffer has had no size() since JUCE 7; getNumEvents() is the count.
+    REQUIRE(output.getNumEvents() == 3);
 
     const auto notes = collectNotes(output);
     REQUIRE(notes.size() == 2);
@@ -177,7 +178,7 @@ TEST_CASE("ArpeggiatorDriver - switching the arp off releases the held note", "[
     juce::MidiBuffer later;
     later.addEvent(juce::MidiMessage::noteOn(1, 50, 1.0f), 3);
     const auto laterOut = runBlock(driver, later);
-    REQUIRE(laterOut.size() == 1);
+    REQUIRE(laterOut.getNumEvents() == 1);
     REQUIRE(driver.getSoundingNote() == -1);
 }
 

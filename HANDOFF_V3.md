@@ -30,7 +30,9 @@
 
 | 规则 | 说明 |
 |---|---|
-| 唯一验证手段 | `git push origin main` → GitHub Actions（约 12–20 分钟/轮）。**禁止**声称"本地编译/测试通过" |
+| 唯一**权威**验证手段 | `git push origin main` → GitHub Actions（约 12–20 分钟/轮）。**禁止**声称"本地编译/测试通过" |
+| **本地前端检查（省掉整轮 CI）** | 本机虽无 MSVC/cmake，但可以装 zig：`python -m pip install ziglang`（自带 clang + libc++，x86_64-windows-gnu）。配套脚本 **`F:\anaplug-local\zigcheck.ps1 <文件>`** 只做 `-c`（不链接），用**钉死的 JUCE 8.0.13**（`F:\juce813`，已打过 `scripts/patch_juce_mingw.ps1`）做类型检查，几秒到一分钟出结果，退出码 = 失败文件数。依赖目录（都在仓库外）：`F:\juce813`、`F:\clap-jce`、`F:\clap-headers`、`F:\clap-helpers`、`F:\catch2`(v3.5.2)、`F:\catch2-gen`（代替 CMake 生成的 `catch_user_config.hpp`）。**必须加 `-D_WIN64=1 -DJUCE_64BIT=1`**：JUCE 只在 MSVC 下自动识别 64 位，否则 `pointer_sized_uint` 变 32 位、`juce_HashMap` 直接编译失败。它抓到过的真实错误：`Font::getStringWidth` 在 JUCE 8 已删除、`TooltipClient::getTooltip` 非 const、`UiAudit.h` 在 `namespace ana` 里前置声明造成幻影类型、`MidiBuffer::size()` 在 JUCE 8 不存在（= 只有 `getNumEvents()`）。**改任何 .cpp/.h 之后先跑它**，再推 CI |
+| JUCE 版本陷阱 | 仓库里 `juce-test-clone/` 是 **8.0.0** 的残缺镜像（**不是** 钉死的 8.0.13，而且它没有自己的 `.git`：**在里面执行 git 命令会作用到仓库本身**——曾经因此把 AnaPlug 工作区 checkout 成 JUCE 树）。要查 API 请用 `F:\juce813` 或 `git show 8.0.13:<path>` |
 | 推送 | `git push origin main`（Windows 凭据管理器已缓存 PAT，无需手输） |
 | 取 CI 状态 | `& tools/ci-status.ps1`（列最近 run + 步骤结果 + 诊断注解）；或 `GET /repos/SakuraLuminance/notitle/actions/runs?branch=main&per_page=N` |
 | 取 CI 诊断 | **runner 注解**：`GET /commits/{sha}/check-runs` 取 job 的 check run id → `GET /check-runs/{id}/annotations`。用 `tools/ci-annotations.ps1 -Sha <sha>`（推荐，输出可直接读）或 `tools/ci-status.ps1 -Sha <sha>`（末尾会调用前者）。**从本 harness 调用时把输出重定向到文件再读**：`& tools/ci-status.ps1 -Sha X *> tmp.txt`，否则子进程重定向会截断控制台捕获 |

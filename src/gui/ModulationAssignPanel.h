@@ -20,8 +20,12 @@ namespace ana {
     Each row:  [Param Label] [Source Combo: OFF▼] [Depth Slider: --o--]
     Sections are collapsible by clicking the header.
 */
-class ModulationAssignPanel : public juce::Component,
-                              public juce::MouseListener
+// juce::Component already IS a juce::MouseListener, so naming it again here
+// created two MouseListener subobjects: passing 'this' to addMouseListener()
+// is then ambiguous (clang: "ambiguous conversion from derived class"), even
+// though MSVC's non-standard dominance rule lets it through.  mouseUp() below
+// still overrides Component's virtual MouseListener hook.
+class ModulationAssignPanel : public juce::Component
 {
 public:
     explicit ModulationAssignPanel(AnaPlugAudioProcessor& processor);
