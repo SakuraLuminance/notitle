@@ -1,34 +1,36 @@
 MSBuild version 18.9.1+a81b43525 for .NET Framework
 
   Checking File Globs
+  Generating AnaPlugUiAudit_artefacts/JuceLibraryCode/AnaPlugUiAudit_resources.rc
   Building Custom Rule D:/a/notitle/notitle/CMakeLists.txt
   AnaPlugUiAudit_rc_lib.vcxproj -> D:\a\notitle\notitle\build\AnaPlugUiAudit_rc_lib.dir\Release\AnaPlugUiAudit_rc_lib.lib
   clap_juce_extensions.vcxproj -> D:\a\notitle\notitle\build\_deps\clap-juce-extensions-build\Release\clap_juce_extensions.lib
   ebur128.vcxproj -> D:\a\notitle\notitle\build\Release\ebur128.lib
   AnaPlug.vcxproj -> D:\a\notitle\notitle\build\AnaPlug_artefacts\Release\AnaPlug_SharedCode.lib
   Building Custom Rule D:/a/notitle/notitle/CMakeLists.txt
-  juce_audio_basics.cpp
-  juce_audio_devices.cpp
-  juce_audio_formats.cpp
-  juce_audio_processors.cpp
-  juce_audio_processors_headless.cpp
-  juce_audio_processors_headless_ara.cpp
-  juce_audio_processors_headless_lv2_libs.cpp
+  UiAuditMain.cpp
   juce_audio_utils.cpp
-  juce_core.cpp
-  juce_data_structures.cpp
-  juce_dsp.cpp
-  juce_events.cpp
-  juce_graphics.cpp
-  juce_graphics_Harfbuzz.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+D:\a\notitle\notitle\src\gui\UiAuditMain.cpp(31,40): warning C4996: 'getenv': This function or variable may be unsafe. Consider using _dupenv_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details. [D:\a\notitle\notitle\build\AnaPlugUiAudit.vcxproj]
   juce_gui_basics.cpp
   juce_gui_basics_2.cpp
   juce_gui_basics_3.cpp
   juce_gui_basics_4.cpp
   juce_gui_basics_5.cpp
-  juce_gui_extra.cpp
-  UiAuditMain.cpp
-D:\a\notitle\notitle\src\gui\UiAuditMain.cpp(31,40): warning C4996: 'getenv': This function or variable may be unsafe. Consider using _dupenv_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details. [D:\a\notitle\notitle\build\AnaPlugUiAudit.vcxproj]
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
   juce_graphics_Sheenbidi.c
   Generating code
 D:\a\notitle\notitle\src\dsp\DualTimbre.cpp(288): warning C4723: potential divide by 0 [D:\a\notitle\notitle\build\AnaPlugUiAudit.vcxproj]
