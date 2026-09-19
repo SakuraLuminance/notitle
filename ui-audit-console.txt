@@ -38,7 +38,7 @@ AnaPlug UI audit
 ================
 sample loaded: yes
 
-900x660  TIMBRE  controls=38  components=67  ink=81.23%  colours=237  findings=10  png=ok
+900x660  TIMBRE  controls=38  components=67  ink=81.22%  colours=232  findings=0  png=ok
 900x660  FILTER  controls=22  components=35  ink=93.02%  colours=167  findings=0  png=ok
 900x660  MOD  controls=59  components=118  ink=91.68%  colours=154  findings=0  png=ok
 900x660  SEQ  controls=55  components=87  ink=91.49%  colours=161  findings=0  png=ok
@@ -47,7 +47,8 @@ sample loaded: yes
 900x660  ENV  controls=27  components=41  ink=95.82%  colours=174  findings=0  png=ok
 900x660  EVO  controls=27  components=40  ink=96.65%  colours=135  findings=0  png=ok
 900x660  GRAIN  controls=32  components=62  ink=96.55%  colours=163  findings=0  png=ok
-1100x780  TIMBRE  controls=38  components=67  ink=80.00%  colours=290  findings=10  png=ok
+1100x780  TIMBRE  controls=38  components=67  ink=79.78%  colours=300  findings=0  png=ok
+[AnaPlug] dtor:enter
 1100x780  FILTER  controls=22  components=35  ink=93.80%  colours=162  findings=0  png=ok
 1100x780  MOD  controls=59  components=118  ink=91.71%  colours=156  findings=0  png=ok
 1100x780  SEQ  controls=55  components=87  ink=91.41%  colours=179  findings=0  png=ok
@@ -56,7 +57,7 @@ sample loaded: yes
 1100x780  ENV  controls=27  components=41  ink=96.22%  colours=185  findings=0  png=ok
 1100x780  EVO  controls=27  components=40  ink=96.76%  colours=142  findings=0  png=ok
 1100x780  GRAIN  controls=32  components=62  ink=96.67%  colours=172  findings=0  png=ok
-1280x860  TIMBRE  controls=38  components=67  ink=79.44%  colours=269  findings=10  png=ok
+1280x860  TIMBRE  controls=38  components=67  ink=79.36%  colours=258  findings=0  png=ok
 1280x860  FILTER  controls=22  components=35  ink=94.17%  colours=168  findings=0  png=ok
 1280x860  MOD  controls=59  components=118  ink=91.62%  colours=155  findings=0  png=ok
 1280x860  SEQ  controls=55  components=87  ink=91.75%  colours=174  findings=0  png=ok
@@ -65,7 +66,7 @@ sample loaded: yes
 1280x860  ENV  controls=27  components=41  ink=96.23%  colours=195  findings=0  png=ok
 1280x860  EVO  controls=27  components=40  ink=96.87%  colours=141  findings=0  png=ok
 1280x860  GRAIN  controls=32  components=62  ink=96.82%  colours=153  findings=0  png=ok
-1600x1000  TIMBRE  controls=38  components=67  ink=79.03%  colours=255  findings=10  png=ok
+1600x1000  TIMBRE  controls=38  components=67  ink=78.76%  colours=260  findings=0  png=ok
 1600x1000  FILTER  controls=22  components=35  ink=94.93%  colours=179  findings=0  png=ok
 1600x1000  MOD  controls=59  components=118  ink=91.65%  colours=167  findings=0  png=ok
 1600x1000  SEQ  controls=55  components=87  ink=91.71%  colours=183  findings=0  png=ok
@@ -74,7 +75,7 @@ sample loaded: yes
 1600x1000  ENV  controls=27  components=41  ink=96.62%  colours=192  findings=0  png=ok
 1600x1000  EVO  controls=27  components=40  ink=97.18%  colours=140  findings=0  png=ok
 1600x1000  GRAIN  controls=32  components=62  ink=97.13%  colours=156  findings=0  png=ok
-1920x1200  TIMBRE  controls=38  components=67  ink=78.45%  colours=297  findings=10  png=ok
+1920x1200  TIMBRE  controls=38  components=67  ink=78.08%  colours=298  findings=0  png=ok
 1920x1200  FILTER  controls=22  components=35  ink=95.93%  colours=183  findings=0  png=ok
 1920x1200  MOD  controls=59  components=117  ink=91.88%  colours=165  findings=0  png=ok
 1920x1200  SEQ  controls=55  components=87  ink=91.94%  colours=163  findings=0  png=ok
@@ -83,62 +84,25 @@ sample loaded: yes
 1920x1200  ENV  controls=27  components=41  ink=97.06%  colours=191  findings=0  png=ok
 1920x1200  EVO  controls=27  components=40  ink=97.53%  colours=132  findings=0  png=ok
 1920x1200  GRAIN  controls=32  components=62  ink=97.48%  colours=159  findings=0  png=ok
-900x660  VIEW LIVE  controls=38  components=67  ink=81.23%  colours=237  findings=10  png=ok
-900x660  VIEW PARTIALS  controls=38  components=67  ink=81.23%  colours=241  findings=10  png=ok
-900x660  VIEW WATERFALL  controls=38  components=67  ink=81.24%  colours=242  findings=10  png=ok
-900x660  VIEW EDITOR  controls=38  components=67  ink=81.24%  colours=270  findings=10  png=ok
+900x660  VIEW LIVE  controls=38  components=67  ink=81.22%  colours=232  findings=0  png=ok
+900x660  VIEW PARTIALS  controls=38  components=67  ink=81.22%  colours=236  findings=0  png=ok
+900x660  VIEW WATERFALL  controls=38  components=67  ink=81.22%  colours=237  findings=0  png=ok
+900x660  VIEW EDITOR  controls=38  components=67  ink=81.22%  colours=264  findings=0  png=ok
 900x660  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
-900x660  VIEW SCOPE  controls=38  components=67  ink=56.89%  colours=237  findings=10  png=ok
-900x660  VIEW PARTICLES  controls=38  components=67  ink=81.14%  colours=253  findings=10  png=ok
-900x660  VIEW IMAGE  controls=43  components=73  ink=77.02%  colours=293  findings=10  png=ok
-1100x780  VIEW LIVE  controls=38  components=67  ink=80.00%  colours=290  findings=10  png=ok
-1100x780  VIEW PARTIALS  controls=38  components=67  ink=80.00%  colours=292  findings=10  png=ok
-1100x780  VIEW WATERFALL  controls=38  components=67  ink=80.01%  colours=293  findings=10  png=ok
-1100x780  VIEW EDITOR  controls=38  components=67  ink=80.01%  colours=345  findings=10  png=ok
+900x660  VIEW SCOPE  controls=38  components=67  ink=56.87%  colours=232  findings=0  png=ok
+900x660  VIEW PARTICLES  controls=38  components=67  ink=81.12%  colours=247  findings=0  png=ok
+900x660  VIEW IMAGE  controls=43  components=73  ink=77.01%  colours=288  findings=0  png=ok
+1100x780  VIEW LIVE  controls=38  components=67  ink=79.78%  colours=300  findings=0  png=ok
+1100x780  VIEW PARTIALS  controls=38  components=67  ink=79.78%  colours=302  findings=0  png=ok
+1100x780  VIEW WATERFALL  controls=38  components=67  ink=79.79%  colours=303  findings=0  png=ok
+1100x780  VIEW EDITOR  controls=38  components=67  ink=79.79%  colours=353  findings=0  png=ok
 1100x780  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
-1100x780  VIEW SCOPE  controls=38  components=67  ink=54.28%  colours=291  findings=10  png=ok
-1100x780  VIEW PARTICLES  controls=38  components=67  ink=80.00%  colours=309  findings=10  png=ok
-1100x780  VIEW IMAGE  controls=43  components=73  ink=76.49%  colours=339  findings=10  png=ok
+1100x780  VIEW SCOPE  controls=38  components=67  ink=54.06%  colours=301  findings=0  png=ok
+1100x780  VIEW PARTICLES  controls=38  components=67  ink=79.78%  colours=318  findings=0  png=ok
+1100x780  VIEW IMAGE  controls=43  components=73  ink=76.27%  colours=349  findings=0  png=ok
 
-control heights: <12px=106 12-15px=65 16-19px=1030 20-27px=896 >=28px=610 (design row = 20px)
-UI AUDIT: 59 snapshots, 2707 visible controls, 190 findings | text-overflow=38 | too-small=76 | zero-size=76
+control heights: <12px=68 12-15px=65 16-19px=1030 20-27px=896 >=28px=648 (design row = 20px)
+UI AUDIT: 59 snapshots, 2707 visible controls, 0 findings
 
 findings (max 12 per kind, counts above are complete):
-  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
-  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
-  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
-  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
-  [text-overflow] 900x660  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
-  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
-  [zero-size] 900x660  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
-  [too-small] 900x660  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
-  [text-overflow] 900x660  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [zero-size] 1100x780  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
-  [too-small] 1100x780  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
-  [zero-size] 1100x780  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
-  [too-small] 1100x780  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
-  [text-overflow] 1100x780  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [zero-size] 1100x780  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
-  [too-small] 1100x780  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
-  [zero-size] 1100x780  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
-  [too-small] 1100x780  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
-  [text-overflow] 1100x780  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [zero-size] 1280x860  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
-  [too-small] 1280x860  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
-  [zero-size] 1280x860  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
-  [too-small] 1280x860  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
-  [text-overflow] 1280x860  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [zero-size] 1280x860  TIMBRE/TimbrePanel/juce::Slider :: visible but 0,0 0x0
-  [too-small] 1280x860  TIMBRE/TimbrePanel/juce::Slider :: 0,0 0x0 needs at least 24x24
-  [zero-size] 1280x860  TIMBRE/TimbrePanel/juce::Label :: visible but 0,0 0x0
-  [too-small] 1280x860  TIMBRE/TimbrePanel/juce::Label :: 0,0 0x0
-  [text-overflow] 1280x860  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [text-overflow] 1600x1000  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [text-overflow] 1600x1000  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [text-overflow] 1920x1200  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [text-overflow] 1920x1200  TIMBRE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [text-overflow] 900x660  VIEW LIVE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-  [text-overflow] 900x660  VIEW LIVE/TimbrePanel/juce::Label :: "BLUR" needs 20 px, label is 0 px
-[AnaPlug] dtor:enter
-UI AUDIT EXIT: 190 findings
+UI AUDIT EXIT: 0 findings
