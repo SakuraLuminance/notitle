@@ -60,7 +60,6 @@ sample loaded: yes
 1280x860  FILTER  controls=22  components=35  ink=94.17%  colours=168  findings=0  png=ok
 1280x860  MOD  controls=59  components=118  ink=91.62%  colours=155  findings=0  png=ok
 1280x860  SEQ  controls=55  components=87  ink=91.75%  colours=174  findings=0  png=ok
-[AnaPlug] dtor:enter
 1280x860  FX  controls=143  components=191  ink=61.36%  colours=185  findings=0  png=ok
 1280x860  MASTER  controls=30  components=54  ink=91.83%  colours=172  findings=0  png=ok
 1280x860  ENV  controls=27  components=41  ink=96.23%  colours=195  findings=0  png=ok
@@ -90,19 +89,35 @@ sample loaded: yes
 900x660  VIEW EDITOR  controls=38  components=67  ink=81.22%  colours=264  findings=0  png=ok
 900x660  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
 900x660  VIEW SCOPE  controls=38  components=67  ink=56.87%  colours=232  findings=0  png=ok
-900x660  VIEW PARTICLES  controls=38  components=67  ink=81.13%  colours=247  findings=0  png=ok
+900x660  VIEW PARTICLES  controls=38  components=67  ink=81.12%  colours=247  findings=0  png=ok
 900x660  VIEW IMAGE  controls=43  components=73  ink=77.01%  colours=288  findings=0  png=ok
 1100x780  VIEW LIVE  controls=38  components=67  ink=79.78%  colours=300  findings=0  png=ok
 1100x780  VIEW PARTIALS  controls=38  components=67  ink=79.78%  colours=302  findings=0  png=ok
+[AnaPlug] dtor:enter
 1100x780  VIEW WATERFALL  controls=38  components=67  ink=79.79%  colours=303  findings=0  png=ok
 1100x780  VIEW EDITOR  controls=38  components=67  ink=79.79%  colours=353  findings=0  png=ok
 1100x780  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
 1100x780  VIEW SCOPE  controls=38  components=67  ink=54.06%  colours=301  findings=0  png=ok
-1100x780  VIEW PARTICLES  controls=38  components=67  ink=79.78%  colours=321  findings=0  png=ok
+1100x780  VIEW PARTICLES  controls=38  components=67  ink=79.78%  colours=319  findings=0  png=ok
 1100x780  VIEW IMAGE  controls=43  components=73  ink=76.27%  colours=349  findings=0  png=ok
 
 control heights: <12px=68 12-15px=65 16-19px=1030 20-27px=896 >=28px=648 (design row = 20px)
-UI AUDIT: 59 snapshots, 2707 visible controls, 0 findings
+UI AUDIT: 59 snapshots, 2707 visible controls, 0 findings  ||  advisory: cramped=128
 
 findings (max 12 per kind, counts above are complete):
+
+advisory (does not fail the build; next on the list to drive to zero):
+  render-and-hide pass looked at 0 controls and found 0 drawn but not visible
+  [cramped] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 9,249 278x10 is under the 12-pixel comfortable height
+  [cramped] 900x660  TIMBRE/TimbrePanel/juce::Slider :: 9,249 278x10 is under the 12-pixel comfortable height
+  [cramped] 900x660  FILTER/FilterPanel/juce::ComboBox :: 6,20 876x12 is under the 16-pixel comfortable height
+  [cramped] 900x660  FILTER/FilterPanel/juce::Slider :: 6,38 876x10 is under the 12-pixel comfortable height
+  [cramped] 900x660  FILTER/FilterPanel/juce::Slider :: 6,54 876x10 is under the 12-pixel comfortable height
+  [cramped] 900x660  SEQ/SequencerPanel/juce::ComboBox :: 5,18 291x14 is under the 16-pixel comfortable height
+  [cramped] 900x660  SEQ/SequencerPanel/juce::ComboBox :: 298,18 291x14 is under the 16-pixel comfortable height
+  [cramped] 900x660  FX/juce::TextButton :: 10,282 64x12 is under the 16-pixel comfortable height
+  [cramped] 900x660  FX/juce::TextButton :: 76,282 44x12 is under the 16-pixel comfortable height
+  [cramped] 900x660  FX/juce::ComboBox :: 122,282 102x12 is under the 16-pixel comfortable height
+  [cramped] 900x660  FX/juce::ComboBox :: 70,227 730x14 is under the 16-pixel comfortable height
+  [cramped] 900x660  FX/juce::TextButton :: 10,246 292x10 is under the 16-pixel comfortable height
 UI AUDIT EXIT: 0 findings
