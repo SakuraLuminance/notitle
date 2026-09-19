@@ -273,11 +273,11 @@ D:\a\notitle\notitle\src\dsp\NeuralUpsampler.cpp(773,15): warning C4189: 'knownB
 D:\a\notitle\notitle\src\dsp\NeuralUpsampler.cpp(838,21): warning C4189: 'slope': local variable is initialized but not referenced [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\NeuralUpsampler.cpp(975,26): warning C4189: 'blendWidth': local variable is initialized but not referenced [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\NeuralUpsampler.cpp(974,26): warning C4189: 'crossoverHz': local variable is initialized but not referenced [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  PartialTracker.cpp
 D:\a\notitle\notitle\src\dsp\ParallelProcessor.h(140,5): warning C4324: 'ana::ParallelProcessor::Chunk': structure was padded due to alignment specifier [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/dsp/ParallelProcessor.cpp')
   
 D:\a\notitle\notitle\src\dsp\ParallelProcessor.cpp(191,9): warning C4324: 'ana::ParallelProcessor::dispatchJobs::<lambda_e775cb57077e997a0d1638b84541ca75>': structure was padded due to alignment specifier [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
+  PartialTracker.cpp
   PeakDetector.cpp
   PhasePropagation.cpp
   PhysicalModel.cpp
@@ -389,12 +389,12 @@ D:\a\notitle\notitle\src\dsp\effects\SaturationEffect.cpp(17,58): warning C4244:
   SpaceModule.cpp
   StereoWidenerEffect.cpp
   VocalNoiseReducer.cpp
+  VocalProcessor.cpp
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244: '=': conversion from 'double' to '_Ty', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:             _Ty=float [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  VocalProcessor.cpp
   VocalThickenerEffect.cpp
   CombFilter.cpp
   FormantFilterBank.cpp
@@ -572,8 +572,8 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/EffectRackComponent.cpp')
   
-  FilterVisualization.cpp
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(115,33): warning C4566: character represented by universal-character-name '\u25BE' cannot be represented in the current code page (1252) [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
+  FilterVisualization.cpp
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(147,45): warning C4566: character represented by universal-character-name '\u25B8' cannot be represented in the current code page (1252) [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(147,56): warning C4566: character represented by universal-character-name '\u25BE' cannot be represented in the current code page (1252) [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(239,68): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
@@ -581,7 +581,6 @@ D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(239,68): warning C4244:    
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(239,68): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(239,68): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\EffectRackComponent.cpp(239,68): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  GranularPage.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/EnvelopePage.cpp')
   
@@ -613,6 +612,7 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/EnvelopePage.cpp')
   
+  GranularPage.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/FilterVisualization.cpp')
   
@@ -1134,7 +1134,6 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/UiAudit.cpp')
   
-D:\a\notitle\notitle\src\gui\WaterfallDisplay.cpp(14,14): warning C4505: 'ana::magnitudeToNorm': unreferenced function with internal linkage has been removed [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\XYPad.h(45,62): warning C4100: 'y': unreferenced parameter [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/UiAudit.cpp')
   
@@ -1144,11 +1143,12 @@ D:\a\notitle\notitle\src\gui\XYPad.h(45,53): warning C4100: 'x': unreferenced pa
 D:\a\notitle\notitle\src\gui\XYPad.h(45,42): warning C4100: 'pad': unreferenced parameter [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/UiAudit.cpp')
   
+D:\a\notitle\notitle\src\gui\WaterfallDisplay.cpp(14,14): warning C4505: 'ana::magnitudeToNorm': unreferenced function with internal linkage has been removed [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\PluginEditor.h(254,37): warning C4566: character represented by universal-character-name '\u24D8' cannot be represented in the current code page (1252) [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/UiAudit.cpp')
   
-  XYPad.cpp
 D:\a\notitle\notitle\src\gui\UiAudit.cpp(414,13): warning C4996: 'juce::AudioFormat::createWriterFor': Use the function taking an AudioFormatWriterOptions instead. [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
+  XYPad.cpp
   FilterPanel.cpp
   MacroPanel.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
@@ -1256,7 +1256,6 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] 
   (compiling source file '../src/gui/panels/FilterPanel.cpp')
   
   SequencerPanel.cpp
-  TimbrePanel.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/MacroPanel.cpp')
   
@@ -1288,6 +1287,7 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/MacroPanel.cpp')
   
+  TimbrePanel.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/MasterSection.cpp')
   
@@ -1321,66 +1321,66 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] 
   
   TransportBar.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
+  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
+  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
+  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
+  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
+  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
+  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,66): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
+  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(416,46): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
+  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,67): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
+  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244: 'argument': conversion from 'ValueType' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:             ValueType=int [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  (compiling source file '../src/gui/panels/TimbrePanel.cpp')
+  (compiling source file '../src/gui/panels/SequencerPanel.cpp')
   
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/TransportBar.cpp')
@@ -1420,8 +1420,8 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] 
   juce_audio_plugin_client_AAX_utils.cpp
   juce_audio_plugin_client_ARA.cpp
   juce_audio_plugin_client_Standalone.cpp
-  juce_audio_plugin_client_VST2.cpp
   juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
   juce_audio_plugin_client_VST3.cpp
      Creating library D:/a/notitle/notitle/build/AnaPlug_artefacts/Release/VST3/AnaPlug.lib and object D:/a/notitle/notitle/build/AnaPlug_artefacts/Release/VST3/AnaPlug.exp
   Generating code
