@@ -754,6 +754,7 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     catch (const std::exception& e)
     {
         const juce::String message = juce::String ("UI AUDIT CRASHED: ") + e.what();
+        outputDir.createDirectory();   // the crash may have happened before runAudit did
         outputDir.getChildFile ("summary.txt").replaceWithText (message + "\n");
         std::cout << message << std::endl;
         findings = 1;
@@ -761,6 +762,7 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     catch (...)
     {
         const juce::String message = "UI AUDIT CRASHED: unknown exception";
+        outputDir.createDirectory();
         outputDir.getChildFile ("summary.txt").replaceWithText (message + "\n");
         std::cout << message << std::endl;
         findings = 1;

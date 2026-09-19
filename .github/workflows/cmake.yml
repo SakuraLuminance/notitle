@@ -137,7 +137,10 @@ jobs:
         $probe.Add ('standalone build exit: ' + $env:STANDALONE_BUILD_EXIT)
         $probe.Add ('working directory: ' + $PWD)
 
-        $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug.exe' -ErrorAction SilentlyContinue)
+        # Not just 'AnaPlug.exe': the standalone artefact is named after the product
+        # but the JUCE target is AnaPlug_Standalone, so match liberally and prefer
+        # anything on a standalone path.
+        $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug*.exe' -ErrorAction SilentlyContinue)
         $exe = $candidates | Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1
         if (-not $exe) { $exe = $candidates | Select-Object -First 1 }
         $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
