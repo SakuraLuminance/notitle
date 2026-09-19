@@ -102,6 +102,8 @@ jobs:
           ui-audit/report.txt
           ui-audit/report.json
           ui-audit/summary.txt
+          ui-audit/inkmap.txt
+          ui-audit/inkmap-minimum.txt
           ui-audit-stdout.txt
           ui-audit-stderr.txt
 
@@ -370,6 +372,14 @@ jobs:
             $out.Add($t)
           }
           if ($findings.Count -gt 30) { $out.Add('... ' + ($findings.Count - 30) + ' more findings in ui-audit/report.txt') }
+
+          # ASCII ink maps: the PNGs are only reachable through the artifact, so the
+          # layout at the minimum window size is published as text as well.
+          if (Test-Path ui-audit/inkmap-minimum.txt) {
+            $out.Add('')
+            $out.Add('--- minimum-size ink maps (48x14, " " = empty, "@" = dense) ---')
+            foreach ($l in @(Get-Content ui-audit/inkmap-minimum.txt -ErrorAction SilentlyContinue)) { $out.Add($l) }
+          }
         } else {
           $out.Add('ui-audit/summary.txt missing (audit did not run)')
           foreach ($name in @('ui-audit-stdout.txt', 'ui-audit-stderr.txt')) {

@@ -2,6 +2,7 @@
 #include "../PluginProcessor.h"
 #include "../PluginEditor.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -41,13 +42,23 @@ juce::String prettyType (const juce::Component& c)
     return name;
 }
 
-bool isSliderLike (const juce::Component& c)
+bool isControlLike (const juce::Component& c)
 {
     return dynamic_cast<const juce::Slider*> (&c) != nullptr
         || dynamic_cast<const juce::TextButton*> (&c) != nullptr
         || dynamic_cast<const juce::ToggleButton*> (&c) != nullptr
         || dynamic_cast<const juce::ComboBox*> (&c) != nullptr
         || dynamic_cast<const juce::DrawableButton*> (&c) != nullptr;
+}
+
+/** Tooltips come from TooltipClient, not from Component - a control that is not
+    also a tooltip client cannot show one at all. */
+bool hasTooltip (const juce::Component& c)
+{
+    if (auto* client = dynamic_cast<const juce::TooltipClient*> (&c))
+        return client->getTooltip().trim().isNotEmpty();
+
+    return false;
 }
 
 /** Minimum size a usable control needs, by kind.  Labels are text and are only
@@ -131,7 +142,7 @@ private:
             int minW = 1, minH = 1;
             minimumSize (*child, minW, minH);
 
-            if (isSliderLike (*child))
+            if (isControlLike (*child))
             {
                 ++visibleControls;
 
@@ -141,13 +152,35 @@ private:
                          + " needs at least " + juce::String (minW) + "x" + juce::String (minH));
 
                 // (4) the project rule: every control explains itself
-                if (child->getTooltip().trim().isEmpty())
+                if (! hasTooltip (*child))
                     add ("no-tooltip", childPath, rectToString (child->getBounds()));
             }
-            else if (dynamic_cast<juce::Label*> (child) != nullptr
-                     && child->getHeight() < minH)
+            else if (auto* label = dynamic_cast<juce::Label*> (child))
             {
-                add ("too-small", childPath, rectToString (child->getBounds()));
+                if (label->getHeight() < minH)
+                    add ("too-small", childPath, rectToString (child->getBounds()));
+
+                // A label narrower than its own text is the classic cramped
+                // layout defect: JUCE squeezes the glyphs or clips them.
+                const auto text = label->getText();
+
+                if (text.isNotEmpty())
+                {
+                    const auto needed = label->getFont().getStringWidth (text);
+                    const auto room   = child->getWidth();
+
+                    // JUCE squeezes label text horizontally down to
+                    // minimumHorizontalScale (0.7 by default) before it clips, so
+                    // needing more than room / 0.7 is genuinely illegible.
+                    if (needed * 10 > room * 15)
+                        add ("text-overflow", childPath,
+                             "\"" + text + "\" needs " + juce::String (needed)
+                             + " px, label is " + juce::String (room) + " px");
+                    else if (needed > room + 1)
+                        add ("text-tight", childPath,
+                             "\"" + text + "\" needs " + juce::String (needed)
+                             + " px, label is " + juce::String (room) + " px");
+                }
             }
 
             walk (*child, childPath);
@@ -191,10 +224,26 @@ bool savePng (const juce::Image& image, const juce::File& file)
     return false;
 }
 
-juce::String renderSnapshot (juce::Component& component, const juce::File& file)
+/** What a rendered snapshot actually contains.  The PNGs themselves are only
+    reachable through the CI artifact, so the numbers (and the ASCII ink map)
+    are what makes a snapshot reviewable from the log alone. */
+struct SnapshotStats
 {
+    juce::String status = "ok";
+    double inkRatio = 0.0;      // fraction of pixels that differ from the background
+    int distinctColours = 0;
+    juce::String inkMap;        // downsampled view of what was drawn, one line per row
+};
+
+SnapshotStats renderSnapshot (juce::Component& component, const juce::File& file)
+{
+    SnapshotStats stats;
+
     if (component.getWidth() <= 0 || component.getHeight() <= 0)
-        return "skipped (no size)";
+    {
+        stats.status = "skipped (no size)";
+        return stats;
+    }
 
     juce::Image image (juce::Image::ARGB, component.getWidth(), component.getHeight(), true);
 
@@ -203,7 +252,87 @@ juce::String renderSnapshot (juce::Component& component, const juce::File& file)
         component.paintEntireComponent (g, true);
     }
 
-    return savePng (image, file) ? "ok" : "png write failed";
+    stats.status = savePng (image, file) ? "ok" : "png write failed";
+
+    // ---- ink statistics + ASCII map -------------------------------------
+    const juce::Image::BitmapData pixels (image, juce::Image::BitmapData::readOnly);
+
+    constexpr int cols = 48;
+    constexpr int rows = 14;
+
+    // The background is whatever colour the top-left corner is painted with.
+    const auto background = pixels.getPixelColour (0, 0);
+
+    juce::Array<double> cellInk;
+    cellInk.resize (cols * rows);
+    cellInk.fill (0.0);
+
+    const auto stepX = juce::jmax (1, image.getWidth() / cols);
+    const auto stepY = juce::jmax (1, image.getHeight() / rows);
+
+    long long total = 0;
+    long long inked = 0;
+
+    // Distinct colours are sampled coarsely: a per-pixel set would cost more than
+    // the render itself, and the number is only used to spot a flat snapshot.
+    std::vector<juce::uint32> sampledColours;
+    sampledColours.reserve (static_cast<size_t> (image.getWidth() / 8 + 1)
+                            * static_cast<size_t> (image.getHeight() / 8 + 1));
+
+    for (int y = 0; y < image.getHeight(); y += 2)
+    {
+        for (int x = 0; x < image.getWidth(); x += 2)
+        {
+            const auto c = pixels.getPixelColour (x, y);
+            ++total;
+
+            if ((x % 8) == 0 && (y % 8) == 0)
+                sampledColours.push_back (c.getARGB());
+
+            const auto differs = std::abs (static_cast<int> (c.getRed())   - static_cast<int> (background.getRed()))
+                               + std::abs (static_cast<int> (c.getGreen()) - static_cast<int> (background.getGreen()))
+                               + std::abs (static_cast<int> (c.getBlue())  - static_cast<int> (background.getBlue()));
+
+            if (differs > 24)
+            {
+                ++inked;
+
+                const auto cell = juce::jlimit (0, rows - 1, y / stepY) * cols
+                                + juce::jlimit (0, cols - 1, x / stepX);
+                cellInk.setUnchecked (cell, cellInk[cell] + 1.0);
+            }
+        }
+    }
+
+    stats.inkRatio = total > 0 ? static_cast<double> (inked) / static_cast<double> (total) : 0.0;
+    std::sort (sampledColours.begin(), sampledColours.end());
+    sampledColours.erase (std::unique (sampledColours.begin(), sampledColours.end()),
+                          sampledColours.end());
+
+    stats.distinctColours = static_cast<int> (sampledColours.size());
+
+    static const char* ramp = " .:-=+*#%@";
+    const auto cellSamples = static_cast<double> (juce::jmax (1, stepX * stepY / 4));
+
+    juce::StringArray mapRows;
+
+    for (int row = 0; row < rows; ++row)
+    {
+        juce::String line;
+
+        for (int col = 0; col < cols; ++col)
+        {
+            const auto ratio = juce::jlimit (0.0, 1.0, cellInk[row * cols + col] / cellSamples);
+            const auto index = juce::jlimit (0, 9, static_cast<int> (std::sqrt (ratio) * 9.99));
+            line += ramp[index];
+        }
+
+        mapRows.add (line);
+    }
+
+    stats.inkMap = mapRows.joinIntoString ("\n");
+
+    return stats;
 }
 
 } // namespace
@@ -302,10 +431,12 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     // One snapshot per (size, page) plus one per spectrum view mode, since the
     // view area swaps in a different tool row for IMAGE and different canvases
     // for the rest.
+    juce::StringArray inkMaps;
+
     auto capture = [&] (const juce::String& tag, const juce::String& fileName)
     {
         const auto file = outputDir.getChildFile (juce::File::createLegalFileName (fileName) + ".png");
-        const auto status = renderSnapshot (*editor, file);
+        const auto stats = renderSnapshot (*editor, file);
         ++snapshots;
 
         Auditor auditor;
@@ -314,14 +445,27 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
         visibleControls   += auditor.visibleControls;
         visibleComponents += auditor.visibleComponents;
 
+        const auto inkPercent = stats.inkRatio * 100.0;
+
         lines.add (tag
                    + "  controls=" + juce::String (auditor.visibleControls)
                    + "  components=" + juce::String (auditor.visibleComponents)
+                   + "  ink=" + juce::String (inkPercent, 2) + "%"
+                   + "  colours=" + juce::String (stats.distinctColours)
                    + "  findings=" + juce::String (static_cast<int> (auditor.findings.size()))
-                   + "  png=" + status);
+                   + "  png=" + stats.status);
+
+        // A page that paints almost nothing is broken however clean its geometry
+        // is - this is what caught an EVO page whose panel was never created.
+        if (stats.inkRatio < 0.002 && stats.status == "ok")
+            all.push_back ({ "blank-snapshot", tag,
+                             "only " + juce::String (inkPercent, 2) + "% of the pixels differ from the background" });
 
         for (const auto& f : auditor.findings)
             all.push_back (f);
+
+        inkMaps.add ("--- " + tag + "  ink=" + juce::String (inkPercent, 2) + "%");
+        inkMaps.add (stats.inkMap);
     };
 
     for (const auto& size : sizes)
@@ -373,10 +517,22 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     }
 
     // ---- summarise by kind -------------------------------------------------
+    // Counts are taken from the complete list; the printed list keeps at most 12
+    // entries per kind so that a noisy check cannot bury the interesting ones.
     std::map<juce::String, int> byKind;
+    std::map<juce::String, int> printedPerKind;
+    std::vector<Finding> printed;
 
     for (const auto& f : all)
+    {
         ++byKind[f.kind];
+
+        if (printedPerKind[f.kind] < 12)
+        {
+            ++printedPerKind[f.kind];
+            printed.push_back (f);
+        }
+    }
 
     juce::String summary;
     summary << "UI AUDIT: " << snapshots << " snapshots, "
@@ -389,24 +545,27 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     lines.add ("");
     lines.add (summary);
     lines.add ("");
-    lines.add ("findings (first 60):");
+    lines.add ("findings (max 12 per kind, counts above are complete):");
 
-    int shown = 0;
-    for (const auto& f : all)
-    {
-        if (shown++ >= 60)
-        {
-            lines.add ("  ... " + juce::String (static_cast<int> (all.size()) - 60) + " more");
-            break;
-        }
-
+    for (const auto& f : printed)
         lines.add ("  [" + f.kind + "] " + f.path + " :: " + f.detail);
-    }
 
     reportText = lines.joinIntoString ("\n") + "\n";
 
     outputDir.getChildFile ("report.txt").replaceWithText (reportText);
     outputDir.getChildFile ("summary.txt").replaceWithText (summary + "\n");
+    outputDir.getChildFile ("inkmap.txt").replaceWithText (inkMaps.joinIntoString ("\n"));
+
+    // The minimum supported window is where a cramped layout shows up first, so
+    // those maps get published into the CI annotation (the artifact is not always
+    // reachable from a dev machine).
+    juce::StringArray smallMaps;
+
+    for (int i = 0; i < inkMaps.size(); ++i)
+        if (inkMaps[i].startsWith ("--- 900x660"))
+            smallMaps.add (inkMaps[i] + "\n" + (i + 1 < inkMaps.size() ? inkMaps[i + 1] : juce::String()));
+
+    outputDir.getChildFile ("inkmap-minimum.txt").replaceWithText (smallMaps.joinIntoString ("\n"));
 
     // Machine-readable copy for tooling that should not parse prose.
     juce::DynamicObject::Ptr root (new juce::DynamicObject());
