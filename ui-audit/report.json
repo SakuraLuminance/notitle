@@ -4,7 +4,7 @@
   "visibleComponents": 4422,
   "findings": 0,
   "items": [],
-  "advisory": 128,
+  "advisory": 130,
   "advisoryItems": [
     {
       "kind": "cramped",
@@ -30,6 +30,16 @@
       "kind": "cramped",
       "path": "900x660  FILTER/FilterPanel/juce::Slider",
       "detail": "6,54 876x10 is under the 12-pixel comfortable height"
+    },
+    {
+      "kind": "invisible-control",
+      "path": "900x660  MOD  juce::ComboBox",
+      "detail": "hiding it changed no pixel in 81,595 84x26 - it is painted under a sibling, or off the page"
+    },
+    {
+      "kind": "invisible-control",
+      "path": "900x660  MOD  juce::Slider",
+      "detail": "hiding it changed no pixel in 165,595 138x26 - it is painted under a sibling, or off the page"
     },
     {
       "kind": "cramped",
@@ -647,5 +657,5 @@
       "detail": "234,54 64x14 is under the 16-pixel comfortable height"
     }
   ],
-  "deepChecked": 0
+  "deepChecked": 650
 }
