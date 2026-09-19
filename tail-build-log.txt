@@ -361,9 +361,9 @@ D:\a\notitle\notitle\src\dsp\effects\CompressorEffect.cpp(22,27): warning C4244:
 D:\a\notitle\notitle\src\dsp\effects\CompressorEffect.cpp(23,28): warning C4244: '=': conversion from 'double' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\ConsolidatedDelay.cpp(331,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\ConsolidatedDelay.cpp(331,27): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-D:\a\notitle\notitle\src\dsp\effects\DelayEffect.cpp(20,24): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   DistortionEffect.cpp
   DriveModule.cpp
+D:\a\notitle\notitle\src\dsp\effects\DelayEffect.cpp(20,24): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   DynamicsModule.cpp
   EQEffect.cpp
 D:\a\notitle\notitle\src\dsp\effects\DriveModule.cpp(23,59): warning C4244: 'argument': conversion from 'double' to 'size_t', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
@@ -384,17 +384,17 @@ D:\a\notitle\notitle\src\dsp\effects\LimiterEffect.cpp(55,13): warning C4189: 'o
   ReverbEffect.cpp
   RingModulatorEffect.cpp
   SaturationEffect.cpp
-D:\a\notitle\notitle\src\dsp\effects\SaturationEffect.cpp(17,58): warning C4244: 'argument': conversion from 'double' to 'size_t', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   SoloistVocalChain.cpp
+D:\a\notitle\notitle\src\dsp\effects\SaturationEffect.cpp(17,58): warning C4244: 'argument': conversion from 'double' to 'size_t', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   SpaceModule.cpp
   StereoWidenerEffect.cpp
   VocalNoiseReducer.cpp
+  VocalProcessor.cpp
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244: '=': conversion from 'double' to '_Ty', possible loss of data [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:         with [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:         [ [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:             _Ty=float [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\dsp\effects\VocalNoiseReducer.cpp(29,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  VocalProcessor.cpp
   VocalThickenerEffect.cpp
   CombFilter.cpp
   FormantFilterBank.cpp
@@ -838,6 +838,7 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/ModulationMatrixPanel.cpp')
   
+  ParticleDisplay.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/PartialEditorCanvas.cpp')
   
@@ -869,7 +870,6 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/PartialEditorCanvas.cpp')
   
-  ParticleDisplay.cpp
   PresetBrowserPanel.cpp
   SpectrumDisplay.cpp
   SpectrumEditorCanvas.cpp
@@ -935,6 +935,7 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/SpectrumDisplay.cpp')
   
+  StepCell.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/PresetBrowserPanel.cpp')
   
@@ -967,7 +968,6 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] 
   (compiling source file '../src/gui/PresetBrowserPanel.cpp')
   
 D:\a\notitle\notitle\src\gui\PresetBrowserPanel.cpp(10,34): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
-  StepCell.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/SpectrumEditorCanvas.cpp')
   
@@ -1143,13 +1143,14 @@ D:\a\notitle\notitle\src\gui\XYPad.h(45,53): warning C4100: 'x': unreferenced pa
 D:\a\notitle\notitle\src\gui\XYPad.h(45,42): warning C4100: 'pad': unreferenced parameter [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/UiAudit.cpp')
   
-D:\a\notitle\notitle\src\gui\WaterfallDisplay.cpp(14,14): warning C4505: 'ana::magnitudeToNorm': unreferenced function with internal linkage has been removed [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
 D:\a\notitle\notitle\src\PluginEditor.h(254,37): warning C4566: character represented by universal-character-name '\u24D8' cannot be represented in the current code page (1252) [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/UiAudit.cpp')
   
 D:\a\notitle\notitle\src\gui\UiAudit.cpp(428,13): warning C4996: 'juce::AudioFormat::createWriterFor': Use the function taking an AudioFormatWriterOptions instead. [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
+D:\a\notitle\notitle\src\gui\WaterfallDisplay.cpp(14,14): warning C4505: 'ana::magnitudeToNorm': unreferenced function with internal linkage has been removed [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   XYPad.cpp
   FilterPanel.cpp
+  MacroPanel.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/WaveformDisplay.cpp')
   
@@ -1181,7 +1182,6 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/WaveformDisplay.cpp')
   
-  MacroPanel.cpp
 D:\a\notitle\notitle\src\gui\XYPad.h(45,62): warning C4100: 'y': unreferenced parameter [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/XYPad.cpp')
   
@@ -1256,6 +1256,7 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] 
   (compiling source file '../src/gui/panels/FilterPanel.cpp')
   
   SequencerPanel.cpp
+  TimbrePanel.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/MacroPanel.cpp')
   
@@ -1287,7 +1288,6 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:           
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/MacroPanel.cpp')
   
-  TimbrePanel.cpp
 D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(358,28): warning C4996: 'juce::Font::Font': Use the constructor that takes a FontOptions argument [D:\a\notitle\notitle\build\AnaPlug.vcxproj]
   (compiling source file '../src/gui/panels/MasterSection.cpp')
   
@@ -1426,8 +1426,8 @@ D:\a\notitle\notitle\src\gui\CyberpunkTheme.h(419,48): warning C4244:         ] 
      Creating library D:/a/notitle/notitle/build/AnaPlug_artefacts/Release/VST3/AnaPlug.lib and object D:/a/notitle/notitle/build/AnaPlug_artefacts/Release/VST3/AnaPlug.exp
   Generating code
 D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2447): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_VST3.vcxproj]
-D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2337): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_VST3.vcxproj]
 D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2386): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_VST3.vcxproj]
+D:\a\notitle\notitle\build\_deps\juce-src\modules\juce_audio_formats\codecs\oggvorbis\libvorbis-1.3.7\lib\vorbisfile.c(2337): warning C4703: potentially uninitialized local pointer variable 'pcm' used [D:\a\notitle\notitle\build\AnaPlug_VST3.vcxproj]
 D:\a\notitle\notitle\src\dsp\VoiceManager.cpp(1028): warning C4701: potentially uninitialized local variable 'sample' used [D:\a\notitle\notitle\build\AnaPlug_VST3.vcxproj]
   Finished generating code
   AnaPlug_VST3.vcxproj -> D:\a\notitle\notitle\build\AnaPlug_artefacts\Release\VST3\AnaPlug.vst3\Contents\x86_64-win\AnaPlug.vst3
