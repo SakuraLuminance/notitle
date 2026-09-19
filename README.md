@@ -56,9 +56,11 @@ build\AnaPlug_Standalone_artefacts\Release\Standalone\AnaPlug.exe
    - 交互控件没有 tooltip（本项目自己的规则）；
    - 标签文字比自身宽度还长（超过 1.5 倍就是 JUCE 压字也救不回来的 `text-overflow`）；
    - 整张截图几乎没画出东西（`blank-snapshot`——EVO 页曾经因为面板没被创建而全空白）；
-4. 输出 `report.txt`（每张截图一行：控件数 / 墨迹占比 / 颜色数 / 发现数）、`report.json`、`summary.txt`、`inkmap.txt`（48×14 的 ASCII 墨迹图，**没有 PNG 也能看出布局**）。
+4. 输出 `index.html`（**一页看完**：摘要 + 发现表格 + 全部 60 张截图排成网格，无脚本无外链，浏览器直接打开）、`report.txt`（每张截图一行：控件数 / 墨迹占比 / 颜色数 / 发现数）、`report.json`、`summary.txt`（含**控件高度分布**：`<12px / 12-15 / 16-19 / 20-27 / >=28`，用来把“布局窄不窄”变成数字，设计行高是 `kControlHeight = 20`）、`inkmap.txt`（48×14 的 ASCII 墨迹图，**没有 PNG 也能看出布局**）。
 
-CI 会自动跑这一套：结果摘要与最小窗口尺寸的 ASCII 墨迹图会写进 `ci-diagnostics` 注解，PNG 全部作为 `ui-audit-windows-latest` artifact 上传。
+3D 频谱视图（开着 OpenGL 上下文、`setComponentPaintingEnabled(false)`）**会被跳过**并在报告里注明：离屏软件截图必然是空白（会误报 `blank-snapshot`），而无窗口环境下给组件挂 GL 上下文也不该做。其余 7 种视图都是软件绘制，全部真实渲染。
+
+CI 会自动跑这一套：结果摘要（含高度分布）与最小窗口尺寸的 ASCII 墨迹图会写进 `ci-diagnostics` 注解，`index.html` + 全部 PNG 作为 `ui-audit-windows-latest` artifact 上传；**即使不装 DAW，也可以直接下载 `AnaPlug-Standalone-windows-latest`，解压双击 `AnaPlug.exe` 手动点完 9 页**。
 
 ## 构建（需要 VS2022 + CMake）
 

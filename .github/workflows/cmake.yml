@@ -61,6 +61,28 @@ jobs:
           exit $LASTEXITCODE
         }
 
+
+    # Independent, minimal annotation channel for the compile errors.  It exists
+    # because a run can finish with the long PowerShell diagnostics step reporting
+    # success while its ::error lines never reach the check run - and the
+    # annotation is the only readable channel from the dev machine.  bash + grep
+    # + echo has far fewer ways to fail silently than a 250-line pwsh script.
+    - name: Publish build errors (fallback channel)
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: |
+        for log in build-log.txt standalone-build-log.txt; do
+          if [ -f "$log" ]; then
+            n=$(grep -cE 'error [A-Z][0-9]{4}|error LNK|error MSB|fatal error|ninja: build stopped' "$log" || true)
+            echo "::error title=$log::$n error lines"
+            grep -E 'error [A-Z][0-9]{4}|error LNK|error MSB|fatal error|ninja: build stopped' "$log" \
+              | head -60 \
+              | sed 's/%/%25/g' \
+              | while IFS= read -r line; do echo "::error title=build::$line"; done
+          fi
+        done
+
     # Standalone = the UI audit's runner (see the ANAPLUG_UI_AUDIT step below).
     # Non-fatal: without it the audit reports that it did not run, and every
     # other result in this job is unaffected.
