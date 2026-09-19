@@ -310,9 +310,22 @@ jobs:
         git config user.name "github-actions[bot]"
         git checkout -q -b ci-reports
         git add -A
-        git commit -q -m "UI audit for ${GITHUB_SHA:0:7}"
-        git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-reports
-        echo "::error title=ci-canary::ci-reports pushed"
+        git commit -q -m "UI audit for ${{ github.sha }}"
+
+        # GITHUB_TOKEN is NOT exported into a run: step's environment - only the
+        # github.token/secrets contexts have it - so the variable form silently
+        # expanded to nothing and every push was rejected as unauthenticated while
+        # the step still reported success.  Fail loudly instead, and show what git
+        # said: a step that cannot fail is how this went unnoticed.
+        if ! git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ci-reports 2> push-error.txt; then
+          echo "::error title=ci-reports::push of the report branch failed"
+          tail -6 push-error.txt | sed 's/%/%25/g' | while IFS= read -r line; do
+            echo "::error title=ci-reports-error::$line"
+          done | cat
+          exit 1
+        fi
+
+        echo '::error title=ci-canary::ci-reports pushed'
 
     - name: Test
       continue-on-error: true
