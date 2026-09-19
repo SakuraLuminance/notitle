@@ -170,7 +170,8 @@ private:
             // (1) zero size - the layout ran out of room and gave it nothing
             if (child->getWidth() <= 0 || child->getHeight() <= 0)
                 add ("zero-size", childPath,
-                     "visible but " + rectToString (child->getBounds()));
+                     "visible but " + rectToString (child->getBounds())
+                     + " in " + rectToString (parent.getLocalBounds()));
 
             // (2) outside the parent - clipped away, unreachable
             if (! parentIsViewport
@@ -196,6 +197,7 @@ private:
                 if (child->getWidth() < minW || child->getHeight() < minH)
                     add ("too-small", childPath,
                          rectToString (child->getBounds())
+                         + " in " + rectToString (parent.getLocalBounds())
                          + " needs at least " + juce::String (minW) + "x" + juce::String (minH));
 
                 // (4) the project rule: every control explains itself
@@ -205,7 +207,8 @@ private:
             else if (auto* label = dynamic_cast<juce::Label*> (child))
             {
                 if (label->getHeight() < minH)
-                    add ("too-small", childPath, rectToString (child->getBounds()));
+                    add ("too-small", childPath, rectToString (child->getBounds())
+                         + " in " + rectToString (parent.getLocalBounds()));
 
                 // A label narrower than its own text is the classic cramped
                 // layout defect: JUCE squeezes the glyphs or clips them.
