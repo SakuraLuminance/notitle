@@ -142,7 +142,9 @@ jobs:
             Write-Host ('running the audit from the build step: ' + $runner.FullName)
             $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
             & $runner.FullName 2>&1 | Tee-Object -FilePath 'ui-audit-console.txt'
-            Write-Host ('audit runner exit: ' + $LASTEXITCODE)
+            $auditExit = $LASTEXITCODE
+            Write-Host ('audit runner exit: ' + $auditExit)
+            "UI_AUDIT_EXIT=$auditExit" | Out-File -FilePath $env:GITHUB_ENV -Append
         } else {
             Write-Host 'no *Audit*.exe under build - the audit could not be run from here'
             'no *Audit*.exe under build' | Set-Content -Path 'ui-audit-console.txt'
@@ -155,120 +157,28 @@ jobs:
     # ANAPLUG_UI_AUDIT environment variable, and needs no window or audio device.
     # Non-fatal on purpose: the findings are published for triage, and the step can
     # be made gating by dropping continue-on-error once the report is clean.
-    # A canary, because the audit step below runs no script at all: it reports
-    # completed/success while writing neither its probe nor its output, which is
-    # only possible if nothing was executed.  This step exists to prove that newly
-    # added steps in this job do run.
-    - name: UI audit canary
+    # The audit itself runs in the console-runner step above.  This step - the one
+    # dedicated to it - reported completed/success for six runs in a row while writing
+    # neither its probe file nor any output at all, and nothing I did to it changed
+    # that.  What belongs here is the part that matters: the gate.
+    - name: UI audit must be clean
+      if: always()
       shell: pwsh
       run: |
-        'canary ' + (Get-Date -Format o) | Set-Content -Path 'ui-audit-canary.txt'
-        python -c "print('hi')" | Out-Null
-        Write-Host ('canary wrote ' + (Get-Item 'ui-audit-canary.txt').Length + ' bytes')
-
-    - name: UI audit (offscreen render + layout checks)
-      shell: pwsh
-      timeout-minutes: 15
-      run: |
-        # Everything this step learns goes into a probe file that the publish step
-        # puts on the ci-reports branch: the step's own stdout is unreadable from the
-        # development machine, and for three runs in a row a 'successful' audit step
-        # turned out to have produced nothing at all.
-        $probe = [System.Collections.Generic.List[string]]::new()
-
-        # Written first and rewritten after every phase.  The probe has been absent
-        # from every run so far, which says the script died before it got here - and
-        # with no probe there is nothing to say where.  Now the file exists from the
-        # first line and its last entry names the phase that stopped.
-        function Write-Probe {
-            if (Test-Path 'ui-audit-stdout.txt') {
-                $probe.Add ('ui-audit-stdout.txt tail:')
-                $probe.AddRange ([string[]](Get-Content 'ui-audit-stdout.txt' -Tail 40))
-            }
-            if (Test-Path 'ui-audit-stderr.txt') {
-                $probe.Add ('ui-audit-stderr.txt tail:')
-                $probe.AddRange ([string[]](Get-Content 'ui-audit-stderr.txt' -Tail 40))
-            }
-            if (Test-Path 'ui-audit') {
-                $produced = @(Get-ChildItem 'ui-audit' -Recurse -File -ErrorAction SilentlyContinue)
-                $probe.Add ('ui-audit files: ' + $produced.Count)
-                foreach ($p in ($produced | Select-Object -First 20)) { $probe.Add ('  ' + $p.Name) }
-            } else {
-                $probe.Add 'ui-audit directory was never created'
-            }
-            $probe -join [Environment]::NewLine | Set-Content -Path 'ui-audit-probe.txt'
+        $exit = $env:UI_AUDIT_EXIT
+        Write-Host ('audit exit code: ' + $exit)
+        if (-not $exit) {
+            Write-Host 'the audit never ran - no runner was built; the build failure above is the real one'
+            exit 0
         }
-
-        $probe.Add ('phase: start')
-        $probe.Add ('standalone build exit: ' + $env:STANDALONE_BUILD_EXIT)
-        $probe.Add ('audit runner build exit: ' + $env:AUDIT_RUNNER_BUILD_EXIT)
-        $probe.Add ('working directory: ' + $PWD)
-        Write-Probe
-
-        # Not just 'AnaPlug.exe': the artefact is named after the product but the
-        # JUCE target is AnaPlugUiAudit, so match on the target's name.
-        $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug*.exe' -ErrorAction SilentlyContinue)
-        # Only the console runner can do this.  The standalone has no main() of ours:
-        # it opens its window and sits there, so falling back to it spent ten
-        # minutes waiting for a process that was never going to write a report and
-        # then reported "the audit produced no report" with no reason attached.
-        $exe = $candidates | Where-Object { $_.Name -match 'Audit' } | Select-Object -First 1
-        $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
-        foreach ($c in $candidates) { $probe.Add ('  ' + $c.FullName) }
-        $probe.Add ('chosen exe: ' + $(if ($exe) { $exe.FullName } else { 'NONE' }))
-
-        foreach ($dir in @(Get-ChildItem -Path build -Recurse -Directory -Filter '*artefacts' -ErrorAction SilentlyContinue))
-            { $probe.Add ('artefacts dir: ' + $dir.FullName) }
-        $probe.Add ('phase: exe selected')
-        Write-Probe
-
-        if (-not $exe) {
-            foreach ($log in @('audit-runner-build-log.txt', 'standalone-build-log.txt')) {
-                $probe.Add ($log + ' tail:')
-                if (Test-Path $log) { $probe.AddRange ([string[]](Get-Content $log -Tail 120)) }
-                else { $probe.Add ('  (no ' + $log + ')') }
-            }
-            Write-Probe
-            Write-Host 'no UI audit runner executable was found - the audit could not run'
-            exit 1
+        if (-not (Test-Path 'ui-audit-console.txt')) {
+            throw 'the audit ran but produced no output at all'
         }
-        $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
-        $probe.Add ('phase: launching ' + $exe.FullName)
-        Write-Probe
-        Write-Host ('running ' + $exe.FullName + ' with ANAPLUG_UI_AUDIT=' + $env:ANAPLUG_UI_AUDIT)
-        # Bounded run: a GUI-subsystem binary with no desktop session must never
-        # be able to stall the job.
-        $proc = Start-Process -FilePath $exe.FullName -NoNewWindow -PassThru `
-                  -RedirectStandardOutput 'ui-audit-stdout.txt' `
-                  -RedirectStandardError  'ui-audit-stderr.txt'
-        if (-not $proc.WaitForExit(600000)) {
-          $proc.Kill()
-          $probe.Add ('the audit process was killed after the 10 minute guard')
-          Write-Host 'UI audit timed out after 10 minutes'
-        } else {
-          $probe.Add ('audit process exit code: ' + $proc.ExitCode)
-          Write-Host ('exit code: ' + $proc.ExitCode)
+        if ($exit -ne '0') {
+            Get-Content 'ui-audit-console.txt' -Tail 40
+            throw ('UI audit found layout problems (exit ' + $exit + '): the full report is on the ci-reports branch')
         }
-
-        $probe.Add ('phase: process finished')
-        $produced = @(Get-ChildItem ui-audit -ErrorAction SilentlyContinue)
-        $probe.Add ('files under ui-audit: ' + $produced.Count)
-        foreach ($p in $produced) { $probe.Add ('  ' + $p.Name + '  ' + $p.Length) }
-        $probe.Add ('ui-audit-stdout.txt tail:')
-        if (Test-Path ui-audit-stdout.txt) { $probe.AddRange ([string[]](Get-Content ui-audit-stdout.txt -Tail 40)) }
-        $probe.Add ('ui-audit-stderr.txt tail:')
-        if (Test-Path ui-audit-stderr.txt) { $probe.AddRange ([string[]](Get-Content ui-audit-stderr.txt -Tail 40)) }
-        Write-Probe
-
-        Get-Content ui-audit-stdout.txt -Tail 12 -ErrorAction SilentlyContinue
-        Get-Content ui-audit-stderr.txt -Tail 12 -ErrorAction SilentlyContinue
-        if (Test-Path ui-audit/summary.txt) { Get-Content ui-audit/summary.txt }
-
-        # No summary means the audit never ran to completion.  The step stays
-        # non-gating (its findings are not fixed yet), but it must not look green
-        # while doing nothing - that is exactly how three runs went by unnoticed.
-        if (-not (Test-Path ui-audit/summary.txt)) { Write-Host 'UI AUDIT PRODUCED NO SUMMARY'; exit 1 }
-
+        Write-Host 'the UI audit is clean'
     - name: Upload UI audit snapshots
       if: always()
       uses: actions/upload-artifact@v4
