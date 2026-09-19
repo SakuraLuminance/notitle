@@ -1007,10 +1007,15 @@ void AnaPlugAudioProcessorEditor::resized()
                 juce::jmax(80, genStrip.getWidth() - ana::CyberpunkTheme::kReadoutWidth)).reduced(4, 0));
             genMixReadout_.setBounds(genStrip);
 
-            auto blendStrip = ca.removeFromBottom(22).reduced(40, 0);
+            // The blend control is a rotary knob, so it needs a band that can hold
+            // a circle plus its caption.  It used to be handed a 22-pixel strip and
+            // a caption translated 16 pixels up, which both shrank the knob to a dot
+            // and drew the caption over the generator row above it.
+            auto blendBand = ca.removeFromBottom(60);
+            timbreBlendLabel_.setBounds(blendBand.removeFromTop(14).reduced(40, 0));
+            auto blendStrip = blendBand.reduced(40, 0);
             timbreBlendReadout_.setBounds(blendStrip.removeFromRight(ana::CyberpunkTheme::kReadoutWidth));
             timbreBlendSlider_.setBounds(blendStrip);
-            timbreBlendLabel_.setBounds(blendStrip.translated(0, -16));
 
             const int colW = juce::jmax(1, ca.getWidth() / 3);
             timbreAPanel_.setBounds(ca.removeFromLeft(colW));

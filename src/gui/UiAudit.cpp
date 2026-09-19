@@ -75,7 +75,21 @@ void minimumSize (const juce::Component& c, int& minW, int& minH)
     minW = 1;
     minH = 1;
 
-    if (dynamic_cast<const juce::Slider*> (&c) != nullptr)          { minW = 8;  minH = 8;  }
+    if (auto* slider = dynamic_cast<const juce::Slider*> (&c))
+    {
+        // A rotary knob is drawn as a circle inside its bounds, so a knob given
+        // a 22-pixel control row is not merely small - it is a dot.  This is the
+        // check that catches "the layout looks cramped" in the one place where it
+        // cannot be argued about.
+        const auto style = slider->getSliderStyle();
+        const bool rotary = style == juce::Slider::Rotary
+                         || style == juce::Slider::RotaryHorizontalDrag
+                         || style == juce::Slider::RotaryVerticalDrag
+                         || style == juce::Slider::RotaryHorizontalVerticalDrag;
+
+        if (rotary) { minW = 24; minH = 24; }
+        else        { minW = 8;  minH = 8;  }
+    }
     else if (dynamic_cast<const juce::TextButton*> (&c) != nullptr)  { minW = 12; minH = 8;  }
     else if (dynamic_cast<const juce::ToggleButton*> (&c) != nullptr){ minW = 8;  minH = 8;  }
     else if (dynamic_cast<const juce::ComboBox*> (&c) != nullptr)    { minW = 24; minH = 8;  }
