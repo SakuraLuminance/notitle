@@ -60,8 +60,8 @@ sample loaded: yes
 1280x860  FILTER  controls=22  components=35  ink=94.17%  colours=168  findings=0  png=ok
 1280x860  MOD  controls=59  components=118  ink=91.62%  colours=155  findings=0  png=ok
 1280x860  SEQ  controls=55  components=87  ink=91.75%  colours=174  findings=0  png=ok
-1280x860  FX  controls=143  components=191  ink=61.36%  colours=185  findings=0  png=ok
 [AnaPlug] dtor:enter
+1280x860  FX  controls=143  components=191  ink=61.36%  colours=185  findings=0  png=ok
 1280x860  MASTER  controls=30  components=54  ink=91.83%  colours=172  findings=0  png=ok
 1280x860  ENV  controls=27  components=41  ink=96.23%  colours=195  findings=0  png=ok
 1280x860  EVO  controls=27  components=40  ink=96.87%  colours=141  findings=0  png=ok
@@ -90,7 +90,7 @@ sample loaded: yes
 900x660  VIEW EDITOR  controls=38  components=67  ink=81.22%  colours=264  findings=0  png=ok
 900x660  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
 900x660  VIEW SCOPE  controls=38  components=67  ink=56.87%  colours=232  findings=0  png=ok
-900x660  VIEW PARTICLES  controls=38  components=67  ink=81.12%  colours=247  findings=0  png=ok
+900x660  VIEW PARTICLES  controls=38  components=67  ink=81.13%  colours=247  findings=0  png=ok
 900x660  VIEW IMAGE  controls=43  components=73  ink=77.01%  colours=288  findings=0  png=ok
 1100x780  VIEW LIVE  controls=38  components=67  ink=79.78%  colours=300  findings=0  png=ok
 1100x780  VIEW PARTIALS  controls=38  components=67  ink=79.78%  colours=302  findings=0  png=ok
@@ -98,7 +98,7 @@ sample loaded: yes
 1100x780  VIEW EDITOR  controls=38  components=67  ink=79.79%  colours=353  findings=0  png=ok
 1100x780  VIEW 3D  skipped (OpenGL surface, not renderable offscreen)
 1100x780  VIEW SCOPE  controls=38  components=67  ink=54.06%  colours=301  findings=0  png=ok
-1100x780  VIEW PARTICLES  controls=38  components=67  ink=79.78%  colours=318  findings=0  png=ok
+1100x780  VIEW PARTICLES  controls=38  components=67  ink=79.78%  colours=321  findings=0  png=ok
 1100x780  VIEW IMAGE  controls=43  components=73  ink=76.27%  colours=349  findings=0  png=ok
 
 control heights: <12px=68 12-15px=65 16-19px=1030 20-27px=896 >=28px=648 (design row = 20px)
