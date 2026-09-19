@@ -140,6 +140,19 @@ private:
         // (that is what scrolls), and its scrollbars sit inside its own bounds.
         const bool parentIsViewport = dynamic_cast<juce::Viewport*> (&parent) != nullptr;
 
+        // ...and so do that component's own children, which are laid out against
+        // the larger scrolled content.  Exempting only the Viewport's direct child
+        // made the audit report ModulationAssignPanel and the rack's slot
+        // container as clipped when both were simply scrolled out of view.
+        const bool insideViewport = [&parent]
+        {
+            for (auto* p = parent.getParentComponent(); p != nullptr; p = p->getParentComponent())
+                if (dynamic_cast<juce::Viewport*> (p) != nullptr)
+                    return true;
+
+            return false;
+        }();
+
         std::vector<juce::Component*> visible;
 
         for (auto* child : parent.getChildren())
@@ -161,6 +174,7 @@ private:
 
             // (2) outside the parent - clipped away, unreachable
             if (! parentIsViewport
+                && ! insideViewport
                 && ! parent.getLocalBounds().contains (child->getBounds()))
             {
                 add ("outside-parent", childPath,

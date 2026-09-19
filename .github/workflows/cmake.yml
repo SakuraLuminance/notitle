@@ -842,7 +842,7 @@ jobs:
                     Sort-Object @{ Expression = { if ($_.Name -match '900x660') { 0 } else { 1 } } }, Length)
           $snapshots = 0
           foreach ($png in $pngs) {
-            if ($snapshots -ge 40) { break }
+            if ($snapshots -ge 80) { break }   # the audit writes 59; publish them all
             Publish-File $png.FullName ("ui-audit/" + $png.Name)
             $snapshots++
           }

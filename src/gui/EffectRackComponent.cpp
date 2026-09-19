@@ -181,19 +181,23 @@ void EffectSlotWidget::layoutHeader(juce::Rectangle<int> area)
     // Bypass button (fixed width)
     bypassButton_.setBounds(area.removeFromLeft(bypassW + 2).reduced(0, 4));
 
-    // Type label (fixed width)
-    typeLabel_.setBounds(area.removeFromLeft(labelW).reduced(2, 4));
-
-    // Remaining space → distribute among sliders with minimum widths
-    const int remainingW = area.getWidth();
-    const int sliderCount = 3;
-    const int minTotal = sliderMinW * sliderCount;
-    const int sliderW = std::max(minTotal, remainingW) / sliderCount;
-
-    // Expand toggle (rightmost)
+    // Expand toggle (rightmost) - fixed width, so it comes out before anything
+    // that shares what is left.
     expandButton_.setBounds(area.removeFromRight(22).reduced(1, 6));
 
-    // HI (next from right)
+    // Type label, at least half of what remains.  It used to be a fixed 62 pixels
+    // and effect names need up to 79: "StereoWidener" and "RingModulator" were
+    // rendered 58 pixels wide and clipped.
+    typeLabel_.setBounds(area.removeFromLeft(std::max(labelW, area.getWidth() / 2)).reduced(2, 4));
+
+    // Sliders divide the rest.  The old code asked each of three for
+    // std::max(minTotal, remainingW) / 3, which is the same 84 pixels whatever the
+    // remaining width is, so the three overlapped and the mix slider ended up with
+    // a rectangle of negative width.
+    const int sliderCount = 3;
+    const int sliderW = std::max(1, area.getWidth() / sliderCount);
+
+    // HI (rightmost of the sliders)
     highCutSlider_.setBounds(area.removeFromRight(sliderW).reduced(1, 6));
 
     // LO (next from right)

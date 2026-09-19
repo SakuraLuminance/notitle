@@ -104,11 +104,16 @@ void SequencerPanel::resized()
     playModeCombo_.setBounds(seqControlRow.removeFromLeft(seqControlRow.getWidth() / 3).reduced(1));
     clockSourceCombo_.setBounds(seqControlRow.removeFromLeft(seqControlRow.getWidth() / 2).reduced(1));
     currentStepLabel_.setBounds(seqControlRow.reduced(1));
-    auto seqParamRow = seqArea.removeFromTop(18).reduced(1, 0);
-    bpmSlider_.setBounds(seqParamRow.removeFromLeft(seqParamRow.getWidth() / 3).reduced(1));
-    bpmLabel_.setBounds(bpmSlider_.getBounds().translated(0, -12));
-    rateSlider_.setBounds(seqParamRow.removeFromLeft(seqParamRow.getWidth() / 2).reduced(1));
-    rateLabel_.setBounds(rateSlider_.getBounds().translated(0, -12));
+    // 26, and the caption inside the row rather than translated 12 pixels up out
+    // of it: both captions used to land on top of the combo row above, which the
+    // audit reported as a 10-pixel overlap on every page size.
+    auto seqParamRow = seqArea.removeFromTop(26).reduced(1, 0);
+    auto bpmCell = seqParamRow.removeFromLeft(seqParamRow.getWidth() / 3).reduced(1);
+    bpmLabel_.setBounds(bpmCell.removeFromTop(12));
+    bpmSlider_.setBounds(bpmCell);
+    auto rateCell = seqParamRow.removeFromLeft(seqParamRow.getWidth() / 2).reduced(1);
+    rateLabel_.setBounds(rateCell.removeFromTop(12));
+    rateSlider_.setBounds(rateCell);
     // 16 step cells in 2 rows of 8
     auto seqGridArea = seqArea.reduced(1, 0);
     auto seqRow1 = seqGridArea.removeFromTop(seqGridArea.getHeight() / 2);

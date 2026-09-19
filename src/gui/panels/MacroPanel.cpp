@@ -46,7 +46,13 @@ void MacroPanel::resized()
     for (int i = 0; i < 4; ++i)
     {
         auto cell = mkArea.removeFromLeft(mkW).reduced(2);
-        macroSliders_[i].setBounds(cell.removeFromTop(cell.getWidth()));
+        // The knob used to be given removeFromTop(cell.getWidth()) - a square as
+        // wide as the cell - which on a wide panel asked for far more height than
+        // the cell had.  removeFromTop clamps, so the knob looked fine and the
+        // caption underneath was squeezed to zero height and never drawn: the audit
+        // found two labels 215x0 at the centre of the panel.
+        auto knobCell = cell.removeFromTop(juce::jmax(0, cell.getHeight() - 12));
+        macroSliders_[i].setBounds(knobCell);
         macroLabels_[i].setBounds(cell);
     }
 }

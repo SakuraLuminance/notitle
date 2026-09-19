@@ -1011,7 +1011,10 @@ void AnaPlugAudioProcessorEditor::resized()
             // a circle plus its caption.  It used to be handed a 22-pixel strip and
             // a caption translated 16 pixels up, which both shrank the knob to a dot
             // and drew the caption over the generator row above it.
-            auto blendBand = ca.removeFromBottom(60);
+            // 52 rather than 60: TimbrePanel's own layout needs 289 pixels and had
+            // 280, which collapsed its last row to zero height (the audit reported a
+            // 278x0 slider with an invisible label on top of it).
+            auto blendBand = ca.removeFromBottom(52);
             timbreBlendLabel_.setBounds(blendBand.removeFromTop(14).reduced(40, 0));
             auto blendStrip = blendBand.reduced(40, 0);
             timbreBlendReadout_.setBounds(blendStrip.removeFromRight(ana::CyberpunkTheme::kReadoutWidth));
@@ -1045,7 +1048,9 @@ void AnaPlugAudioProcessorEditor::resized()
         {
             auto fxArea = ca;
             auto fxPresetRow = fxArea.removeFromTop(16).reduced(2, 0);
-            fxPresetLabel_.setBounds(fxPresetRow.removeFromLeft(52));
+            // 62, not 52: "FX PRESET" needs 55 pixels at this font and the audit caught it
+    // three pixels short at every window size.
+    fxPresetLabel_.setBounds(fxPresetRow.removeFromLeft(62));
             fxRedoButton_.setBounds(fxPresetRow.removeFromRight(46).reduced(1, 0));
             fxUndoButton_.setBounds(fxPresetRow.removeFromRight(46).reduced(1, 0));
             effectPresetCombo_.setBounds(fxPresetRow.reduced(0, 1));
@@ -1134,11 +1139,17 @@ void AnaPlugAudioProcessorEditor::resized()
 
     // -- Status bar (compact 35px) --
     auto sb = r.statusBar.reduced(4, 1);
+    // JUCE puts an 18x18 ResizableCornerComponent in the bottom-right of any
+    // resizable editor, and the metering panel ran underneath it: the audit
+    // reported that overlap on every page at every window size.
+    sb.removeFromRight(18);
     meteringPanel_.setBounds(sb.removeFromRight(340).reduced(1));  // thinner metering
     midiLearnIndicator_.setBounds(sb.removeFromRight(70).reduced(1));
     dnaButton_.setBounds(sb.removeFromRight(90).reduced(1));
     creditsButton_.setBounds(sb.removeFromRight(20).reduced(1));
-    auto randArea = sb.removeFromRight(120).reduced(1);
+    // Wide enough for the "±25%" item: at 120 px the combo's own label came out
+    // 21 px wide for 32 px of text, which the audit caught on every page.
+    auto randArea = sb.removeFromRight(150).reduced(1);
     randomizeButton_.setBounds(randArea.removeFromLeft(65));
     rangeCombo_.setBounds(randArea.reduced(1));
     statusLabel_.setBounds(sb.reduced(4, 0));
