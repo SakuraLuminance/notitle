@@ -12,12 +12,13 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`（VST3 + CLAP + **Standalone**），测试 `AnaPlugTests` |
-| 最新已验证提交 | `deb270c`（颗粒 JITTER）；文档提交 `109b0ac` 同样已全绿（Run `#35360160224`，624 用例） |
+| 最新已验证提交 | **`2e6f878`（全绿：Build 成功 + UI 自检跑通 + pluginval 成功 + 三个 artifact 均上传）**；插件代码上一次全绿是 `deb270c`（624 用例） |
 | 最近全绿 CI | Run `#35357783612`（`deb270c`，代码）与 `#35360160224`（`109b0ac`，HEAD）：Build **0 条 error**、**624 用例 / 0 失败 / 343042 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
 | 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 · `bcde027` 文档/工具 #35321642036 = 617 · `05e881d` 粒子云 #35352187933 = 618 · `cecf136` GRAIN 页 MIDI Learn #35352359490 = 618 · `bd188b3` 采样包络条 #35354233013 = 619 · `c070428` SPREAD/REVERSE #35354598393 = 621 · `b974d10` 粒子方向 #35355098143 = 622 · `444099b` 云按 pan 着色 #35355911104 = 623 · `deb270c` 颗粒 JITTER #35357783612 = **624** |
 | 更早的全绿 | `a6e5f3b` #35315329172 = 611（谐波分箱 + 颗粒层 + MIDI Learn）、`578253a` #35311445334（颗粒层首批）、`6d82383` #35310048933（P6b/主题） |
 | 用例计数 | 源码内 **638 个 `TEST_CASE` 名**（`d6d4a67` 注解实测）；最后一次成功执行的是 **624 个 / 0 失败 / 343042 断言**（`deb270c`） |
-| 未验证批次 | `157b71b`（FX 链重建 + UNDO/REDO）、`51e9a31`（UI 自检报告）、`d6d4a67`（ARP 接线）、`f3627ad`（CI 加固）——**都还没拿到全绿注解**，见下方“构建被杀”条目 |
+| 未验证批次 | **无**（`d6d4a67` ARP 接线 / `f3627ad` CI 加固 / `ed922c6` 四处编译修复 / `f783394` 回退通道 均已随着 `45b4f16`、`2e6f878` 两轮全绿一起被编译并运行） |
+| 本轮已全绿的提交 | `45b4f16`（MidiBuffer::size + 冗余基类 + 本地前端检查工具）与 `2e6f878`（UI 自检崩溃兜底）**run 结论 success**：Build 成功、Standalone 成功、UI 自检步骤跑通、Test 步骤成功、pluginval 成功、三个 artifact 上传成功 → **插件代码可以编译并运行了**（此前连续 4 轮失败全是编译错误） |
 | 未推送批次 | **无**；唯一剩余候选 = 成品安装（需 UAC + 浏览器下载，脚本 `tools/install-vst3.ps1` 已就绪） |
 | **已定位的 CI 盲区（已修）** | `5a7bc0d` / `d6d4a67` 连续两次失败，注解却写「no error pattern matched」——**根因是诊断脚本的正则 `error [A-Z]{2,4}[0-9]{3,5}` 要求 2–4 个大写字母，而 MSVC 的 `error C2065` 只有 1 个字母**，于是所有编译错误都被吞掉；同时 MSBuild 并行编多个工程，出错行出现在日志中段，而我当时只看日志**尾部**，尾部全是无关工程的正常输出。现在：正则改为大小写不敏感且宽泛（`error\|fatal\|failed\|cannot\|denied\|no space\|MSB`），并**无条件**输出 configure-log / build-log 尾部 + 磁盘余量。真实错误随之暴露：`UiAudit.cpp` 用了 `juce::WavAudioFormat` 但该 TU 没有包含 `juce_audio_formats` 头（模块本来已链接）——已加 `#include <juce_audio_formats/juce_audio_formats.h>` |
 | UI 自检通道 | 插件可**无宿主无窗口**渲染自己的界面：`ANAPLUG_UI_AUDIT=<dir>` + `AnaPlug_Standalone_artefacts/Release/Standalone/AnaPlug.exe` → 9 页 × 5 尺寸 + 8 种视图模式截图 + 逐控件几何检查（超出父组件 / 零尺寸 / 同级重叠 / 小于可用下限 / 无 tooltip / 文字比标签宽 / 整页几乎空白），报告写 `report.txt` / `report.json` / `inkmap*.txt`；CI 自动跑并把摘要 + 最小尺寸 ASCII 墨迹图写进 `ci-diagnostics` 注解 |
