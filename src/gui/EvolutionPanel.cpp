@@ -469,8 +469,22 @@ void EvolutionPanel::updateDisplay()
     generationLabel_.setText("Gen: " + juce::String(evolver.getGeneration()),
                              juce::dontSendNotification);
 
+    // Population selector: the evolver is the source of truth, and it can change
+    // from outside this panel (a preset load, or RANDOMIZE on the TIMBRE page).
+    const int popSize = evolver.getPopulationSize();
+
+    for (int i = 0; i < popSizeCombo_.getNumItems(); ++i)
+    {
+        if (popSizeCombo_.getItemText(i).getIntValue() == popSize)
+        {
+            if (popSizeCombo_.getSelectedId() != i + 1)
+                popSizeCombo_.setSelectedId(i + 1, juce::dontSendNotification);
+
+            break;
+        }
+    }
+
     // Fitness cache
-    int popSize = evolver.getPopulationSize();
     for (int i = 0; i < popSize && i < 128; ++i)
         cellFitness_[i] = evolver.getDNA(i).fitness;
 

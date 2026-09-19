@@ -50,7 +50,10 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-        cmake --build build --config Release 2>&1 | Tee-Object -FilePath build-log.txt
+        # Limited parallelism on purpose: VST3, CLAP and Standalone link the same
+        # object set with LTO, and letting MSBuild saturate every core made the
+        # runner kill the build mid-link with no error line at all (run 35414818193).
+        cmake --build build --config Release --parallel 2 2>&1 | Tee-Object -FilePath build-log.txt
         if ($LASTEXITCODE -ne 0) {
           Write-Host '===== build failed, last 60 lines ====='
           Get-Content build-log.txt -Tail 60
@@ -210,6 +213,16 @@ jobs:
         name: AnaPlug-CLAP-${{ matrix.os }}
         path: build/*_artefacts/Release/CLAP/
 
+    # The standalone build exists so CI can run the plugin's own code (the
+    # offscreen UI audit), but it is also the fastest way for a human to click
+    # through every page without a DAW: unzip and run AnaPlug.exe.
+    - name: Upload Standalone Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AnaPlug-Standalone-${{ matrix.os }}
+        if-no-files-found: warn
+        path: build/*_artefacts/Release/Standalone/
+
     # Diagnostic: dump the VST3 DLL's dependencies and exported symbols.
     # These reveal whether LoadLibrary fails due to missing DLL dependencies
     # or whether InitModule/DeinitModule (the VST3 factory entry-points)
@@ -310,10 +323,18 @@ jobs:
       run: |
         $out = New-Object System.Collections.Generic.List[string]
         $out.Add("run " + $env:GITHUB_RUN_ID + "  sha " + $env:GITHUB_SHA)
+        try {
+          $disks = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null }
+          foreach ($d in $disks) {
+            $out.Add('disk ' + $d.Name + ': free ' + [math]::Round($d.Free / 1GB, 2) + ' GB of ' + [math]::Round(($d.Free + $d.Used) / 1GB, 2) + ' GB')
+          }
+        } catch { $out.Add('disk report failed: ' + $_.Exception.Message) }
 
         # ---- compile errors -------------------------------------------------
         if (Test-Path build-log.txt) {
-          $errs = @(Select-String -Path build-log.txt -Pattern 'error [A-Z]{2,4}[0-9]{3,5}|fatal error|error MSB[0-9]+|ninja: build stopped' -ErrorAction SilentlyContinue)
+          # Case-insensitive and deliberately broad: a build killed with no message at
+          # all (disk, memory) still has to be distinguishable from a compile error.
+          $errs = @(Select-String -Path build-log.txt -Pattern 'error|fatal|failed|cannot|denied|no space|MSB[0-9]+' -ErrorAction SilentlyContinue)
           $out.Add("")
           $out.Add("### BUILD (" + $errs.Count + " matching lines)")
           if ($errs.Count -eq 0) {
@@ -336,10 +357,20 @@ jobs:
               }
             }
           }
-          foreach ($e in ($errs | Select-Object -First 40)) {
+          foreach ($e in ($errs | Select-Object -First 25)) {
             $t = ($e.Line -replace '\s+', ' ').Trim()
             if ($t.Length -gt 500) { $t = $t.Substring(0, 500) }
             $out.Add("- " + $t)
+          }
+
+          # Always: the last lines of the build log, whatever they say.
+          if (Test-Path build-log.txt) {
+            $out.Add('--- build-log.txt (last 8 lines) ---')
+            foreach ($l in @(Get-Content build-log.txt -Tail 8 -ErrorAction SilentlyContinue)) {
+              $t = ($l -replace '\s+', ' ').Trim()
+              if ($t.Length -gt 300) { $t = $t.Substring(0, 300) }
+              $out.Add($t)
+            }
           }
         } else {
           $out.Add("### BUILD: build-log.txt missing")
