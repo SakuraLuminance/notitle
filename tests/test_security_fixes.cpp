@@ -485,6 +485,10 @@ TEST_CASE("MidiLearn - startLearn with nullptr target does not crash",
     auto msg = juce::MidiMessage::controllerEvent(1, 15, 64);
     REQUIRE_NOTHROW(ml.processMidi(msg));
 
+    // The audio thread only records the captured CC (creating a mapping allocates);
+    // the message thread's applyPendingLearn() - or stopLearn() - builds it.
+    ml.applyPendingLearn();
+
     // After learning, there should be a mapping with nullptr target
     const auto& mappings = ml.getMappings();
     REQUIRE(mappings.size() == 1);

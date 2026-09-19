@@ -41,6 +41,56 @@ TEST_CASE("PitchCorrector - detect pitch", "[pitch_corrector][detect]")
     REQUIRE(midiNote < 70.0f);
 }
 
+//==============================================================================
+// A host may call processBlock with fewer samples than the FFT window - 512 is the
+// most common block size and the default fftSize is 2048.  The STFT synthesis loop
+// only runs frames that fit completely inside the current block and then writes the
+// block out of an accumulator that is zeroed at the start of every call, so a short
+// block currently produces digital silence after an unknown number of blocks.
+//
+// [!mayfail] records that defect: the test is expected to fail until the shifter
+// keeps its input history and overlap-add accumulator across calls, and it will fail
+// the run the moment it starts passing, so the tag has to be removed with the fix.
+TEST_CASE("PitchCorrector - short blocks eventually produce audio",
+           "[pitch_corrector][process][!mayfail]")
+{
+    constexpr double sampleRate = 48000.0;
+    constexpr int    blockSize  = 512;
+    constexpr int    numBlocks  = 12;
+
+    PitchCorrector pc;
+    pc.setSampleRate(sampleRate);
+    pc.setAlgorithm(PitchAlgorithm::Spectral);
+    pc.setFftSize(2048);          // four times the host block
+    pc.setPitchShift(2.0f);
+    pc.setCorrectionAmount(1.0f);
+
+    juce::AudioBuffer<float> buffer(1, blockSize);
+    float lastBlockPeak = 0.0f;
+
+    for (int b = 0; b < numBlocks; ++b)
+    {
+        for (int i = 0; i < blockSize; ++i)
+        {
+            const float phase = 2.0f * juce::MathConstants<float>::pi * 440.0f
+                                * (float) (b * blockSize + i) / (float) sampleRate;
+            buffer.setSample(0, i, std::sin(phase));
+        }
+
+        pc.process(buffer);
+
+        lastBlockPeak = 0.0f;
+        for (int i = 0; i < blockSize; ++i)
+        {
+            const float a = std::abs(buffer.getSample(0, i));
+            if (a > lastBlockPeak)
+                lastBlockPeak = a;
+        }
+    }
+
+    REQUIRE(lastBlockPeak > 0.01f);
+}
+
 TEST_CASE("PitchCorrector - algorithms process", "[pitch_corrector][process]")
 {
     PitchCorrector pc;
