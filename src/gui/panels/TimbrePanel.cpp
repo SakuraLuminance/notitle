@@ -48,9 +48,21 @@ void TimbrePanel::resized()
 {
     const int pad = 3;
     auto area = getLocalBounds().reduced(6, pad * 2);
-    const int knobSize = (area.getWidth() - pad * 2) / 2;
+
+    // The knob was sized from the panel's width alone - half of it, which at
+    // 900x660 asks for 136-pixel knobs in a column 288 pixels tall.  Two knob rows
+    // plus the HPF row need 340, so the second row collapsed to zero height and the
+    // audit found zero-height labels and sliders that were never placed at all
+    // (0,0 0x0).  The height gets a say now.
+    const int captionH = 14;
+    const int hpfH = 16 + 12;
+    const int rows = 2;
+    const int reserved = captionH * rows + hpfH + pad * 4;
+    const int knobSize = juce::jmax (24,
+                            juce::jmin ((area.getWidth() - pad * 2) / 2,
+                                        (area.getHeight() - reserved) / rows));
     auto row = [&](juce::Slider& s, juce::Label& l) {
-        auto cell = area.removeFromTop(knobSize + 14).reduced(pad);
+        auto cell = area.removeFromTop(knobSize + captionH).reduced(pad);
         s.setBounds(cell.removeFromTop(knobSize));
         l.setBounds(cell);
     };
