@@ -11,15 +11,17 @@
 | 仓库 | `SakuraLuminance/notitle`（public），`main` 直推 |
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
-| 构建目标名 | 插件 `AnaPlug`，测试 `AnaPlugTests` |
+| 构建目标名 | 插件 `AnaPlug`（VST3 + CLAP + **Standalone**），测试 `AnaPlugTests` |
 | 最新已验证提交 | `deb270c`（颗粒 JITTER）；文档提交 `109b0ac` 同样已全绿（Run `#35360160224`，624 用例） |
 | 最近全绿 CI | Run `#35357783612`（`deb270c`，代码）与 `#35360160224`（`109b0ac`，HEAD）：Build **0 条 error**、**624 用例 / 0 失败 / 343042 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
 | 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 · `bcde027` 文档/工具 #35321642036 = 617 · `05e881d` 粒子云 #35352187933 = 618 · `cecf136` GRAIN 页 MIDI Learn #35352359490 = 618 · `bd188b3` 采样包络条 #35354233013 = 619 · `c070428` SPREAD/REVERSE #35354598393 = 621 · `b974d10` 粒子方向 #35355098143 = 622 · `444099b` 云按 pan 着色 #35355911104 = 623 · `deb270c` 颗粒 JITTER #35357783612 = **624** |
 | 更早的全绿 | `a6e5f3b` #35315329172 = 611（谐波分箱 + 颗粒层 + MIDI Learn）、`578253a` #35311445334（颗粒层首批）、`6d82383` #35310048933（P6b/主题） |
-| 用例计数 | 源码内 **630 个 `TEST_CASE` 名**、**624 个实际执行**（数字全部来自 runner 注解，见 §1） |
-| 未验证批次 | 无（最新一次 push `30e57c1` 只改路线图文档） |
+| 用例计数 | 源码内 **638 个 `TEST_CASE` 名**（`d6d4a67` 注解实测）；最后一次成功执行的是 **624 个 / 0 失败 / 343042 断言**（`deb270c`） |
+| 未验证批次 | `157b71b`（FX 链重建 + UNDO/REDO）、`51e9a31`（UI 自检报告）、`d6d4a67`（ARP 接线）、`f3627ad`（CI 加固）——**都还没拿到全绿注解**，见下方“构建被杀”条目 |
 | 未推送批次 | **无**；唯一剩余候选 = 成品安装（需 UAC + 浏览器下载，脚本 `tools/install-vst3.ps1` 已就绪） |
-| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、rack 内 MIDI Learn ✓、颗粒层 + GRAIN 页 ✓（粒子云 / 采样包络条 / SPREAD / REVERSE / JITTER / 9 旋钮全部可 MIDI Learn）、DNA fittest → 音色 ✓、图像谐波分箱 ✓、帧混合曲线 ✓、**枚举真菜单 ✓**（用户已确认：仅 UI 菜单）、颗粒池性能 ✓；**路线图全部完成**，只剩成品安装 |
+| **当前阻塞** | 加 `Standalone` 格式后连续两次 CI 都在**链接阶段被 runner 杀掉**（`5a7bc0d` / `d6d4a67`）：configure 成功、build-log 中途截断且**没有任何 error 行**。`f3627ad` 已加 `--parallel 2`（三个 LTO 链接同时跑最可能是内存峰值）并把磁盘余量写进注解，等结果 |
+| UI 自检通道 | 插件可**无宿主无窗口**渲染自己的界面：`ANAPLUG_UI_AUDIT=<dir>` + `AnaPlug_Standalone_artefacts/Release/Standalone/AnaPlug.exe` → 9 页 × 5 尺寸 + 8 种视图模式截图 + 逐控件几何检查（超出父组件 / 零尺寸 / 同级重叠 / 小于可用下限 / 无 tooltip / 文字比标签宽 / 整页几乎空白），报告写 `report.txt` / `report.json` / `inkmap*.txt`；CI 自动跑并把摘要 + 最小尺寸 ASCII 墨迹图写进 `ci-diagnostics` 注解 |
+| 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、rack 内 MIDI Learn ✓、颗粒层 + GRAIN 页 ✓（粒子云 / 采样包络条 / SPREAD / REVERSE / JITTER / 9 旋钮全部可 MIDI Learn）、DNA fittest → 音色 ✓、图像谐波分箱 ✓、帧混合曲线 ✓、**枚举真菜单 ✓**（用户已确认：仅 UI 菜单）、颗粒池性能 ✓、**ARP 接线 ✓**（PATTERN/RATE/GATE 三个控件此前完全没接线，属死控件）、FX 链自动重建 + 链 UNDO/REDO ✓、MOD/FILTER/MASTER/EVO 面板补 `syncFromProcessor()`（预置载入后界面不再停留在上一套参数）✓；**路线图全部完成**，只剩成品安装 |
 | 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |
 
 ---

@@ -433,9 +433,15 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     // for the rest.
     juce::StringArray inkMaps;
 
+    // Every snapshot is also listed in an HTML page, so the whole UI can be
+    // reviewed one page at a time by opening a single file from the artifact.
+    struct Snapshot { juce::String tag, png, summary; bool blank = false; };
+    std::vector<Snapshot> gallery;
+
     auto capture = [&] (const juce::String& tag, const juce::String& fileName)
     {
-        const auto file = outputDir.getChildFile (juce::File::createLegalFileName (fileName) + ".png");
+        const auto pngName = juce::File::createLegalFileName (fileName) + ".png";
+        const auto file = outputDir.getChildFile (pngName);
         const auto stats = renderSnapshot (*editor, file);
         ++snapshots;
 
@@ -447,19 +453,31 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
 
         const auto inkPercent = stats.inkRatio * 100.0;
 
+        const auto controlCount  = juce::String (auditor.visibleControls);
+        const auto componentCount = juce::String (auditor.visibleComponents);
+        const auto inkText       = juce::String (inkPercent, 2);
+        const auto findingCount  = juce::String (static_cast<int> (auditor.findings.size()));
+
         lines.add (tag
-                   + "  controls=" + juce::String (auditor.visibleControls)
-                   + "  components=" + juce::String (auditor.visibleComponents)
-                   + "  ink=" + juce::String (inkPercent, 2) + "%"
+                   + "  controls=" + controlCount
+                   + "  components=" + componentCount
+                   + "  ink=" + inkText + "%"
                    + "  colours=" + juce::String (stats.distinctColours)
-                   + "  findings=" + juce::String (static_cast<int> (auditor.findings.size()))
+                   + "  findings=" + findingCount
                    + "  png=" + stats.status);
 
         // A page that paints almost nothing is broken however clean its geometry
         // is - this is what caught an EVO page whose panel was never created.
-        if (stats.inkRatio < 0.002 && stats.status == "ok")
+        const bool blank = (stats.inkRatio < 0.002 && stats.status == "ok");
+
+        if (blank)
             all.push_back ({ "blank-snapshot", tag,
-                             "only " + juce::String (inkPercent, 2) + "% of the pixels differ from the background" });
+                             "only " + inkText + "% of the pixels differ from the background" });
+
+        gallery.push_back ({ tag, pngName,
+                             "controls " + controlCount + " | components " + componentCount
+                             + " | ink " + inkText + "% | findings " + findingCount,
+                             blank });
 
         for (const auto& f : auditor.findings)
             all.push_back (f);
@@ -506,6 +524,17 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
 
         for (int mode = 0; mode < numModes; ++mode)
         {
+            // The 3D view draws through an OpenGL context that replaces component
+            // painting entirely (setComponentPaintingEnabled(false)), so an offscreen
+            // software snapshot of it would be empty - and attaching a context that
+            // has no peer is not something to do in a headless job.
+            if (editor->getViewModeName (mode).containsIgnoreCase ("3D"))
+            {
+                lines.add (sizeTag + "  VIEW " + editor->getViewModeName (mode)
+                           + "  skipped (OpenGL surface, not renderable offscreen)");
+                continue;
+            }
+
             editor->showViewMode (mode);
             editor->timerCallback();
 
@@ -513,6 +542,8 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
                      "view-" + editor->getViewModeName (mode) + "_" + sizeTag);
         }
 
+        // Back to a software-painted view before anything else is rendered.
+        editor->showViewMode (3);
         editor->showViewMode (0);
     }
 
@@ -589,6 +620,56 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
 
     outputDir.getChildFile ("report.json")
              .replaceWithText (juce::JSON::toString (juce::var (root.get()), false));
+
+    // ---- HTML gallery ------------------------------------------------------
+    // "Show me the UI page by page": one self-contained file, every snapshot,
+    // every finding, no script and no external assets.
+    {
+        juce::String html;
+        html << "<!doctype html><meta charset='utf-8'><title>AnaPlug UI audit</title>"
+             << "<style>body{background:#0b0d12;color:#d8e0f0;font:13px/1.5 Consolas,monospace;margin:16px}"
+             << "h1{font-size:16px;color:#5ff} h2{font-size:14px;color:#f5f;margin-top:22px}"
+             << ".grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}"
+             << ".card{border:1px solid #263;border-radius:4px;padding:6px;background:#11141b}"
+             << ".card img{width:100%;height:auto;display:block;border:1px solid #222}"
+             << ".tag{color:#5ff} .bad{color:#f66} .muted{color:#889} table{border-collapse:collapse}"
+             << "td,th{border:1px solid #263;padding:3px 6px;text-align:left;vertical-align:top}</style>";
+        html << "<h1>AnaPlug UI audit</h1>";
+        html << "<p>" << summary.replace ("&", "&amp;").replace ("<", "&lt;") << "</p>";
+        html << "<p>sample loaded: " << (sampleLoaded ? "yes" : "no") << "</p>";
+
+        if (! byKind.empty())
+        {
+            html << "<h2>findings by kind</h2><table><tr><th>kind</th><th>count</th></tr>";
+
+            for (const auto& entry : byKind)
+                html << "<tr><td>" << entry.first << "</td><td>" << entry.second << "</td></tr>";
+
+            html << "</table>";
+        }
+
+        if (! printed.empty())
+        {
+            html << "<h2>findings</h2><table><tr><th>kind</th><th>where</th><th>detail</th></tr>";
+
+            for (const auto& fnd : printed)
+                html << "<tr><td>" << fnd.kind << "</td><td>" << fnd.path.replace ("<", "&lt;")
+                     << "</td><td>" << fnd.detail.replace ("<", "&lt;") << "</td></tr>";
+
+            html << "</table>";
+        }
+
+        html << "<h2>snapshots (" << snapshots << ")</h2><div class='grid'>";
+
+        for (const auto& s : gallery)
+            html << "<div class='card'><div class='tag'>" << s.tag.replace ("<", "&lt;")
+                 << "</div><img src='" << s.png << "' alt=''><div class='"
+                 << (s.blank ? "bad" : "muted") << "'>" << s.summary << "</div></div>";
+
+        html << "</div>";
+
+        outputDir.getChildFile ("index.html").replaceWithText (html);
+    }
 
     return static_cast<int> (all.size());
 }
