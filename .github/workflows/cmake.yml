@@ -147,28 +147,11 @@ jobs:
         # development machine, and for three runs in a row a 'successful' audit step
         # turned out to have produced nothing at all.
         $probe = [System.Collections.Generic.List[string]]::new()
-        $probe.Add ('standalone build exit: ' + $env:STANDALONE_BUILD_EXIT)
-        $probe.Add ('audit runner build exit: ' + $env:AUDIT_RUNNER_BUILD_EXIT)
-        $probe.Add ('working directory: ' + $PWD)
 
-        # Not just 'AnaPlug.exe': the artefact is named after the product but the
-        # JUCE target is AnaPlugUiAudit, so match on the target's name.
-        $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug*.exe' -ErrorAction SilentlyContinue)
-        # Only the console runner can do this.  The standalone has no main() of ours:
-        # it opens its window and sits there, so falling back to it spent ten
-        # minutes waiting for a process that was never going to write a report and
-        # then reported "the audit produced no report" with no reason attached.
-        $exe = $candidates | Where-Object { $_.Name -match 'Audit' } | Select-Object -First 1
-        $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
-        foreach ($c in $candidates) { $probe.Add ('  ' + $c.FullName) }
-        $probe.Add ('chosen exe: ' + $(if ($exe) { $exe.FullName } else { 'NONE' }))
-
-        foreach ($dir in @(Get-ChildItem -Path build -Recurse -Directory -Filter '*artefacts' -ErrorAction SilentlyContinue))
-            { $probe.Add ('artefacts dir: ' + $dir.FullName) }
-
-        # Always called, including on the happy path: the probe used to be written
-        # only when the executable was missing, so a run where the audit produced no
-        # report left no trace at all and the publish step could only say so.
+        # Written first and rewritten after every phase.  The probe has been absent
+        # from every run so far, which says the script died before it got here - and
+        # with no probe there is nothing to say where.  Now the file exists from the
+        # first line and its last entry names the phase that stopped.
         function Write-Probe {
             if (Test-Path 'ui-audit-stdout.txt') {
                 $probe.Add ('ui-audit-stdout.txt tail:')
@@ -188,6 +171,29 @@ jobs:
             $probe -join [Environment]::NewLine | Set-Content -Path 'ui-audit-probe.txt'
         }
 
+        $probe.Add ('phase: start')
+        $probe.Add ('standalone build exit: ' + $env:STANDALONE_BUILD_EXIT)
+        $probe.Add ('audit runner build exit: ' + $env:AUDIT_RUNNER_BUILD_EXIT)
+        $probe.Add ('working directory: ' + $PWD)
+        Write-Probe
+
+        # Not just 'AnaPlug.exe': the artefact is named after the product but the
+        # JUCE target is AnaPlugUiAudit, so match on the target's name.
+        $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug*.exe' -ErrorAction SilentlyContinue)
+        # Only the console runner can do this.  The standalone has no main() of ours:
+        # it opens its window and sits there, so falling back to it spent ten
+        # minutes waiting for a process that was never going to write a report and
+        # then reported "the audit produced no report" with no reason attached.
+        $exe = $candidates | Where-Object { $_.Name -match 'Audit' } | Select-Object -First 1
+        $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
+        foreach ($c in $candidates) { $probe.Add ('  ' + $c.FullName) }
+        $probe.Add ('chosen exe: ' + $(if ($exe) { $exe.FullName } else { 'NONE' }))
+
+        foreach ($dir in @(Get-ChildItem -Path build -Recurse -Directory -Filter '*artefacts' -ErrorAction SilentlyContinue))
+            { $probe.Add ('artefacts dir: ' + $dir.FullName) }
+        $probe.Add ('phase: exe selected')
+        Write-Probe
+
         if (-not $exe) {
             foreach ($log in @('audit-runner-build-log.txt', 'standalone-build-log.txt')) {
                 $probe.Add ($log + ' tail:')
@@ -199,6 +205,8 @@ jobs:
             exit 1
         }
         $env:ANAPLUG_UI_AUDIT = (Join-Path $PWD 'ui-audit')
+        $probe.Add ('phase: launching ' + $exe.FullName)
+        Write-Probe
         Write-Host ('running ' + $exe.FullName + ' with ANAPLUG_UI_AUDIT=' + $env:ANAPLUG_UI_AUDIT)
         # Bounded run: a GUI-subsystem binary with no desktop session must never
         # be able to stall the job.
@@ -214,6 +222,7 @@ jobs:
           Write-Host ('exit code: ' + $proc.ExitCode)
         }
 
+        $probe.Add ('phase: process finished')
         $produced = @(Get-ChildItem ui-audit -ErrorAction SilentlyContinue)
         $probe.Add ('files under ui-audit: ' + $produced.Count)
         foreach ($p in $produced) { $probe.Add ('  ' + $p.Name + '  ' + $p.Length) }
@@ -758,7 +767,8 @@ jobs:
               -Body (@{ ref = "refs/heads/$branch"; sha = $sha } | ConvertTo-Json) | Out-Null
             Say ("created branch " + $branch)
           } catch {
-            Say ("branch not created (already present?): " + $_.Exception.Message)
+            Say ("branch not created: " + $_.Exception.Message)
+            if ($_.ErrorDetails.Message) { Say ("  detail: " + $_.ErrorDetails.Message) }
           }
 
           $script:published = 0
