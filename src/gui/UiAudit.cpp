@@ -722,13 +722,36 @@ int runAudit (AnaPlugAudioProcessor& processor, const juce::File& outputDir, juc
     if (juce::MessageManager::getInstanceWithoutCreating() == nullptr)
         initialiser = std::make_unique<juce::ScopedJuceInitialiser_GUI>();
 
-    AnaPlugAudioProcessor processor;
-    processor.prepareToPlay (44100.0, 512);
+    // A crash here would leave CI with no report and no explanation, which is the
+    // one outcome that cannot be diagnosed from this machine (no artifact, no log
+    // download).  Whatever goes wrong, write something readable first.
+    int findings = 1;
 
-    juce::String report;
-    const int findings = runAudit (processor, outputDir, report);
+    try
+    {
+        AnaPlugAudioProcessor processor;
+        processor.prepareToPlay (44100.0, 512);
 
-    std::cout << report << std::flush;
+        juce::String report;
+        findings = runAudit (processor, outputDir, report);
+
+        std::cout << report << std::flush;
+    }
+    catch (const std::exception& e)
+    {
+        const juce::String message = juce::String ("UI AUDIT CRASHED: ") + e.what();
+        outputDir.getChildFile ("summary.txt").replaceWithText (message + "\n");
+        std::cout << message << std::endl;
+        findings = 1;
+    }
+    catch (...)
+    {
+        const juce::String message = "UI AUDIT CRASHED: unknown exception";
+        outputDir.getChildFile ("summary.txt").replaceWithText (message + "\n");
+        std::cout << message << std::endl;
+        findings = 1;
+    }
+
     std::cout << "UI AUDIT EXIT: " << findings << " findings" << std::endl;
 
     // _Exit skips static destruction: the plugin wrappers install singletons that
