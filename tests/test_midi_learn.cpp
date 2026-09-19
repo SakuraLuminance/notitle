@@ -117,12 +117,14 @@ TEST_CASE("MidiLearn - startLearn multiple times", "[midi][learn]")
     ml.startLearn("paramA", &targetA);
     auto msgA = juce::MidiMessage::controllerEvent(1, 10, 64);
     ml.processMidi(msgA);
+    ml.applyPendingLearn();
     REQUIRE(ml.getMappings().size() == 1);
     REQUIRE(ml.getMappings()[0].ccNumber == 10);
 
     ml.startLearn("paramB", &targetB);
     auto msgB = juce::MidiMessage::controllerEvent(1, 20, 100);
     ml.processMidi(msgB);
+    ml.applyPendingLearn();
     REQUIRE(ml.getMappings().size() == 2);
     REQUIRE(ml.getMappings()[1].ccNumber == 20);
 }
