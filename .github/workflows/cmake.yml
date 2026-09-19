@@ -167,7 +167,27 @@ jobs:
         foreach ($dir in @(Get-ChildItem -Path build -Recurse -Directory -Filter '*artefacts' -ErrorAction SilentlyContinue))
             { $probe.Add ('artefacts dir: ' + $dir.FullName) }
 
-        function Write-Probe { $probe -join [Environment]::NewLine | Set-Content -Path 'ui-audit-probe.txt' }
+        # Always called, including on the happy path: the probe used to be written
+        # only when the executable was missing, so a run where the audit produced no
+        # report left no trace at all and the publish step could only say so.
+        function Write-Probe {
+            if (Test-Path 'ui-audit-stdout.txt') {
+                $probe.Add ('ui-audit-stdout.txt tail:')
+                $probe.AddRange ([string[]](Get-Content 'ui-audit-stdout.txt' -Tail 40))
+            }
+            if (Test-Path 'ui-audit-stderr.txt') {
+                $probe.Add ('ui-audit-stderr.txt tail:')
+                $probe.AddRange ([string[]](Get-Content 'ui-audit-stderr.txt' -Tail 40))
+            }
+            if (Test-Path 'ui-audit') {
+                $produced = @(Get-ChildItem 'ui-audit' -Recurse -File -ErrorAction SilentlyContinue)
+                $probe.Add ('ui-audit files: ' + $produced.Count)
+                foreach ($p in ($produced | Select-Object -First 20)) { $probe.Add ('  ' + $p.Name) }
+            } else {
+                $probe.Add 'ui-audit directory was never created'
+            }
+            $probe -join [Environment]::NewLine | Set-Content -Path 'ui-audit-probe.txt'
+        }
 
         if (-not $exe) {
             foreach ($log in @('audit-runner-build-log.txt', 'standalone-build-log.txt')) {
@@ -712,18 +732,27 @@ jobs:
         $exitCode = 0
 
         try {
-          if (-not (Test-Path 'ui-audit/summary.txt')) {
-            Say 'the audit produced no report'
-            if (Test-Path 'ui-audit-probe.txt') {
-              Get-Content ui-audit-probe.txt -TotalCount 40 | ForEach-Object { Say ("probe: " + $_) }
-            }
-            throw 'no ui-audit/summary.txt'
+          # The diagnostics are published *before* the report is checked for, so a
+          # run where the audit produced nothing still explains itself.  That was
+          # the last blind spot: a red step whose reason was on the runner.
+          Say ("workspace root: " + $PWD)
+          foreach ($item in @(Get-ChildItem -Force | Sort-Object Name)) {
+            Say ("  present: " + $item.Name)
+          }
+          if (Test-Path 'ui-audit-probe.txt') {
+            Get-Content 'ui-audit-probe.txt' -TotalCount 60 | ForEach-Object { Say ("probe: " + $_) }
+          } else {
+            Say 'ui-audit-probe.txt was never written - the audit step did not reach it'
           }
 
-          Say ("summary.txt: " + (Get-Item 'ui-audit/summary.txt').Length + " bytes")
-          Get-Content 'ui-audit/summary.txt' -TotalCount 12 | ForEach-Object { Say ("summary: " + $_) }
-          Get-Content 'ui-audit/report.txt' -TotalCount 30 -ErrorAction SilentlyContinue |
-            ForEach-Object { Say ("finding: " + $_) }
+          if (-not (Test-Path 'ui-audit/summary.txt')) {
+            Say 'the audit produced no report'
+          } else {
+            Say ("summary.txt: " + (Get-Item 'ui-audit/summary.txt').Length + " bytes")
+            Get-Content 'ui-audit/summary.txt' -TotalCount 12 | ForEach-Object { Say ("summary: " + $_) }
+            Get-Content 'ui-audit/report.txt' -TotalCount 30 -ErrorAction SilentlyContinue |
+              ForEach-Object { Say ("finding: " + $_) }
+          }
 
           try {
             Invoke-RestMethod -Method Post -Uri "$api/git/refs" -Headers $headers -ContentType 'application/json' `
@@ -780,6 +809,10 @@ jobs:
             $snapshots++
           }
           Say ("snapshots: " + $snapshots + " of " + $pngs.Count)
+
+          # Finally the verdict: everything above has already been published, so a
+          # run with no report still leaves a readable trail.
+          if (-not (Test-Path 'ui-audit/summary.txt')) { throw 'no ui-audit/summary.txt' }
         } catch {
           Say ("FAILED: " + $_.Exception.Message)
           if ($_.ErrorDetails.Message) { Say ("  detail: " + $_.ErrorDetails.Message) }
