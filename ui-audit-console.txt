@@ -48,7 +48,6 @@ sample loaded: yes
 900x660  EVO  controls=27  components=40  ink=96.65%  colours=135  findings=0  png=ok
 900x660  GRAIN  controls=32  components=62  ink=96.55%  colours=163  findings=0  png=ok
 1100x780  TIMBRE  controls=38  components=67  ink=79.78%  colours=300  findings=0  png=ok
-[AnaPlug] dtor:enter
 1100x780  FILTER  controls=22  components=35  ink=93.80%  colours=162  findings=0  png=ok
 1100x780  MOD  controls=59  components=118  ink=91.71%  colours=156  findings=0  png=ok
 1100x780  SEQ  controls=55  components=87  ink=91.41%  colours=179  findings=0  png=ok
@@ -62,6 +61,7 @@ sample loaded: yes
 1280x860  MOD  controls=59  components=118  ink=91.62%  colours=155  findings=0  png=ok
 1280x860  SEQ  controls=55  components=87  ink=91.75%  colours=174  findings=0  png=ok
 1280x860  FX  controls=143  components=191  ink=61.36%  colours=185  findings=0  png=ok
+[AnaPlug] dtor:enter
 1280x860  MASTER  controls=30  components=54  ink=91.83%  colours=172  findings=0  png=ok
 1280x860  ENV  controls=27  components=41  ink=96.23%  colours=195  findings=0  png=ok
 1280x860  EVO  controls=27  components=40  ink=96.87%  colours=141  findings=0  png=ok
