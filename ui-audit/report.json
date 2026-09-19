@@ -2,17 +2,17 @@
   "snapshots": 59,
   "visibleControls": 2707,
   "visibleComponents": 4422,
-  "findings": 648,
+  "findings": 428,
   "items": [
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -42,32 +42,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -97,237 +97,42 @@
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  TIMBRE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  TIMBRE",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  FILTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  FILTER",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 8,62 215x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "8,62 215x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 227,62 215x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "227,62 215x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 446,62 215x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "446,62 215x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 665,62 215x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  MOD/MacroPanel/juce::Label",
-      "detail": "665,62 215x0"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "900x660  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel",
-      "detail": "child 0,0 300x564 parent 0,0 880x300"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  MOD/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  MOD",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,34 291x16 needs at least 24x24"
+      "detail": "5,46 291x12 needs at least 24x24"
     },
     {
       "kind": "too-small",
       "path": "900x660  SEQ/SequencerPanel/juce::Slider",
-      "detail": "298,34 291x16 needs at least 24x24"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 5,18 291x14 x juce::Label 5,22 291x16 -> 5,22 291x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 298,18 291x14 x juce::Label 298,22 291x16 -> 298,22 291x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  SEQ/SequencerPanel",
-      "detail": "juce::Slider 5,34 291x16 x juce::Label 5,22 291x16 -> 5,34 291x4"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  SEQ/SequencerPanel",
-      "detail": "juce::Slider 298,34 291x16 x juce::Label 298,22 291x16 -> 298,34 291x4"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  SEQ/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  SEQ",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/juce::Label",
-      "detail": "\"FX PRESET\" needs 55 px, label is 52 px"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component",
-      "detail": "child 0,0 880x420 parent 0,0 878x274"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"StereoWidener\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Distortion\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Saturation\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Bitcrusher\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Compressor\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "900x660  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"RingModulator\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  FX/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  FX",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  MASTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  MASTER",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  ENV/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  ENV",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  EVO/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  EVO",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  GRAIN/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  GRAIN",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "298,46 291x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -357,32 +162,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -412,237 +217,42 @@
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  TIMBRE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  TIMBRE",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  FILTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  FILTER",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 8,62 265x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "8,62 265x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 277,62 265x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "277,62 265x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 546,62 265x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "546,62 265x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 815,62 265x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  MOD/MacroPanel/juce::Label",
-      "detail": "815,62 265x0"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "1100x780  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel",
-      "detail": "child 0,0 300x564 parent 0,0 1080x379"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  MOD/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  MOD",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,34 358x16 needs at least 24x24"
+      "detail": "5,46 358x12 needs at least 24x24"
     },
     {
       "kind": "too-small",
       "path": "1100x780  SEQ/SequencerPanel/juce::Slider",
-      "detail": "365,34 358x16 needs at least 24x24"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 5,18 358x14 x juce::Label 5,22 358x16 -> 5,22 358x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 365,18 358x14 x juce::Label 365,22 358x16 -> 365,22 358x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  SEQ/SequencerPanel",
-      "detail": "juce::Slider 5,34 358x16 x juce::Label 5,22 358x16 -> 5,34 358x4"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  SEQ/SequencerPanel",
-      "detail": "juce::Slider 365,34 358x16 x juce::Label 365,22 358x16 -> 365,34 358x4"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  SEQ/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  SEQ",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/juce::Label",
-      "detail": "\"FX PRESET\" needs 55 px, label is 52 px"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component",
-      "detail": "child 0,0 1080x420 parent 0,0 1078x353"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"StereoWidener\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Distortion\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Saturation\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Bitcrusher\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Compressor\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1100x780  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"RingModulator\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  FX/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  FX",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  MASTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  MASTER",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  ENV/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  ENV",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  EVO/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  EVO",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  GRAIN/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  GRAIN",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "365,46 358x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,397 404x0"
+      "detail": "visible but 9,405 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,397 404x0"
+      "detail": "9,405 404x0"
     },
     {
       "kind": "zero-size",
@@ -672,32 +282,32 @@
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,403 404x0"
+      "detail": "visible but 9,411 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,403 404x0 needs at least 8x8"
+      "detail": "9,411 404x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,403 404x0"
+      "detail": "visible but 9,411 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,403 404x0"
+      "detail": "9,411 404x0"
     },
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,397 404x0"
+      "detail": "visible but 9,405 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,397 404x0"
+      "detail": "9,405 404x0"
     },
     {
       "kind": "zero-size",
@@ -727,237 +337,42 @@
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,403 404x0"
+      "detail": "visible but 9,411 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,403 404x0 needs at least 8x8"
+      "detail": "9,411 404x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,403 404x0"
+      "detail": "visible but 9,411 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,403 404x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  TIMBRE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  TIMBRE",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  FILTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  FILTER",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 8,62 310x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "8,62 310x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 322,62 310x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "322,62 310x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 636,62 310x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "636,62 310x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 950,62 310x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  MOD/MacroPanel/juce::Label",
-      "detail": "950,62 310x0"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "1280x860  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel",
-      "detail": "child 0,0 300x564 parent 0,0 1260x432"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  MOD/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  MOD",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
+      "detail": "9,411 404x0"
     },
     {
       "kind": "too-small",
       "path": "1280x860  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,34 418x16 needs at least 24x24"
+      "detail": "5,46 418x12 needs at least 24x24"
     },
     {
       "kind": "too-small",
       "path": "1280x860  SEQ/SequencerPanel/juce::Slider",
-      "detail": "425,34 418x16 needs at least 24x24"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 5,18 418x14 x juce::Label 5,22 418x16 -> 5,22 418x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 425,18 418x14 x juce::Label 425,22 418x16 -> 425,22 418x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  SEQ/SequencerPanel",
-      "detail": "juce::Slider 5,34 418x16 x juce::Label 5,22 418x16 -> 5,34 418x4"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  SEQ/SequencerPanel",
-      "detail": "juce::Slider 425,34 418x16 x juce::Label 425,22 418x16 -> 425,34 418x4"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  SEQ/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  SEQ",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/juce::Label",
-      "detail": "\"FX PRESET\" needs 55 px, label is 52 px"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component",
-      "detail": "child 0,0 1260x420 parent 0,0 1258x406"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"StereoWidener\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Distortion\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Saturation\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Bitcrusher\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Compressor\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1280x860  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"RingModulator\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  FX/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  FX",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  MASTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  MASTER",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  ENV/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  ENV",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  EVO/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  EVO",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1280x860  GRAIN/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1280x860  GRAIN",
-      "detail": "MeteringPanel 937,827 338x31 x juce::ResizableCornerComponent 1262,842 18x18 -> 1262,842 13x16"
+      "detail": "425,46 418x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,489 511x0"
+      "detail": "visible but 9,497 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,489 511x0"
+      "detail": "9,497 511x0"
     },
     {
       "kind": "zero-size",
@@ -987,32 +402,32 @@
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,495 511x0"
+      "detail": "visible but 9,503 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,495 511x0 needs at least 8x8"
+      "detail": "9,503 511x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,495 511x0"
+      "detail": "visible but 9,503 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,495 511x0"
+      "detail": "9,503 511x0"
     },
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,489 511x0"
+      "detail": "visible but 9,497 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,489 511x0"
+      "detail": "9,497 511x0"
     },
     {
       "kind": "zero-size",
@@ -1042,232 +457,42 @@
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,495 511x0"
+      "detail": "visible but 9,503 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,495 511x0 needs at least 8x8"
+      "detail": "9,503 511x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,495 511x0"
+      "detail": "visible but 9,503 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,495 511x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  TIMBRE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  TIMBRE",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  FILTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  FILTER",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 8,62 390x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "8,62 390x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 402,62 390x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "402,62 390x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 796,62 390x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "796,62 390x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 1190,62 390x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  MOD/MacroPanel/juce::Label",
-      "detail": "1190,62 390x0"
-    },
-    {
-      "kind": "outside-parent",
-      "path": "1600x1000  MOD/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/ModulationAssignPanel",
-      "detail": "child 0,0 300x564 parent 0,0 1580x524"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  MOD/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  MOD",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
+      "detail": "9,503 511x0"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,34 524x16 needs at least 24x24"
+      "detail": "5,46 524x12 needs at least 24x24"
     },
     {
       "kind": "too-small",
       "path": "1600x1000  SEQ/SequencerPanel/juce::Slider",
-      "detail": "531,34 525x16 needs at least 24x24"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 5,18 524x14 x juce::Label 5,22 524x16 -> 5,22 524x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 531,18 525x14 x juce::Label 531,22 525x16 -> 531,22 525x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  SEQ/SequencerPanel",
-      "detail": "juce::Slider 5,34 524x16 x juce::Label 5,22 524x16 -> 5,34 524x4"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  SEQ/SequencerPanel",
-      "detail": "juce::Slider 531,34 525x16 x juce::Label 531,22 525x16 -> 531,34 525x4"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  SEQ/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  SEQ",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/juce::Label",
-      "detail": "\"FX PRESET\" needs 55 px, label is 52 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"StereoWidener\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Distortion\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Saturation\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Bitcrusher\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Compressor\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1600x1000  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"RingModulator\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  FX/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  FX",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  MASTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  MASTER",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  ENV/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  ENV",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  EVO/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  EVO",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1600x1000  GRAIN/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1600x1000  GRAIN",
-      "detail": "MeteringPanel 1257,967 338x31 x juce::ResizableCornerComponent 1582,982 18x18 -> 1582,982 13x16"
+      "detail": "531,46 525x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,621 618x0"
+      "detail": "visible but 9,629 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,621 618x0"
+      "detail": "9,629 618x0"
     },
     {
       "kind": "zero-size",
@@ -1297,32 +522,32 @@
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,627 618x0"
+      "detail": "visible but 9,635 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,627 618x0 needs at least 8x8"
+      "detail": "9,635 618x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,627 618x0"
+      "detail": "visible but 9,635 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,627 618x0"
+      "detail": "9,635 618x0"
     },
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,621 618x0"
+      "detail": "visible but 9,629 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,621 618x0"
+      "detail": "9,629 618x0"
     },
     {
       "kind": "zero-size",
@@ -1352,227 +577,42 @@
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,627 618x0"
+      "detail": "visible but 9,635 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,627 618x0 needs at least 8x8"
+      "detail": "9,635 618x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,627 618x0"
+      "detail": "visible but 9,635 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,627 618x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  TIMBRE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  TIMBRE",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  FILTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  FILTER",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 8,62 470x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "8,62 470x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 482,62 470x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "482,62 470x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 956,62 470x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "956,62 470x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "visible but 1430,62 470x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  MOD/MacroPanel/juce::Label",
-      "detail": "1430,62 470x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  MOD/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  MOD",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
+      "detail": "9,635 618x0"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  SEQ/SequencerPanel/juce::Slider",
-      "detail": "5,34 631x16 needs at least 24x24"
+      "detail": "5,46 631x12 needs at least 24x24"
     },
     {
       "kind": "too-small",
       "path": "1920x1200  SEQ/SequencerPanel/juce::Slider",
-      "detail": "638,34 631x16 needs at least 24x24"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 5,18 631x14 x juce::Label 5,22 631x16 -> 5,22 631x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  SEQ/SequencerPanel",
-      "detail": "juce::ComboBox 638,18 631x14 x juce::Label 638,22 631x16 -> 638,22 631x10"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  SEQ/SequencerPanel",
-      "detail": "juce::Slider 5,34 631x16 x juce::Label 5,22 631x16 -> 5,34 631x4"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  SEQ/SequencerPanel",
-      "detail": "juce::Slider 638,34 631x16 x juce::Label 638,22 631x16 -> 638,34 631x4"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  SEQ/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  SEQ",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/juce::Label",
-      "detail": "\"FX PRESET\" needs 55 px, label is 52 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"StereoWidener\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Distortion\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Saturation\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Bitcrusher\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"Compressor\" needs 61 px, label is 58 px"
-    },
-    {
-      "kind": "text-tight",
-      "path": "1920x1200  FX/EffectRackComponent/juce::Viewport/juce::Viewport::AccessibilityIgnoredComponent/juce::Component/EffectSlotWidget/juce::Label",
-      "detail": "\"RingModulator\" needs 79 px, label is 58 px"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  FX/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  FX",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  MASTER/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  MASTER",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  ENV/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  ENV",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  EVO/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  EVO",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1920x1200  GRAIN/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1920x1200  GRAIN",
-      "detail": "MeteringPanel 1577,1167 338x31 x juce::ResizableCornerComponent 1902,1182 18x18 -> 1902,1182 13x16"
+      "detail": "638,46 631x12 needs at least 24x24"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1602,32 +642,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1657,42 +697,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW LIVE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW LIVE",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1722,32 +752,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1777,42 +807,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW PARTIALS/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW PARTIALS",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1842,32 +862,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1897,42 +917,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW WATERFALL/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW WATERFALL",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1962,32 +972,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2017,42 +1027,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW EDITOR/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW EDITOR",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2082,32 +1082,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2137,42 +1137,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW SCOPE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW SCOPE",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2202,32 +1192,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2257,42 +1247,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW PARTICLES/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW PARTICLES",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2322,32 +1302,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,265 278x0"
+      "detail": "visible but 9,273 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,265 278x0"
+      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -2377,42 +1357,32 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,271 278x0 needs at least 8x8"
+      "detail": "9,279 278x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,271 278x0"
+      "detail": "visible but 9,279 278x0"
     },
     {
       "kind": "too-small",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,271 278x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "900x660  VIEW IMAGE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "900x660  VIEW IMAGE",
-      "detail": "MeteringPanel 557,627 338x31 x juce::ResizableCornerComponent 882,642 18x18 -> 882,642 13x16"
+      "detail": "9,279 278x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2442,32 +1412,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2497,42 +1467,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW LIVE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW LIVE",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2562,32 +1522,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2617,42 +1577,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW PARTIALS/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW PARTIALS",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2682,32 +1632,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2737,42 +1687,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW WATERFALL/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW WATERFALL",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2802,32 +1742,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2857,42 +1797,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW EDITOR/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW EDITOR",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2922,32 +1852,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2977,42 +1907,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW SCOPE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW SCOPE",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -3042,32 +1962,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -3097,42 +2017,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW PARTICLES/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW PARTICLES",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -3162,32 +2072,32 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
+      "detail": "9,358 344x0"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,344 344x0"
+      "detail": "visible but 9,352 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,344 344x0"
+      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -3217,32 +2127,22 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,350 344x0 needs at least 8x8"
+      "detail": "9,358 344x0 needs at least 8x8"
     },
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,350 344x0"
+      "detail": "visible but 9,358 344x0"
     },
     {
       "kind": "too-small",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,350 344x0"
-    },
-    {
-      "kind": "text-overflow",
-      "path": "1100x780  VIEW IMAGE/juce::ComboBox/juce::Label",
-      "detail": "\"±25%\" needs 32 px, label is 21 px"
-    },
-    {
-      "kind": "overlap",
-      "path": "1100x780  VIEW IMAGE",
-      "detail": "MeteringPanel 757,747 338x31 x juce::ResizableCornerComponent 1082,762 18x18 -> 1082,762 13x16"
+      "detail": "9,358 344x0"
     }
   ]
 }
