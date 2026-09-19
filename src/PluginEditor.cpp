@@ -2021,6 +2021,10 @@ void AnaPlugAudioProcessorEditor::updateMidiLearnState()
 
     auto& midiLearn = audioProcessor.getMidiLearn();
 
+    // A CC the audio thread captured during learn mode becomes a mapping here:
+    // creating one allocates, which is exactly what the audio thread must not do.
+    midiLearn.applyPendingLearn();
+
     // --- Timeout: auto-stop learn after 3 seconds ---
     if (midiLearn.isLearning())
     {

@@ -26,6 +26,24 @@ void ensureLUTs() noexcept
         }
     });
 }
+
+//==============================================================================
+// juce::dsp::DelayLine does not grow to fit the delays asked of it: its constructor
+// leaves the maximum delay at 0, which is a two-sample line, and setDelay() then
+// clamps every request into [0, 2].  The comb's delay is sampleRate/cutoff samples
+// (2..2400 over the 20 Hz..0.48*sr range process() clamps the cutoff to), so without
+// this the comb was always a two-sample feedback loop and its cutoff control did
+// nothing at all.  The line has to be sized before prepare(), because that call is
+// what allocates from the maximum.
+constexpr double kMinCombCutoffHz = 20.0;
+
+void prepareCombDelayLine (juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear>& line,
+                           const juce::dsp::ProcessSpec& spec)
+{
+    const int maxDelaySamples = static_cast<int> (std::ceil (spec.sampleRate / kMinCombCutoffHz)) + 4;
+    line.setMaximumDelayInSamples (maxDelaySamples);
+    line.prepare (spec);
+}
 } // namespace
 
 //==============================================================================
@@ -58,7 +76,7 @@ void MultiFilter::prepare(const juce::dsp::ProcessSpec& newSpec)
     for (auto& slot : slots)
     {
         slot.iirFilter.prepare(spec);
-        slot.delayLine.prepare(spec);
+        prepareCombDelayLine(slot.delayLine, spec);
         slot.lastDelayed[0] = 0.0f;
         slot.lastDelayed[1] = 0.0f;
 
@@ -110,7 +128,7 @@ int MultiFilter::addSlot(FilterType type, const FilterParams& params)
     if (spec.sampleRate > 0 && spec.maximumBlockSize > 0)
     {
         slot.iirFilter.prepare(spec);
-        slot.delayLine.prepare(spec);
+        prepareCombDelayLine(slot.delayLine, spec);
 
         if (type == FilterType::Formant)
         {

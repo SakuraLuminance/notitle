@@ -28,8 +28,11 @@ void MidiLearn::addMappingInternal(int cc, const juce::String& paramId,
                                    std::function<float()> getter,
                                    float min, float max)
 {
-    // Remove any existing mapping for this CC number first
-    removeMapping(cc);
+    // Remove any existing mapping for this CC number first (lock_ is held, so this
+    // cannot go through removeMapping()).
+    mappings_.erase(std::remove_if(mappings_.begin(), mappings_.end(),
+        [cc](const MidiMapping& m) { return m.ccNumber == cc; }),
+        mappings_.end());
 
     MidiMapping mapping;
     mapping.ccNumber     = cc;
@@ -45,6 +48,7 @@ void MidiLearn::addMappingInternal(int cc, const juce::String& paramId,
 void MidiLearn::addMapping(int cc, const juce::String& paramId,
                            std::atomic<float>* target, float min, float max)
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
     addMappingInternal(cc, paramId, target, {}, {}, min, max);
 }
 
@@ -53,11 +57,13 @@ void MidiLearn::addMapping(int cc, const juce::String& paramId,
                            std::function<float()> getter,
                            float min, float max)
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
     addMappingInternal(cc, paramId, nullptr, std::move(setter), std::move(getter), min, max);
 }
 
 void MidiLearn::removeMapping(int cc)
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
     mappings_.erase(std::remove_if(mappings_.begin(), mappings_.end(),
         [cc](const MidiMapping& m) { return m.ccNumber == cc; }),
         mappings_.end());
@@ -65,11 +71,14 @@ void MidiLearn::removeMapping(int cc)
 
 void MidiLearn::removeAllMappings()
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
     mappings_.clear();
 }
 
 void MidiLearn::setMappingGlobal(const juce::String& paramId, bool isGlobal)
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     for (auto& m : mappings_)
     {
         if (m.parameterId == paramId)
@@ -86,21 +95,31 @@ void MidiLearn::processMidi(const juce::MidiMessage& msg)
     if (!msg.isController())
         return;
 
+    // Audio thread: never block.  Dropping one CC while the user edits a mapping is
+    // harmless; walking a vector that the message thread is reallocating is not -
+    // every element owns std::function objects, so the old code could call through a
+    // destroyed functor.
+    const juce::SpinLock::ScopedTryLockType audioLock (lock_);
+    if (!audioLock.isLocked())
+        return;
+
     const int cc    = msg.getControllerNumber();
     const float value = msg.getControllerValue() / 127.0f;
 
     // --- Learn mode: capture the first CC we receive ---
-    if (learning_)
+    if (learning_.load())
     {
-        addMappingInternal(cc, learnParamId_, learnTarget_,
-                           learnSetter_, learnGetter_, learnMin_, learnMax_);
+        // Only record the capture here.  Creating the mapping reallocates the table
+        // and allocates the std::function it holds, neither of which belongs on the
+        // audio thread, so applyPendingLearn() does it on the message thread.
+        pendingLearnCc_.store(cc, std::memory_order_relaxed);
 
         // Apply the value immediately so the parameter snaps to the
         // current controller position
         applyTargetValue(learnTarget_, learnSetter_,
                          learnMin_ + value * (learnMax_ - learnMin_));
 
-        stopLearn();
+        learning_.store(false, std::memory_order_release);
         return;
     }
 
@@ -120,13 +139,17 @@ void MidiLearn::processMidi(const juce::MidiMessage& msg)
 void MidiLearn::startLearn(const juce::String& paramId, std::atomic<float>* target,
                            float min, float max)
 {
-    learning_       = true;
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
+    // Fields first, flag last: the release store is what publishes the learn target
+    // the audio thread is about to read.
     learnParamId_   = paramId;
     learnTarget_    = target;
     learnSetter_    = {};
     learnGetter_    = {};
     learnMin_       = min;
     learnMax_       = max;
+    learning_.store(true, std::memory_order_release);
 }
 
 void MidiLearn::startLearn(const juce::String& paramId,
@@ -134,18 +157,30 @@ void MidiLearn::startLearn(const juce::String& paramId,
                            std::function<float()> getter,
                            float min, float max)
 {
-    learning_       = true;
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     learnParamId_   = paramId;
     learnTarget_    = nullptr;
     learnSetter_    = std::move(setter);
     learnGetter_    = std::move(getter);
     learnMin_       = min;
     learnMax_       = max;
+    learning_.store(true, std::memory_order_release);
 }
 
 void MidiLearn::stopLearn()
 {
-    learning_     = false;
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
+    // A capture may already have arrived from the audio thread: turn it into a
+    // mapping before the learn fields are cleared, or the CC the user just moved is
+    // silently dropped.
+    const int cc = pendingLearnCc_.exchange(-1, std::memory_order_relaxed);
+    if (cc >= 0 && !learnParamId_.isEmpty())
+        addMappingInternal(cc, learnParamId_, learnTarget_,
+                           learnSetter_, learnGetter_, learnMin_, learnMax_);
+
+    learning_.store(false, std::memory_order_release);
     learnParamId_ = {};
     learnTarget_  = nullptr;
     learnSetter_  = {};
@@ -154,9 +189,27 @@ void MidiLearn::stopLearn()
     learnMax_     = 1.0f;
 }
 
+bool MidiLearn::applyPendingLearn()
+{
+    const int cc = pendingLearnCc_.exchange(-1, std::memory_order_relaxed);
+    if (cc < 0)
+        return false;
+
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
+    if (learnParamId_.isEmpty())
+        return false;
+
+    addMappingInternal(cc, learnParamId_, learnTarget_,
+                       learnSetter_, learnGetter_, learnMin_, learnMax_);
+    return true;
+}
+
 //==============================================================================
 void MidiLearn::reconnectTarget(const juce::String& paramId, std::atomic<float>* target)
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     for (auto& m : mappings_)
     {
         if (m.parameterId == paramId)
@@ -173,6 +226,8 @@ void MidiLearn::reconnectTarget(const juce::String& paramId,
                                 std::function<void(float)> setter,
                                 std::function<float()> getter)
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     for (auto& m : mappings_)
     {
         if (m.parameterId == paramId)
@@ -188,6 +243,8 @@ void MidiLearn::reconnectTarget(const juce::String& paramId,
 //==============================================================================
 bool MidiLearn::getMappingValue(const juce::String& paramId, float& outValue) const
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     for (const auto& m : mappings_)
     {
         if (m.parameterId != paramId)
@@ -215,6 +272,8 @@ bool MidiLearn::getMappingValue(const juce::String& paramId, float& outValue) co
 // Processor state: save/load ALL mappings (global + per-preset)
 juce::ValueTree MidiLearn::saveProcessorState() const
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     juce::ValueTree state("MidiLearn");
 
     for (const auto& m : mappings_)
@@ -236,6 +295,8 @@ void MidiLearn::loadProcessorState(const juce::ValueTree& state)
 {
     if (!state.isValid() || !state.hasType("MidiLearn"))
         return;
+
+    const juce::SpinLock::ScopedLockType sl (lock_);
 
     mappings_.clear();
 
@@ -260,6 +321,8 @@ void MidiLearn::loadProcessorState(const juce::ValueTree& state)
 // Preset state: save/load only per-preset (non-global) mappings
 juce::ValueTree MidiLearn::savePresetState() const
 {
+    const juce::SpinLock::ScopedLockType sl (lock_);
+
     juce::ValueTree state("MidiLearnPreset");
 
     for (const auto& m : mappings_)
@@ -282,6 +345,8 @@ void MidiLearn::loadPresetState(const juce::ValueTree& state)
 {
     if (!state.isValid() || !state.hasType("MidiLearnPreset"))
         return;
+
+    const juce::SpinLock::ScopedLockType sl (lock_);
 
     // Remove all non-global mappings (global ones survive)
     mappings_.erase(std::remove_if(mappings_.begin(), mappings_.end(),

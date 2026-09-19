@@ -67,23 +67,28 @@ void MeteringEngine::process(const juce::AudioBuffer<float>& buffer)
     if (numSamples <= 0 || numCh <= 0)
         return;
 
-    // Grow interleave buffer if the block size has increased since prepare()
-    const auto needed = static_cast<size_t>(numSamples) * static_cast<size_t>(numCh);
-    if (interleaveBuffer_.size() < needed)
-        interleaveBuffer_.resize(needed);
+    // prepare() sizes this to the announced maximum block; a host is allowed to
+    // deliver a larger one (offline bounce, render-ahead).  Growing it here would
+    // allocate on the audio thread, so meter the prepared window instead - loudness
+    // is an average over a window far longer than one block.
+    const int capacityFrames = static_cast<int>(interleaveBuffer_.size() / static_cast<size_t>(numCh));
+    const int meteredSamples = juce::jmin(numSamples, capacityFrames);
+
+    if (meteredSamples <= 0)
+        return;
 
     // Interleave: JUCE stores audio deinterleaved (per-channel arrays),
     // libebur128 expects interleaved float frames.
     for (int ch = 0; ch < numCh; ++ch) {
         const float* src = buffer.getReadPointer(ch);
-        for (int s = 0; s < numSamples; ++s)
+        for (int s = 0; s < meteredSamples; ++s)
             interleaveBuffer_[static_cast<size_t>(s * numCh + ch)] = src[s];
     }
 
     // Feed interleaved frames to libebur128
     if (ebur128_add_frames_float(state_,
                                   interleaveBuffer_.data(),
-                                  static_cast<size_t>(numSamples)) != EBUR128_SUCCESS)
+                                  static_cast<size_t>(meteredSamples)) != EBUR128_SUCCESS)
         return;
 
     // Read and cache all meter values

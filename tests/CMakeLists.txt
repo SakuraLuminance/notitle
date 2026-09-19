@@ -43,6 +43,7 @@ test_partial_tracker.cpp
     test_quantum_spectral.cpp
     test_resynthesis.cpp
     test_security_fixes.cpp
+    test_input_hardening.cpp
     test_sample_processor.cpp
     test_sanity.cpp
     test_spectral_dna.cpp

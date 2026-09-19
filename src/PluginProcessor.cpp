@@ -1153,6 +1153,15 @@ void AnaPlugAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 void AnaPlugAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     ANA_CRUMB("setStateInformation");
+
+    // The blob arrives from the host or the project file.  ValueTree's binary parser
+    // recurses once per nesting level and pre-allocates storage from a child count
+    // stored inside the data, so its size is the last thing we can check before it
+    // runs; a real state is a few hundred KB.
+    constexpr int kMaxStateBytes = 32 * 1024 * 1024;
+    if (data == nullptr || sizeInBytes <= 0 || sizeInBytes > kMaxStateBytes)
+        return;
+
     auto state = juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
     if (!state.isValid() || !state.hasType("AnaPlugState"))
         return;

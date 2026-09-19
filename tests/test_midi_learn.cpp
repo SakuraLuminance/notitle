@@ -92,7 +92,12 @@ TEST_CASE("MidiLearn - startLearn captures next CC", "[midi][learn]")
     // Should have stopped learning
     REQUIRE_FALSE(ml.isLearning());
 
-    // A mapping should have been created for CC 15
+    // A mapping should have been created for CC 15.  The audio thread only records
+    // the captured CC (creating a mapping allocates), so the message thread's
+    // applyPendingLearn() is what turns it into a mapping; in the plugin the editor
+    // timer calls it, and stopLearn() does it for the learn timeout.
+    ml.applyPendingLearn();
+
     const auto& mappings = ml.getMappings();
     REQUIRE(mappings.size() == 1);
     REQUIRE(mappings[0].ccNumber == 15);
@@ -360,6 +365,8 @@ TEST_CASE("MidiLearn - startLearn learns a callback target", "[midi][callback][l
 
     ml.processMidi(juce::MidiMessage::controllerEvent(1, 11, 127));
     REQUIRE_FALSE(ml.isLearning());
+
+    ml.applyPendingLearn();   // message-thread half of the learn capture
 
     REQUIRE(ml.getMappings().size() == 1);
     REQUIRE(ml.getMappings()[0].ccNumber == 11);

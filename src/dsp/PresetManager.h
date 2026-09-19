@@ -281,7 +281,11 @@ public:
     static constexpr const char* xmlRootTag = "AnaPlugPreset";
 
     #ifdef ANA_INCLUDE_TEST_ACCESSORS
-    friend class PresetManagerTestAccess;
+    // Fully qualified: the class is declared at global scope, and an unqualified
+    // friend declaration inside this namespace resolves to a *different*
+    // ana::PresetManagerTestAccess under clang (MSVC searches the global scope and
+    // accepts it).  Without the :: only MSVC can build the tests that use it.
+    friend class ::PresetManagerTestAccess;
     #endif
 
 private:

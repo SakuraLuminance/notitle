@@ -1,4 +1,4 @@
-﻿#include "PresetManager.h"
+#include "PresetManager.h"
 #include <memory>
 #include "PresetFactory.h"
 #include "ProcessorStore.h"
@@ -773,7 +773,14 @@ bool PresetManager::deserialiseFilters(const juce::ValueTree& tree)
 
     multiFilterRef->clearSlots();
 
-    for (int i = 0; i < tree.getNumChildren(); ++i)
+    // The slot count is file data.  Every slot holds an IIR filter, a delay line and
+    // a formant bank, and the audio thread walks all of them on every block, so an
+    // unbounded count is a file that can melt the audio thread.  The rack holds at
+    // most kMaxFilterSlots.
+    constexpr int kMaxFilterSlots = 16;
+    const int numSlots = juce::jmin(tree.getNumChildren(), kMaxFilterSlots);
+
+    for (int i = 0; i < numSlots; ++i)
     {
         auto slotTree = tree.getChild(i);
         if (!slotTree.hasType("Slot"))
@@ -1426,7 +1433,14 @@ bool PresetManager::deserialiseEffects(const juce::ValueTree& tree)
     // Clear the current chain 鈥?we will reconstruct from scratch
     effectsChain_->clear();
 
-    for (int i = 0; i < tree.getNumChildren(); ++i)
+    // A preset has no size limit of its own, and every effect reconstructed here
+    // allocates real DSP state in its prepare() - a two-second delay line per channel
+    // for the delay alone.  Rebuild at most as many slots as the rack can hold; the
+    // rest is a file asking for an out-of-memory.
+    constexpr int kMaxDeserialisedEffects = 32;
+    const int numEffects = juce::jmin(tree.getNumChildren(), kMaxDeserialisedEffects);
+
+    for (int i = 0; i < numEffects; ++i)
     {
         auto child = tree.getChild(i);
 
