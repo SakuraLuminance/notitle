@@ -2,20 +2,10 @@
   "snapshots": 59,
   "visibleControls": 2707,
   "visibleComponents": 4422,
-  "findings": 428,
+  "findings": 200,
   "items": [
     {
       "kind": "zero-size",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -42,36 +32,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -93,26 +53,6 @@
       "kind": "text-overflow",
       "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
     },
     {
       "kind": "too-small",
@@ -126,16 +66,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -162,36 +92,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -213,26 +113,6 @@
       "kind": "text-overflow",
       "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
     },
     {
       "kind": "too-small",
@@ -246,16 +126,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,405 404x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,405 404x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -282,36 +152,6 @@
     {
       "kind": "zero-size",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,411 404x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,411 404x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,411 404x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,411 404x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,405 404x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,405 404x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -333,26 +173,6 @@
       "kind": "text-overflow",
       "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,411 404x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,411 404x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,411 404x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1280x860  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,411 404x0"
     },
     {
       "kind": "too-small",
@@ -366,16 +186,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,497 511x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,497 511x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -402,36 +212,6 @@
     {
       "kind": "zero-size",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,503 511x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,503 511x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,503 511x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,503 511x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,497 511x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,497 511x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -453,26 +233,6 @@
       "kind": "text-overflow",
       "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,503 511x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,503 511x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,503 511x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1600x1000  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,503 511x0"
     },
     {
       "kind": "too-small",
@@ -486,16 +246,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,629 618x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,629 618x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -522,36 +272,6 @@
     {
       "kind": "zero-size",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,635 618x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,635 618x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,635 618x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,635 618x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,629 618x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,629 618x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -573,26 +293,6 @@
       "kind": "text-overflow",
       "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,635 618x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Slider",
-      "detail": "9,635 618x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,635 618x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1920x1200  TIMBRE/TimbrePanel/juce::Label",
-      "detail": "9,635 618x0"
     },
     {
       "kind": "too-small",
@@ -606,16 +306,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -642,36 +332,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -693,36 +353,6 @@
       "kind": "text-overflow",
       "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -752,36 +382,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -806,36 +406,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -862,36 +432,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -913,36 +453,6 @@
       "kind": "text-overflow",
       "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -972,36 +482,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1026,36 +506,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -1082,36 +532,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1133,36 +553,6 @@
       "kind": "text-overflow",
       "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
     },
     {
       "kind": "zero-size",
@@ -1192,36 +582,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1246,36 +606,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -1302,36 +632,6 @@
     {
       "kind": "zero-size",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,273 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,273 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1353,36 +653,6 @@
       "kind": "text-overflow",
       "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,279 278x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,279 278x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "900x660  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,279 278x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -1412,36 +682,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1466,36 +706,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW LIVE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -1522,36 +732,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1573,36 +753,6 @@
       "kind": "text-overflow",
       "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTIALS/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -1632,36 +782,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1686,36 +806,6 @@
     },
     {
       "kind": "zero-size",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW WATERFALL/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
@@ -1742,36 +832,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1793,36 +853,6 @@
       "kind": "text-overflow",
       "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW EDITOR/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -1852,36 +882,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -1903,36 +903,6 @@
       "kind": "text-overflow",
       "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW SCOPE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -1962,36 +932,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -2013,36 +953,6 @@
       "kind": "text-overflow",
       "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW PARTICLES/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
     },
     {
       "kind": "zero-size",
@@ -2072,36 +982,6 @@
     {
       "kind": "zero-size",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,352 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,352 344x0"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
       "detail": "visible but 0,0 0x0"
     },
     {
@@ -2123,26 +1003,6 @@
       "kind": "text-overflow",
       "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
       "detail": "\"BLUR\" needs 20 px, label is 0 px"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Slider",
-      "detail": "9,358 344x0 needs at least 8x8"
-    },
-    {
-      "kind": "zero-size",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "visible but 9,358 344x0"
-    },
-    {
-      "kind": "too-small",
-      "path": "1100x780  VIEW IMAGE/TimbrePanel/juce::Label",
-      "detail": "9,358 344x0"
     }
   ]
 }
