@@ -47,18 +47,34 @@ jobs:
         cmake -B build -S . -DTESTING=ON 2>&1 | tee configure-log.txt
         exit ${PIPESTATUS[0]}
 
+    # The shipped targets first, exactly as before the Standalone format existed.
+    # Splitting the audit runner out keeps a failure in that extra link from
+    # taking the plugin, the tests and pluginval down with it.
     - name: Build
       shell: pwsh
       run: |
-        # Limited parallelism on purpose: VST3, CLAP and Standalone link the same
-        # object set with LTO, and letting MSBuild saturate every core made the
-        # runner kill the build mid-link with no error line at all (run 35414818193).
-        cmake --build build --config Release --parallel 2 2>&1 | Tee-Object -FilePath build-log.txt
+        # Limited parallelism on purpose: the format targets link the same object
+        # set with LTO, and letting MSBuild saturate every core made the runner
+        # kill the build mid-link with no error line at all (run 35414818193).
+        cmake --build build --config Release --parallel 2 `
+          --target AnaPlug_VST3 AnaPlug_CLAP AnaPlugTests 2>&1 | Tee-Object -FilePath build-log.txt
         if ($LASTEXITCODE -ne 0) {
           Write-Host '===== build failed, last 60 lines ====='
           Get-Content build-log.txt -Tail 60
           exit $LASTEXITCODE
         }
+
+    # Standalone = the UI audit's runner (see the ANAPLUG_UI_AUDIT step below).
+    # Non-fatal: without it the audit reports that it did not run, and every
+    # other result in this job is unaffected.
+    - name: Build standalone (UI audit runner)
+      continue-on-error: true
+      shell: pwsh
+      run: |
+        cmake --build build --config Release --parallel 2 --target AnaPlug_Standalone `
+          2>&1 | Tee-Object -FilePath standalone-build-log.txt
+        Write-Host ('standalone build exit: ' + $LASTEXITCODE)
+        Get-Content standalone-build-log.txt -Tail 12
 
     # Crash forensics: WER writes a minidump for ANY process that dies with
     # an unhandled exception (AnaPlugTests.exe, pluginval.exe) into C:\dumps.
@@ -442,6 +458,14 @@ jobs:
           }
         } else {
           $out.Add('ui-audit/summary.txt missing (audit did not run)')
+          if (Test-Path standalone-build-log.txt) {
+            $out.Add('--- standalone-build-log.txt (last 10 lines) ---')
+            foreach ($l in @(Get-Content standalone-build-log.txt -Tail 10 -ErrorAction SilentlyContinue)) {
+              $t = ($l -replace '\s+', ' ').Trim()
+              if ($t.Length -gt 300) { $t = $t.Substring(0, 300) }
+              $out.Add($t)
+            }
+          }
           foreach ($name in @('ui-audit-stdout.txt', 'ui-audit-stderr.txt')) {
             if (Test-Path $name) {
               foreach ($l in @(Get-Content $name -Tail 6 -ErrorAction SilentlyContinue)) { $out.Add($name + ': ' + $l.Trim()) }
