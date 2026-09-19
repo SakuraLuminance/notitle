@@ -1,6 +1,13 @@
 name: Build
 
-on: [push, pull_request]
+# Only main and pull requests build.  This matters beyond tidiness: the UI audit
+# report is published by force-pushing a ci-reports branch, and an unrestricted
+# "on: [push]" would make that push start another run, which would push again.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 # The publish step creates a check run carrying the build errors, the Catch2
 # counts and pluginval's strictness level, so the result stays readable even
@@ -155,6 +162,79 @@ jobs:
           ui-audit/inkmap-minimum.txt
           ui-audit-stdout.txt
           ui-audit-stderr.txt
+
+
+    # ---------------------------------------------------------------------------
+    # The only channel that reliably carries *content* back to the dev machine.
+    #
+    # The annotation channel has gone silent twice (the long pwsh diagnostics step
+    # reports success while nothing reaches the check run), and artifacts/logs are
+    # unreachable from that machine: *.blob.core.windows.net resolves to 198.18.x.x
+    # there, so neither /logs nor the artifact zip can be fetched.  api.github.com
+    # is reachable, and git is reachable - so the report is published as a commit
+    # on a throwaway branch that is force-pushed every run (no history growth, and
+    # it never builds because only main and PRs trigger this workflow).
+    - name: Publish UI audit report (ci-reports branch)
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: |
+        echo "::error title=ci-canary::publish-step-reached"
+
+        if [ ! -d ui-audit ]; then
+          echo "::error title=ui-audit::the audit produced no ui-audit directory"
+          exit 0
+        fi
+
+        if [ -f ui-audit/summary.txt ]; then
+          n=$(grep -c '^' ui-audit/summary.txt || true)
+          echo "::error title=ui-audit::summary.txt has $n lines"
+          head -8 ui-audit/summary.txt | sed 's/%/%25/g' | while IFS= read -r line; do
+            echo "::error title=ui-audit-summary::$line"
+          done
+        else
+          echo "::error title=ui-audit::no summary.txt - the audit did not finish"
+          sed 's/%/%25/g' ui-audit-stderr.txt 2>/dev/null | head -20 | while IFS= read -r line; do
+            echo "::error title=ui-audit-stderr::$line"
+          done | cat
+        fi
+
+        # Any findings the audit wrote as its own report lines.
+        if [ -f ui-audit/report.txt ]; then
+          grep -iE 'overlap|zero-size|too-small|no-tooltip|text-overflow|text-tight|blank-snapshot|outside-parent' ui-audit/report.txt \
+            | head -20 | sed 's/%/%25/g' \
+            | while IFS= read -r line; do echo "::error title=ui-finding::$line"; done | cat
+        fi
+
+        rm -rf /tmp/ci-reports
+        mkdir -p /tmp/ci-reports
+        cp -r ui-audit/. /tmp/ci-reports/ 2>/dev/null || true
+        cp ui-audit-stdout.txt ui-audit-stderr.txt /tmp/ci-reports/ 2>/dev/null || true
+
+        cd /tmp/ci-reports
+        {
+          echo "# AnaPlug UI audit report"
+          echo
+          echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "Commit: $GITHUB_SHA"
+          echo
+          echo "This branch is rewritten (force-pushed) by every CI run on main; it is"
+          echo "not part of the product and carries no history worth keeping.  It exists"
+          echo "because the audit's summary and snapshots otherwise die in an artifact"
+          echo "that the development machine cannot download."
+          echo
+          echo "Open \`index.html\` for the gallery: every page at every supported window"
+          echo "size, plus the per-snapshot findings table."
+        } > README.md
+
+        git init -q .
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git checkout -q -b ci-reports
+        git add -A
+        git commit -q -m "UI audit for ${GITHUB_SHA:0:7}"
+        git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-reports
+        echo "::error title=ci-canary::ci-reports pushed"
 
     - name: Test
       continue-on-error: true
