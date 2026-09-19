@@ -330,6 +330,35 @@ if(TARGET clap_juce_extensions)
     )
 endif()
 
+# ---- Offscreen UI audit runner ----
+# A console application that links the plugin's shared code, builds the real
+# editor offscreen and writes the layout report.  CI can also reach the audit
+# through the Standalone build, but that path drags in JUCE's standalone wrapper,
+# the audio-device panel and the settings window - and it produced no artefact at
+# all while the audit step still reported success.  This target exists so the
+# audit has a runner that cannot be silently missing.
+#
+# It is deliberately excluded from ALL: the plugins and the tests are what every
+# build must produce, and a failure here must not be able to fail them.
+juce_add_console_app(AnaPlugUiAudit
+    PRODUCT_NAME "AnaPlugUiAudit"
+    COMPANY_NAME "AnaPlug"
+)
+
+target_sources(AnaPlugUiAudit PRIVATE src/gui/UiAuditMain.cpp)
+
+target_link_libraries(AnaPlugUiAudit
+    PRIVATE
+        AnaPlug
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_audio_formats
+        juce::juce_gui_extra
+        ebur128
+)
+
+set_target_properties(AnaPlugUiAudit PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # ---- Testing ----
 option(TESTING "Enable testing" OFF)
 

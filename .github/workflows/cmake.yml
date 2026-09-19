@@ -117,6 +117,19 @@ jobs:
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name DumpCount -Value 10 -Type DWord
         New-Item -ItemType Directory -Force -Path "C:\dumps" | Out-Null
 
+    # Console runner for the audit: links the plugin's shared code, so it needs
+    # no host, no audio device and none of JUCE's standalone wrapper.  The
+    # Standalone build remains the fallback runner.
+    - name: Build UI audit runner (console)
+      continue-on-error: true
+      shell: pwsh
+      run: |
+        cmake --build build --config Release --target AnaPlugUiAudit `
+          2>&1 | Tee-Object -FilePath audit-runner-build-log.txt
+        Write-Host ('audit runner build exit: ' + $LASTEXITCODE)
+        Get-Content audit-runner-build-log.txt -Tail 12
+        "AUDIT_RUNNER_BUILD_EXIT=$LASTEXITCODE" | Out-File -FilePath $env:GITHUB_ENV -Append
+
     # Offscreen UI audit: renders every page at every supported window size and
     # checks each visible control's geometry (clipped outside its parent? squeezed
     # to zero? overlapping a sibling? below a usable minimum? missing a tooltip?).
@@ -135,13 +148,17 @@ jobs:
         # turned out to have produced nothing at all.
         $probe = [System.Collections.Generic.List[string]]::new()
         $probe.Add ('standalone build exit: ' + $env:STANDALONE_BUILD_EXIT)
+        $probe.Add ('audit runner build exit: ' + $env:AUDIT_RUNNER_BUILD_EXIT)
         $probe.Add ('working directory: ' + $PWD)
 
         # Not just 'AnaPlug.exe': the standalone artefact is named after the product
         # but the JUCE target is AnaPlug_Standalone, so match liberally and prefer
         # anything on a standalone path.
         $candidates = @(Get-ChildItem -Path build -Recurse -Filter 'AnaPlug*.exe' -ErrorAction SilentlyContinue)
-        $exe = $candidates | Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1
+        # Prefer the console runner, then the standalone artefact: the console
+        # runner cannot be missing for any reason other than its own build failing.
+        $exe = $candidates | Where-Object { $_.Name -match 'Audit' } | Select-Object -First 1
+        if (-not $exe) { $exe = $candidates | Where-Object { $_.FullName -match 'Standalone' } | Select-Object -First 1 }
         if (-not $exe) { $exe = $candidates | Select-Object -First 1 }
         $probe.Add ('AnaPlug.exe candidates: ' + $candidates.Count)
         foreach ($c in $candidates) { $probe.Add ('  ' + $c.FullName) }
@@ -153,10 +170,11 @@ jobs:
         function Write-Probe { $probe -join [Environment]::NewLine | Set-Content -Path 'ui-audit-probe.txt' }
 
         if (-not $exe) {
-            $probe.Add ('standalone-build-log.txt tail:')
-            if (Test-Path standalone-build-log.txt) {
-                $probe.AddRange ([string[]](Get-Content standalone-build-log.txt -Tail 120))
-            } else { $probe.Add ('  (no standalone-build-log.txt)') }
+            foreach ($log in @('audit-runner-build-log.txt', 'standalone-build-log.txt')) {
+                $probe.Add ($log + ' tail:')
+                if (Test-Path $log) { $probe.AddRange ([string[]](Get-Content $log -Tail 120)) }
+                else { $probe.Add ('  (no ' + $log + ')') }
+            }
             Write-Probe
             Write-Host 'standalone executable not found - UI audit could not run'
             exit 1
@@ -267,7 +285,7 @@ jobs:
         fi
         # Tails only: the full build log is megabytes and this branch is replaced
         # wholesale every run, so it would only slow the fetch down.
-        for f in standalone-build-log.txt build-log.txt; do
+        for f in audit-runner-build-log.txt standalone-build-log.txt build-log.txt; do
           [ -f "$f" ] && tail -200 "$f" > "/tmp/ci-reports/tail-$f"
         done
 
