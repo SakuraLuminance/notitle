@@ -12,14 +12,14 @@
 | 目标 | Windows x64 合成器插件：**VST3 + CLAP** |
 | 技术栈 | JUCE **8.0.13**（FetchContent，`GIT_SHALLOW`）、clap-juce-extensions（`main`）、Catch2 v3.5.2、**C++17**、MSVC `/MT` |
 | 构建目标名 | 插件 `AnaPlug`（VST3 + CLAP + **Standalone**），测试 `AnaPlugTests` |
-| 最新已验证提交 | **`2e6f878`（全绿：Build 成功 + UI 自检跑通 + pluginval 成功 + 三个 artifact 均上传）**；插件代码上一次全绿是 `deb270c`（624 用例） |
-| 最近全绿 CI | Run `#35357783612`（`deb270c`，代码）与 `#35360160224`（`109b0ac`，HEAD）：Build **0 条 error**、**624 用例 / 0 失败 / 343042 断言**、pluginval `Strictness level: 5` **SUCCESS**、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
+| 最新已验证提交 | **`3a9ba45`（feat(ci)：把构建好的 VST3 发到本地取得到的地方）**；插件代码最近一次全绿 = **`d2334d9`（run #197，2026-09-19）**：Build 步骤 success、UI 自检 0 findings、pluginval success、job 结论 success |
+| 最近全绿 CI（`d2334d9` / run 197，2026-09-19） | Build 步骤 **success** → 审计修复批次（WavLoader 逐项限幅 / Comb 延迟线上限 / MeteringEngine 音频线程 resize / state blob 上限 / MidiLearn 锁 / friend 限定）在 MSVC 下编译通过；UI 自检 `59 snapshots, 2707 visible controls, 0 findings`（advisory `cramped=128 invisible-control=2` 未清零）；pluginval `Strictness level: 5` success。更早的计数基线：`deb270c` run #35357783612 = **624 用例 / 0 失败 / 343042 断言**、`109b0ac` run #35360160224 同样全绿、forensics **0 CRASH-OR-FAIL**（7 SKIP-UNMATCHED = 名字来自未编入 exe 的源文件） |
 | 本轮批次链（每步全绿） | `c335326` 帧混合曲线 #35316399784 = 613 · `db20abf` 枚举真菜单 #35318939971 = 616 · `81e4138` 颗粒池优化 #35319079605 = 617 · `bcde027` 文档/工具 #35321642036 = 617 · `05e881d` 粒子云 #35352187933 = 618 · `cecf136` GRAIN 页 MIDI Learn #35352359490 = 618 · `bd188b3` 采样包络条 #35354233013 = 619 · `c070428` SPREAD/REVERSE #35354598393 = 621 · `b974d10` 粒子方向 #35355098143 = 622 · `444099b` 云按 pan 着色 #35355911104 = 623 · `deb270c` 颗粒 JITTER #35357783612 = **624** |
 | 更早的全绿 | `a6e5f3b` #35315329172 = 611（谐波分箱 + 颗粒层 + MIDI Learn）、`578253a` #35311445334（颗粒层首批）、`6d82383` #35310048933（P6b/主题） |
 | 用例计数 | 源码内 **638 个 `TEST_CASE` 名**（`d6d4a67` 注解实测）；最后一次成功执行的是 **624 个 / 0 失败 / 343042 断言**（`deb270c`） |
-| 未验证批次 | **无**（`d6d4a67` ARP 接线 / `f3627ad` CI 加固 / `ed922c6` 四处编译修复 / `f783394` 回退通道 均已随着 `45b4f16`、`2e6f878` 两轮全绿一起被编译并运行） |
+| 未验证批次 | **无**；本轮审计修复批次 `d2334d9` 已在 run #197 被编译并跑过 UI 自检 |
 | 本轮已全绿的提交 | `45b4f16`（MidiBuffer::size + 冗余基类 + 本地前端检查工具）与 `2e6f878`（UI 自检崩溃兜底）**run 结论 success**：Build 成功、Standalone 成功、UI 自检步骤跑通、Test 步骤成功、pluginval 成功、三个 artifact 上传成功 → **插件代码可以编译并运行了**（此前连续 4 轮失败全是编译错误） |
-| 未推送批次 | **无**；唯一剩余候选 = 成品安装（需 UAC + 浏览器下载，脚本 `tools/install-vst3.ps1` 已就绪） |
+| 未推送批次 | **无**（`3a9ba45` 已推、其轮次在跑；`29cd080` / `e04c146` / `3fdb8b0` 三个测试与文档提交同批推送） |
 | **已定位的 CI 盲区（已修）** | `5a7bc0d` / `d6d4a67` 连续两次失败，注解却写「no error pattern matched」——**根因是诊断脚本的正则 `error [A-Z]{2,4}[0-9]{3,5}` 要求 2–4 个大写字母，而 MSVC 的 `error C2065` 只有 1 个字母**，于是所有编译错误都被吞掉；同时 MSBuild 并行编多个工程，出错行出现在日志中段，而我当时只看日志**尾部**，尾部全是无关工程的正常输出。现在：正则改为大小写不敏感且宽泛（`error\|fatal\|failed\|cannot\|denied\|no space\|MSB`），并**无条件**输出 configure-log / build-log 尾部 + 磁盘余量。真实错误随之暴露：`UiAudit.cpp` 用了 `juce::WavAudioFormat` 但该 TU 没有包含 `juce_audio_formats` 头（模块本来已链接）——已加 `#include <juce_audio_formats/juce_audio_formats.h>` |
 | UI 自检通道 | 插件可**无宿主无窗口**渲染自己的界面：`ANAPLUG_UI_AUDIT=<dir>` + `AnaPlug_Standalone_artefacts/Release/Standalone/AnaPlug.exe` → 9 页 × 5 尺寸 + 8 种视图模式截图 + 逐控件几何检查（超出父组件 / 零尺寸 / 同级重叠 / 小于可用下限 / 无 tooltip / 文字比标签宽 / 整页几乎空白），报告写 `report.txt` / `report.json` / `inkmap*.txt`；CI 自动跑并把摘要 + 最小尺寸 ASCII 墨迹图写进 `ci-diagnostics` 注解 |
 | **UI 自检报告已真正可读（本轮首次）** | 步骤日志与 artifact 都走 `*.blob.core.windows.net`（本机解析为 198.18.x.x），所以报告改由**最后一步用 REST API**（`POST /repos/.../contents/...?branch=ci-reports`，`GITHUB_TOKEN` + `contents: write`）逐文件发布到 `ci-reports` 分支；本机用 `F:\anaplug-local\fetch-report-api.ps1`（走 git credential 取 token）拉回。**已实测成功**：一次运行拿到 51 个文件 = 59 张截图中的 40 张 + `summary.txt` / `report.txt` / `report.json` / `inkmap*.txt` / `index.html` / 探针 / 三份构建日志 |
@@ -33,7 +33,8 @@
 | **自检自身的假阳性（已修）** | `outside-parent` 原本只豁免 Viewport 的**直接**子组件，于是 `ModulationAssignPanel`、机架槽容器这些**被滚动**的内容被误报为「超出父组件」；现在连同 Viewport 的所有后代一起豁免 |
 | **算法 / 漏洞审计（本轮，详见 `AUDIT_ALGORITHMS_V1.md`）** | 复核 `src/` 全部 dsp/gui/effects 源码（33 128 + 9 772 + 8 776 行），框架行为一律与 JUCE 8.0.13 源码对照。**已修 6 类**：① `WavLoader` 直接用文件头的声道数/声明长度开 `AudioBuffer`（60 字节 WAV 即可要求 64 GB 分配 → `std::bad_alloc` 逃出 FileChooser 回调 = 宿主终止），重采样长度还会 int 溢出 → 现在逐项限幅 + try/catch；② `MultiFilter` 的 Comb 延迟线从未 `setMaximumDelayInSamples`（JUCE 默认上限 0 → 恒 2 采样），**cutoff 旋钮此前完全无效**；③ `MeteringEngine::process()` 在音频线程 `resize`；④ `setStateInformation` 无上限解析宿主 blob、预置可决定滤波槽/效果实例数量；⑤ `MidiLearn::processMidi` 与消息线程并发读写 `mappings_`（元素持有 `std::function`）→ SpinLock + 音频线程 try-lock + 学习模式改原子交接；⑥ `PresetManager.h` 的 friend 未限定，非 MSVC 工具链编不过测试。**已核实、待修**：`PitchCorrector` 每个 `process()` 都重建 STFT 累加器且只合成完全落在块内的帧 → 宿主块 512 < 窗口 2048 时**整块输出静音**（`AutoTuneEffect`/`VocalProcessor` 路径），现有测试只断言 `REQUIRE_NOTHROW` 所以 CI 全绿；重合成分支绕过整条 FX 链；`MultibandProcessor` 因无人调用 `setNumBands` 恒为空操作；19 个未文档化的零引用模块 |
 | 路线图 | **P1–P6 ✓**、P6b ✓、多主题 ✓、rack 内 MIDI Learn ✓、颗粒层 + GRAIN 页 ✓（粒子云 / 采样包络条 / SPREAD / REVERSE / JITTER / 9 旋钮全部可 MIDI Learn）、DNA fittest → 音色 ✓、图像谐波分箱 ✓、帧混合曲线 ✓、**枚举真菜单 ✓**（用户已确认：仅 UI 菜单）、颗粒池性能 ✓、**ARP 接线 ✓**（PATTERN/RATE/GATE 三个控件此前完全没接线，属死控件）、FX 链自动重建 + 链 UNDO/REDO ✓、MOD/FILTER/MASTER/EVO 面板补 `syncFromProcessor()`（预置载入后界面不再停留在上一套参数）✓；**路线图全部完成**，只剩成品安装 |
-| 环境 | **本机没有任何编译工具链**（无 cmake/msbuild/cl/ninja）——所有验证只能推 GitHub Actions |
+| 环境（2026-09-19 修正） | 本机**有**可用的本地前端工具链（zig/clang，仓库外 `F:\anaplug-local`）：`zigcheck.ps1` 前端检查、`build-tests.ps1 [-Clean] [-Filter]` 编译并运行 Catch2、`build-audit.ps1` 跑 UI 自检。**但这些都不是产品证据**——唯一权威仍是推 GitHub Actions；且**改了头文件必须 `-Clean`**：对象与头文件 ABI 不一致不会报编译错，只在运行期读到随机内存（断言里出现 10421304982 这种 size 就是它） |
+| **一条命令取最新构建并装进宿主（`3a9ba45` 新增）** | `powershell -ExecutionPolicy Bypass -File tools\fetch-latest-vst3.ps1 -ClearReaperCache` —— CI 每次成功构建都把 VST3 bundle 以**单提交分支**（root commit，历史恒为 1 个提交，不会每轮把仓库涨 17 MB）重发到 `ci-artifacts`，旁边 `build.json` 记录 sha / run / 大小；脚本校验 zip 头与字节数、算 sha256，再交给 `tools/install-vst3.ps1` 装进 `C:\Program Files\Common Files\VST3`（该目录本机实测可写，脚本不再无条件等 UAC）。`-NoInstall` 只下载；`-ArtifactApi` 走官方 artifact（能连通 blob 的机器更快）。**为什么必须有它**：artifact 下载会 302 到 `*.blob.core.windows.net`，本机对该主机 TLS 握手失败（DNS 解析到 198.18.x.x），此前只能人工在浏览器里下载 zip |
 
 ---
 
@@ -52,7 +53,7 @@
 | **最大陷阱** | `.github/workflows/cmake.yml` 的 `Test` 步骤带 **`continue-on-error: true`** —— **测试失败 run 仍然是绿的**。每轮必须从日志里读：① `All tests passed (… in N test cases)` ② `Strictness level: N` ③ 没有 `CRASH-OR-FAIL ::` 条目 |
 | **日志/产物下载已彻底不可用** | 本机 DNS 把 `*.blob.core.windows.net`、`pipelines.azure.com` 应答成 **198.18.x.x**（保留段）→ `/logs` 与 artifact `zip` 全部失败，curl/node/Invoke-WebRequest 都一样。**唯一可读通道 = workflow 步骤写出的 runner 注解**（`Publish CI diagnostics`：构建错误 / named tests / executed cases / failed cases / strictness / CRASH 条目，切成 ≤10 条 `::error title=ci-diagnostics i/n::`）。API 通道（check run / commit comment / commit status）在本仓库一律被拒（无权限），别指望 |
 | 批次纪律 | **改一批 → 推一轮 → 取证 → 再改**。失败先拉日志定位，禁止凭空大改 |
-| 成品安装 | 需要 UAC，用 V2 里的 EncodedCommand + RunAs 脚本；artifact 名 `AnaPlug-windows-latest` |
+| 成品安装 / 本地取构建 | 一条命令：`powershell -ExecutionPolicy Bypass -File tools\fetch-latest-vst3.ps1 -ClearReaperCache` —— 从 `ci-artifacts` 分支取回最近一次成功构建的 VST3 bundle，装进 `C:\Program Files\Common Files\VST3`。不需要浏览器、不需要 UAC（该目录本机实测可写；真要提权时 `install-vst3.ps1` 仍会自己 RunAs）。完整机制见 §0 的「一条命令取最新构建并装进宿主」一行 |
 
 ---
 
@@ -189,7 +190,7 @@ processBlock 顺序（简化）：
 | P6 遗留（跨帧索引） | ✓ `69169ca` | `HarmonicBinning`：共享 f0 中位数轴；spec `2026-09-18-harmonic-binning-design.md` |
 | P6 遗留（帧插值曲线） | ✓ `c335326` | `AdditiveSynth::shapeFrameMix`：LINEAR/SMOOTH/STEP，TIMBRE 页 `CURVE` 下拉，spec `2026-09-18-frame-blend-curve-design.md` |
 | 颗粒池性能 | ✓ `81e4138` | 渲染循环只扫 `[0, scanCount_)` 活跃前缀（spawn 永远取最低空位），输出**逐位不变**；默认密度下每采样迭代数从 256 降到个位 |
-| 成品安装 | **待 UAC**（唯一剩余项） | 本机**无法下载 artifact**（DNS 198.18.x.x）。用户在浏览器里从绿色 run 下载 `AnaPlug-windows-latest` → 运行 `powershell -ExecutionPolicy Bypass -File tools/install-vst3.ps1 -ClearReaperCache`：脚本自动找 Downloads 里最新的 `AnaPlug*.zip`、解压、自提权安装到 `C:/Program Files/Common Files/VST3` 并校验 |
+| 成品安装 | ✓ `3a9ba45` | CI 把每次成功构建的 bundle 发到 `ci-artifacts`（单提交分支）+ `build.json` 溯源；`tools\fetch-latest-vst3.ps1` 一条命令下载→校验→安装，`install-vst3.ps1` 仍是底层安装器（保留手工 `-Source <zip>` 与 Downloads 里最新 zip 的老路径）。此前「本机无法下载 artifact」的结论仍然成立——所以走的是分支，不是 artifact |
 
 ---
 
