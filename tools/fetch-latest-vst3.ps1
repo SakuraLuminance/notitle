@@ -106,8 +106,14 @@ function Get-PublishedMeta {
     # for a few minutes after a publish, and the sha is the whole point of it.
     try
     {
+        # With the raw media type the answer is the file itself; Invoke-RestMethod
+        # hands that back already deserialised, but a host that answered with the
+        # default JSON shape gives a base64 payload instead.  Accept both.
         $body = Invoke-RestMethod -Headers $rawHeaders -Uri "$api/contents/build.json?ref=$Branch" -TimeoutSec 60
-        return ($body | ConvertFrom-Json)
+
+        if ($body -is [string]) { return ($body | ConvertFrom-Json) }
+        if ($body.content) { return ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($body.content -replace '\s', ''))) | ConvertFrom-Json) }
+        return $body
     }
     catch
     {
@@ -127,9 +133,9 @@ function Get-LatestGreenRun {
 }
 
 function Save-BranchFile([string] $path, [string] $outFile) {
-    $entry = Get-Json "$api/contents/$path" + "?ref=$Branch"
+    $entry = Get-Json ("$api/contents/$path" + "?ref=$Branch")
     if (-not $entry.sha) { throw "branch '$Branch' has no $path" }
-    Invoke-WebRequest -Headers $rawHeaders -Uri "$api/git/blobs/$($entry.sha)" -OutFile $outFile -TimeoutSec 600
+    Invoke-WebRequest -UseBasicParsing -Headers $rawHeaders -Uri "$api/git/blobs/$($entry.sha)" -OutFile $outFile -TimeoutSec 600
     return $outFile
 }
 
