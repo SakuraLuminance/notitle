@@ -113,6 +113,21 @@ if (-not $binary) { throw "$bundle contains no AnaPlug binary." }
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)
 
+# Membership of Administrators is not what matters: what matters is whether this
+# process may write the folder.  Asking for UAC when the folder is already
+# writable turns an unattended "fetch and install" into a dialog nobody clicks.
+if (-not $isAdmin -and (Test-Path -LiteralPath $Vst3Dir)) {
+    try
+    {
+        $probe = Join-Path $Vst3Dir 'anaplug-writetest.tmp'
+        Set-Content -Path $probe -Value 'x' -ErrorAction Stop
+        Remove-Item -LiteralPath $probe -Force
+        $isAdmin = $true
+        Write-Host 'vst3 folder is writable - no elevation needed'
+    }
+    catch { }
+}
+
 if (-not $isAdmin) {
     Write-Host 'not elevated - re-launching with UAC...'
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"",

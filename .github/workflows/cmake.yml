@@ -299,6 +299,86 @@ jobs:
         if-no-files-found: warn
         path: build/*_artefacts/Release/Standalone/
 
+    # GitHub serves artifact downloads from a blob host that some networks cannot
+    # complete a TLS handshake with, and this project's dev machine is one of them.
+    # The bundle is therefore republished through the REST API onto a single-commit
+    # branch (no history to grow) that raw.githubusercontent.com serves to anyone.
+    # tools/fetch-latest-vst3.ps1 reads it back and installs it; build.json carries
+    # the commit and run number the bundle came from.
+    - name: Publish VST3 bundle for local testing
+      if: always() && runner.os == 'Windows'
+      continue-on-error: true
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        $bundle = Get-ChildItem 'build\*_artefacts\Release\VST3\*.vst3' -Directory |
+                  Select-Object -First 1
+        if (-not $bundle)
+        {
+            Write-Host 'this run produced no VST3 bundle - the published one stays as it is'
+            exit 0
+        }
+
+        $zip = Join-Path $env:RUNNER_TEMP 'AnaPlug-vst3.zip'
+        Compress-Archive -Path $bundle.FullName -DestinationPath $zip -Force
+        $bytes = [IO.File]::ReadAllBytes($zip)
+
+        $meta = @{
+            sha        = $env:GITHUB_SHA
+            run        = $env:GITHUB_RUN_NUMBER
+            runId      = $env:GITHUB_RUN_ID
+            ref        = $env:GITHUB_REF_NAME
+            date       = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            bytes      = $bytes.Length
+            bundle     = $bundle.Name
+        } | ConvertTo-Json -Compress
+
+        $api     = "https://api.github.com/repos/$env:GITHUB_REPOSITORY"
+        $headers = @{
+            Authorization = "token $env:GITHUB_TOKEN"
+            Accept        = 'application/vnd.github+json'
+            'User-Agent'  = 'anaplug-ci'
+        }
+
+        function New-Blob([byte[]] $Content)
+        {
+            $body = @{ content = [Convert]::ToBase64String($Content); encoding = 'base64' } |
+                    ConvertTo-Json -Compress
+            Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' -Uri "$api/git/blobs" -Body $body
+        }
+
+        $zipBlob  = New-Blob $bytes
+        $metaBlob = New-Blob ([Text.Encoding]::UTF8.GetBytes($meta))
+
+        $treeBody = @{ tree = @(
+            @{ path = 'AnaPlug-vst3.zip'; mode = '100644'; type = 'blob'; sha = $zipBlob.sha },
+            @{ path = 'build.json';       mode = '100644'; type = 'blob'; sha = $metaBlob.sha }
+        ) } | ConvertTo-Json -Depth 8 -Compress
+        $tree = Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' -Uri "$api/git/trees" -Body $treeBody
+
+        $commitBody = @{
+            message = "ci: VST3 bundle of $env:GITHUB_SHA (run $env:GITHUB_RUN_NUMBER)"
+            tree    = $tree.sha
+        } | ConvertTo-Json -Compress
+        $commit = Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' -Uri "$api/git/commits" -Body $commitBody
+
+        # A root commit with no parents: the branch always holds exactly one commit,
+        # so republishing cannot grow the repository by 17 MB per run.
+        $ref = 'heads/ci-artifacts'
+        try
+        {
+            Invoke-RestMethod -Method Patch -Headers $headers -ContentType 'application/json' -Uri "$api/git/refs/$ref" -Body (@{ sha = $commit.sha; force = $true } | ConvertTo-Json -Compress) | Out-Null
+        }
+        catch
+        {
+            Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' -Uri "$api/git/refs" -Body (@{ ref = "refs/$ref"; sha = $commit.sha } | ConvertTo-Json -Compress) | Out-Null
+        }
+
+        Write-Host ("published $($bytes.Length) bytes: " + ($meta -replace '"', ''))
+
     # Diagnostic: dump the VST3 DLL's dependencies and exported symbols.
     # These reveal whether LoadLibrary fails due to missing DLL dependencies
     # or whether InitModule/DeinitModule (the VST3 factory entry-points)
